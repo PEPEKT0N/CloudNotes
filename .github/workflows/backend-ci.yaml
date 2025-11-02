@@ -1,0 +1,44 @@
+name: Backend CI
+
+on:
+  pull_request:
+    branches: [ develop, main ]
+  push:
+    branches: [ develop ]
+
+jobs:
+  restore-build-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-packages-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            nuget-packages-
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Run dotnet format (check only)
+        run: dotnet tool restore && dotnet format --verify-no-changes
+        # Если хочешь автоисправление — убери --verify-no-changes
+
+      - name: Build
+        run: dotnet build --no-restore -c Release
+
+      - name: Test
+        run: dotnet test --no-build -c Release --verbosity normal
