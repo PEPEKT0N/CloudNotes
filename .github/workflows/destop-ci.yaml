@@ -1,0 +1,34 @@
+name: Desktop Release Build
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # теги формата v1.2.3
+
+jobs:
+  publish-desktop:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        runtime: [win-x64, linux-x64, osx-arm64] 
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Publish
+        run: |
+          dotnet publish src/CloudNotes.Desktop/CloudNotes.csproj -c Release -r ${{ matrix.runtime }} --self-contained true /p:PublishSingleFile=true -o ./publish/${{ matrix.runtime }}
+      - name: Zip artifact
+        run: |
+          mkdir -p artifacts
+          zip -r artifacts/cloudnotes-${{ matrix.runtime }}-${{ github.ref_name }}.zip publish/${{ matrix.runtime }}
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.runtime }}
+          path: artifacts/cloudnotes-${{ matrix.runtime }}-${{ github.ref_name }}.zip
