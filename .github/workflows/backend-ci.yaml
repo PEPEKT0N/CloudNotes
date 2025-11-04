@@ -31,14 +31,14 @@ jobs:
             nuget-packages-
 
       - name: Restore
-        run: dotnet restore
+        run: dotnet restore CloudNotes.sln
 
       - name: Run dotnet format (check only)
         run: dotnet tool restore && dotnet format --verify-no-changes
         # Если хочешь автоисправление — убери --verify-no-changes
 
       - name: Build
-        run: dotnet build --no-restore -c Release
+        run: dotnet build CloudNotes.sln --no-restore -c Release
 
       - name: Test
-        run: dotnet test --no-build -c Release --verbosity normal
+        run: dotnet test CloudNotes.sln --no-build -c Release
