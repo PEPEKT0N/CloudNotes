@@ -1,6 +1,5 @@
 namespace CloudNotes.Desktop.Model;
 
-public class Note 
+public class Note
 {
-    
 }
