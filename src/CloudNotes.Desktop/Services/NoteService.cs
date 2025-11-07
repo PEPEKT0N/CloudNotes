@@ -1,7 +1,5 @@
-namespace CloudNotes.Desktop.Services
+namespace CloudNotes.Desktop.Services;
+
+public class NoteService : INoteService
 {
-    public class NoteService : INoteService
-    {
-        
-    }
 }
