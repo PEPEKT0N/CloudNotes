@@ -1,5 +1,7 @@
 using Avalonia;
 using System;
+using Microsoft.EntityFrameworkCore;
+using CloudNotes.Data;
 
 namespace CloudNotes;
 
@@ -9,11 +11,24 @@ class Program
     // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
     // yet and stuff might break.
     [STAThread]
-    public static void Main(string[] args) => BuildAvaloniaApp()
-        .StartWithClassicDesktopLifetime(args);
+    public static void Main(string[] args)
+    {
+        //DbContextOptionsBuilder for configuring the connection
+        var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
+        optionsBuilder.UseSqlite($"Data Source={Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)}/CloudNotes/notes.db");
+
+        // context and call EnsureCreated
+        using (var context = new AppDbContext(optionsBuilder.Options))
+        {
+            context.Database.EnsureCreated(); // Creates the database and tables if they don't exist
+        }
+        // Launch the Avalonia app
+        BuildAvaloniaApp()
+            .StartWithClassicDesktopLifetime(args);
+    }
 
     // Avalonia configuration, don't remove; also used by visual designer.
-    public static AppBuilder BuildAvaloniaApp()
+    private static AppBuilder BuildAvaloniaApp()
         => AppBuilder.Configure<App>()
             .UsePlatformDetect()
             .WithInterFont()
