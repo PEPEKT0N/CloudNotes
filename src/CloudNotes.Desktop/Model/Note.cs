@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace CloudNotes.Models;
 
 
-public partial class Note
+public class Note
 {
     public Guid Id { get; set; }
     public Guid UserId { get; set; }
