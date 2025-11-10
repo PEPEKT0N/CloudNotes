@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using CloudNotes.Desktop.Model; 
+using CloudNotes.Desktop.Model;
 
-namespace CloudNotes.Desktop.Data; 
+namespace CloudNotes.Desktop.Data;
 
 public class AppDbContext : DbContext
 {

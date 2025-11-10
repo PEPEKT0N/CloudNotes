@@ -1,7 +1,7 @@
 using Avalonia;
 using System;
 using Microsoft.EntityFrameworkCore;
-using CloudNotes.Desktop.Data;  
+using CloudNotes.Desktop.Data;
 
 namespace CloudNotes.Desktop;
 
@@ -11,7 +11,7 @@ class Program
     // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
     // yet and stuff might break.
     [STAThread]
-    public static void Main(string[] args) 
+    public static void Main(string[] args)
     {
         // Create DbContextOptionsBuilder for configuring the connection
         var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
