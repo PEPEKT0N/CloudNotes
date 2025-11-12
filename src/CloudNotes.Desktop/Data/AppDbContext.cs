@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using CloudNotes.Desktop.Model;
 
 namespace CloudNotes.Desktop.Data;
 
@@ -10,5 +9,5 @@ public class AppDbContext : DbContext
     {
     }
 
-    public DbSet<Note> Notes { get; set; } = null!;
+    public DbSet<CloudNotes.Desktop.Model.Note> Notes { get; set; } = null!;
 }
