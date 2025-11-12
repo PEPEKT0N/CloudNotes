@@ -2,6 +2,7 @@ using Avalonia;
 using System;
 using Microsoft.EntityFrameworkCore;
 using CloudNotes.Desktop.Data;
+using System.IO;
 
 namespace CloudNotes.Desktop;
 
@@ -15,7 +16,15 @@ class Program
     {
         // Create DbContextOptionsBuilder for configuring the connection
         var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
-        optionsBuilder.UseSqlite($"Data Source={Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)}/CloudNotes/notes.db");
+        // optionsBuilder.UseSqlite($"Data Source={Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)}/CloudNotes/notes.db");
+        var folder = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "CloudNotes"
+        );
+        Directory.CreateDirectory(folder);
+        var dbPath = Path.Combine(folder, "notes.db");
+        var optionsBuidler = new DbContextOptionsBuilder<AppDbContext>();
+        optionsBuilder.UseSqlite($"Data Source={dbPath}");
 
         // Create context and call EnsureCreated
         using (var context = new AppDbContext(optionsBuilder.Options))
