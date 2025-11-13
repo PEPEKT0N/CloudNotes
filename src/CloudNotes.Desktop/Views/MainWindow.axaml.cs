@@ -68,12 +68,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         Notes = new ObservableCollection<NoteListItem>();
         foreach (var note in allNotes)
         {
-            Notes.Add(new NoteListItem
-            {
-                Id = note.Id,
-                Title = note.Title,
-                UpdatedAt = note.UpdatedAt
-            });
+            Notes.Add(GenerateListItem(note));
         }
 
         CreateNoteCommand = new RelayCommand(_ => CreateNote());
