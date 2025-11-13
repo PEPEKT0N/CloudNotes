@@ -1,8 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.ComponentModel; // для INotifyPropertyChanged
-using System.Runtime.CompilerServices; // для [CallerMemberName]
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+using System.Windows.Input;
 using Avalonia.Controls;
 using CloudNotes.Desktop.Model;
 
@@ -15,7 +16,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     public ObservableCollection<NoteListItem> Notes { get; set; }
     private readonly List<Note> allNotes = new();
-
+    public ICommand CreateNoteCommand { get; }
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public NoteListItem? SelectedListItem
@@ -40,7 +41,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             if (selectedNote != value)
             {
                 selectedNote = value;
-                OnPropertyChanged(); // уведомляем об изменении SelectedNote
+                OnPropertyChanged();
             }
         }
     }
@@ -48,7 +49,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     public MainWindow()
     {
         InitializeComponent();
-
+        // TODO: Убрать после завершения этапа 1
         allNotes.Add(new Note
         {
             Id = Guid.NewGuid(),
@@ -75,7 +76,45 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             });
         }
 
+        CreateNoteCommand = new RelayCommand(_ => CreateNote());
+
         DataContext = this;
+    }
+
+    private void CreateNote()
+    {
+        var newNote = new Note
+        {
+            Id = Guid.NewGuid(),
+            Title = "Unnamed",
+            Content = "",
+            UpdatedAt = DateTime.Now
+        };
+
+        allNotes.Add(newNote);
+
+        var newListItem = GenerateListItem(newNote);
+
+        // var newListItem = new NoteListItem
+        // {
+        //     Id = newNote.Id,
+        //     Title = newNote.Title,
+        //     UpdatedAt = newNote.UpdatedAt
+        // };
+
+        Notes.Add(newListItem);
+
+        SelectedListItem = newListItem;
+    }
+
+    private NoteListItem GenerateListItem(Note note)
+    {
+        return new NoteListItem
+        {
+            Id = note.Id,
+            Title = note.Title,
+            UpdatedAt = note.UpdatedAt
+        };
     }
 
     public void OnNoteSelected(NoteListItem? listItem)

@@ -16,7 +16,9 @@
         <Border Padding="20" Grid.Column="0">
             <StackPanel>
                 <TextBox>CloudNotes</TextBox>
-                <Button Margin="0,5">Create note</Button>
+                <Button Margin="0,5" 
+                        Content="Create note" 
+                        Command="{Binding CreateNoteCommand}" />
 
                 <TextBlock Text="Your Notes" FontWeight="Bold"
                 FontSize="16" Margin="0,30,0,10"/>
