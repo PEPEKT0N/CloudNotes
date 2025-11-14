@@ -15,14 +15,12 @@ namespace CloudNotes.Desktop.Model
             this.canExecute = canExecute;
         }
 
+        public event EventHandler? CanExecuteChanged;
+
         public bool CanExecute(object? parameter) => canExecute?.Invoke(parameter) ?? true;
 
         public void Execute(object? parameter) => execute(parameter);
 
-        public event EventHandler? CanExecuteChanged
-        {
-            add { }
-            remove { }
-        }
+        public void RaiseCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
     }
 }
