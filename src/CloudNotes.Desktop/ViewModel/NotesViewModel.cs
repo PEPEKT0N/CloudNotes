@@ -67,12 +67,15 @@ namespace CloudNotes.Desktop.ViewModel
                 Content = "Another sample note to test selection.",
                 UpdatedAt = DateTime.Now.AddHours(-1)
             });
+
+            SelectedListItem = null;
+            SelectedNote = null;
         }
         private void AddNote(Note note)
         {
             AllNotes.Add(note);
             Notes.Add(GenerateListItem(note));
-            SelectedListItem = Notes[^1];
+            //SelectedListItem = Notes[^1];
         }
 
         private void UpdateSelectedNote(NoteListItem? listItem)
