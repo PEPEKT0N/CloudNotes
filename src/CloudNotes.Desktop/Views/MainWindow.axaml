@@ -16,7 +16,32 @@
 
                 <Button Margin="0,5"
                         Content="Create note"
-                        Command="{Binding ViewModel.CreateNoteCommand}" />                
+                        Command="{Binding ViewModel.CreateNoteCommand}" />
+
+                <TextBlock Text="Favorites"
+                           FontWeight="Bold"
+                           FontSize="16"
+                           Margin="0,20,0,10" />
+
+                <ListBox>
+                    <ListBox.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Remove from favorites"
+                                        Command="{Binding ViewModel.RemoveFromFavoritesCommand}" />
+                            <MenuItem Header="Rename"
+                                        Command="{Binding ViewModel.RenameNoteCommand}" />
+                            <MenuItem Header="Delete"
+                                        Command="{Binding ViewModel.DeleteNoteCommand}" />
+                        </ContextMenu> 
+                    </ListBox.ContextMenu>
+
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Title}" />
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
 
                 <TextBlock Text="Your Notes"
                            FontWeight="Bold"
@@ -26,6 +51,18 @@
                 <ListBox ItemsSource="{Binding ViewModel.Notes}"
                          SelectedItem="{Binding ViewModel.SelectedListItem, Mode=TwoWay}"
                          SelectionChanged="OnListBoxSelectionChanged">
+
+                    <ListBox.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Add to favorites"
+                                        Command="{Binding ViewModel.AddToFavoritesCommand}" />
+                            <MenuItem Header="Rename"
+                                        Command="{Binding ViewModel.RenameNoteCommand}" />
+                            <MenuItem Header="Delete"
+                                        Command="{Binding ViewModel.DeleteNoteCommand}" />
+                        </ContextMenu>
+                    </ListBox.ContextMenu>
+
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <TextBlock Text="{Binding Title}" />
