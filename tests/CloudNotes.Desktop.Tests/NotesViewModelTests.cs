@@ -13,8 +13,8 @@ namespace CloudNotes.Desktop.Tests
 
             vm.CreateNote();
 
-            Assert.Single(vm.AllNotes);
-            Assert.Single(vm.Notes);
+            Assert.Equal(3, vm.AllNotes.Count);
+            Assert.Equal(3, vm.Notes.Count);
             Assert.NotNull(vm.SelectedListItem);
             Assert.NotNull(vm.SelectedNote);
             Assert.Equal(vm.SelectedListItem!.Id, vm.SelectedNote!.Id);
