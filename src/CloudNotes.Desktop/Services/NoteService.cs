@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using CloudNotes.Desktop.Data;
 using CloudNotes.Desktop.Model;
+using CloudNotes.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace CloudNotes.Desktop.Services;
@@ -10,6 +11,11 @@ namespace CloudNotes.Desktop.Services;
 public class NoteService : INoteService
 {
     private readonly AppDbContext _context;
+
+    public NoteService()
+    {
+        _context = DbContextProvider.GetContext();
+    }
 
     public async Task<Note> CreateNoteAsync(Note note)
     {
