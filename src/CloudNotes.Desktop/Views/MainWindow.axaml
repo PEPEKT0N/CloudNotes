@@ -2,40 +2,45 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:model="clr-namespace:CloudNotes.Desktop.Model"
-        xmlns:local="clr-namespace:CloudNotes"
-        x:DataType="local:MainWindow"
+        xmlns:model="clr-namespace:CloudNotes.Desktop.Model"               
+        x:Class="CloudNotes.Desktop.Views.MainWindow"        
         mc:Ignorable="d"
+        Title="CloudNotes"
         d:DesignWidth="800"
-        d:DesignHeight="450"
-        x:Class="CloudNotes.MainWindow"
-        Title="CloudNotes">
-    
+        d:DesignHeight="450">
 
     <Grid Background="lightblue" ColumnDefinitions="200, *">
         <Border Padding="20" Grid.Column="0">
             <StackPanel>
                 <TextBox>CloudNotes</TextBox>
-                <Button Margin="0,5">Create note</Button>
 
-                <TextBlock Text="Your Notes" FontWeight="Bold"
-                FontSize="16" Margin="0,30,0,10"/>
+                <Button Margin="0,5"
+                        Content="Create note"
+                        Command="{Binding ViewModel.CreateNoteCommand}" />                
 
-                <ListBox ItemsSource="{Binding Notes}"
-                        SelectedItem="{Binding SelectedListItem, Mode=TwoWay}"
-                        SelectionChanged="OnListBoxSelectionChanged">
+                <TextBlock Text="Your Notes"
+                           FontWeight="Bold"
+                           FontSize="16"
+                           Margin="0,30,0,10" />
+
+                <ListBox ItemsSource="{Binding ViewModel.Notes}"
+                         SelectedItem="{Binding ViewModel.SelectedListItem, Mode=TwoWay}"
+                         SelectionChanged="OnListBoxSelectionChanged">
                     <ListBox.ItemTemplate>
-                        <DataTemplate x:DataType="model:NoteListItem">
+                        <DataTemplate>
                             <TextBlock Text="{Binding Title}" />
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
             </StackPanel>
         </Border>
+
         <Border Padding="5" Grid.Column="1">
-            <TextBox AcceptsReturn="True" 
-            TextWrapping="Wrap"
-            Text="{Binding SelectedNote.Content, Mode=TwoWay, FallbackValue='Select a note'}" />
+            <TextBox AcceptsReturn="True"
+                     TextWrapping="Wrap"
+                     Text="{Binding ViewModel.SelectedNote.Content,
+                                    Mode=TwoWay,
+                                    FallbackValue='Select a note'}" />
         </Border>
     </Grid>
-</Window> 
+</Window>
