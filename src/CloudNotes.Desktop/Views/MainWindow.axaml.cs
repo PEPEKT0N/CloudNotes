@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using CloudNotes.Desktop.ViewModel;
 using CloudNotes.Desktop.Model;
+using System.Linq;
 
 namespace CloudNotes.Desktop.Views;
 
@@ -20,6 +21,26 @@ public partial class MainWindow : Window
         if (sender is ListBox listBox && listBox.SelectedItem is NoteListItem listItem)
         {
             ViewModel.OnNoteSelected(listItem);
+        }
+    }
+
+    private void OnFavoritesSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (DataContext is not NotesViewModel vm)
+        {
+            return;
+        }
+
+        if (sender is ListBox listBox)
+        {
+            var selected = listBox.SelectedItem as NoteListItem;
+            vm.SelectedListItem = selected;
+
+            if (selected != null)
+            {
+                var note = vm.AllNotes.FirstOrDefault(n => n.Id == selected.Id);
+                vm.SelectedNote = note;
+            }
         }
     }
 }
