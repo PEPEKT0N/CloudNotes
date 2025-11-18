@@ -23,7 +23,9 @@
                            FontSize="16"
                            Margin="0,20,0,10" />
 
-                <ListBox>
+                <ListBox ItemsSource="{Binding ViewModel.Favorites}"
+                         SelectedItem="{Binding ViewModel.SelectedFavoriteItem, Mode=TwoWay}"
+                         SelectionChanged="OnFavoritesSelectionChanged">
                     <ListBox.ContextMenu>
                         <ContextMenu>
                             <MenuItem Header="Remove from favorites"

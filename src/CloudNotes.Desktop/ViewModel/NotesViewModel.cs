@@ -18,6 +18,19 @@ namespace CloudNotes.Desktop.ViewModel
         public ObservableCollection<NoteListItem> Favorites { get; } = new();
         public List<Note> AllNotes { get; } = new();
 
+        private NoteListItem? selectedFavoriteItem;
+        public NoteListItem? SelectedFavoriteItem
+        {
+            get => selectedFavoriteItem;
+            set
+            {
+                if (selectedFavoriteItem != value)
+                {
+                    selectedFavoriteItem = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
         private NoteListItem? selectedListItem;
         public NoteListItem? SelectedListItem
         {
@@ -103,10 +116,22 @@ namespace CloudNotes.Desktop.ViewModel
             }
 
             var note = AllNotes.FirstOrDefault(n => n.Id == SelectedListItem.Id);
-            if (note != null)
+            if (note == null)
+            {
+                return;
+            }
+
+            if (!note.IsFavorite)
             {
                 note.IsFavorite = true;
             }
+
+            if (!Favorites.Any(f => f.Id == note.Id))
+            {
+                Favorites.Add(new NoteListItem(note.Id, note.Title));
+            }
+
+            (AddToFavoritesCommand as RelayCommand)?.RaiseCanExecuteChanged();
         }
 
         private async Task RenameNoteAsync()
