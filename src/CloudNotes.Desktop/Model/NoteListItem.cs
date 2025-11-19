@@ -1,11 +1,25 @@
 using System;
+using System.ComponentModel;
 
 namespace CloudNotes.Desktop.Model
 {
-    public class NoteListItem
+    public class NoteListItem : INotifyPropertyChanged
     {
+        public event PropertyChangedEventHandler? PropertyChanged;
         public Guid Id { get; set; }
-        public string Title { get; set; } = string.Empty;
+        private string title = string.Empty;
+        public string Title
+        {
+            get => title;
+            set
+            {
+                if (title != value)
+                {
+                    title = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Title)));
+                }
+            }
+        }
         public DateTime UpdatedAt { get; set; }
         public NoteListItem(Guid id, string title)
         {
