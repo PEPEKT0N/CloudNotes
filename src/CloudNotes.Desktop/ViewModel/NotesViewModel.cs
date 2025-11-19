@@ -4,9 +4,11 @@ using System.Runtime.CompilerServices;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Windows.Input;
-using CloudNotes.Desktop.Model;
 using System.Linq;
 using System.Threading.Tasks;
+
+using CloudNotes.Desktop.Model;
+
 
 
 namespace CloudNotes.Desktop.ViewModel
@@ -28,6 +30,7 @@ namespace CloudNotes.Desktop.ViewModel
                 {
                     selectedFavoriteItem = value;
                     OnPropertyChanged();
+                    (RemoveFromFavoritesCommand as RelayCommand)?.RaiseCanExecuteChanged();
                 }
             }
         }
@@ -61,7 +64,7 @@ namespace CloudNotes.Desktop.ViewModel
 
         public ICommand CreateNoteCommand { get; }
         public ICommand AddToFavoritesCommand { get; }
-        //public ICommand RemoveFromFavoritesCommand { get; }
+        public ICommand RemoveFromFavoritesCommand { get; }
         public ICommand RenameNoteCommand { get; }
         public ICommand DeleteNoteCommand { get; }
 
@@ -71,6 +74,7 @@ namespace CloudNotes.Desktop.ViewModel
             AddToFavoritesCommand = new RelayCommand(_ => AddToFavorites(), _ => CanModifyNote());
             RenameNoteCommand = new RelayCommand(async _ => await RenameNoteAsync(), _ => CanModifyNote());
             DeleteNoteCommand = new RelayCommand(_ => DeleteNote(), _ => CanModifyNote());
+            RemoveFromFavoritesCommand = new RelayCommand(_ => RemoveFromFavorites(), _ => SelectedFavoriteItem != null);
 
             Favorites = new ObservableCollection<NoteListItem>(AllNotes.Where(n => n.IsFavorite).Select(n => new NoteListItem(n.Id, n.Title)));
             AddDefaultNote();
@@ -173,9 +177,7 @@ namespace CloudNotes.Desktop.ViewModel
                 tcs.SetResult(textBox.Text);
                 dialog.Close();
             };
-
             dialog.Show();
-
             var newTitle = await tcs.Task;
 
             if (!string.IsNullOrWhiteSpace(newTitle))
@@ -211,6 +213,24 @@ namespace CloudNotes.Desktop.ViewModel
             {
                 SelectedNote = null;
             }
+        }
+
+        private void RemoveFromFavorites()
+        {
+            if (SelectedFavoriteItem == null)
+            {
+                return;
+            }
+
+            var note = AllNotes.FirstOrDefault(n => n.Id == SelectedFavoriteItem.Id);
+            if (note != null)
+            {
+                note.IsFavorite = false;
+            }
+
+            Favorites.Remove(SelectedFavoriteItem);
+
+            SelectedFavoriteItem = null;
         }
 
         private void UpdateSelectedNote(NoteListItem? listItem)
