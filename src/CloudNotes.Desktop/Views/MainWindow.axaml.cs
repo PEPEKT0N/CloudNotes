@@ -1,7 +1,8 @@
-using Avalonia.Controls;
-using CloudNotes.Desktop.ViewModel;
-using CloudNotes.Desktop.Model;
 using System.Linq;
+using Avalonia.Controls;
+using CloudNotes.Desktop.Model;
+using CloudNotes.Desktop.ViewModel;
+
 
 namespace CloudNotes.Desktop.Views;
 

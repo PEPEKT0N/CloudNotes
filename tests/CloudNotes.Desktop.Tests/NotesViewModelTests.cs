@@ -2,8 +2,7 @@ using System;
 using Xunit;
 
 using CloudNotes.Desktop.ViewModel;
-using CloudNotes.Desktop.Services;
-
+using Avalonia.Diagnostics;
 
 namespace CloudNotes.Desktop.Tests
 {
