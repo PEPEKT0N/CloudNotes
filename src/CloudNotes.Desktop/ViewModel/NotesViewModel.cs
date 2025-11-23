@@ -158,6 +158,12 @@ namespace CloudNotes.Desktop.ViewModel
                 Margin = new Avalonia.Thickness(10)
             };
 
+            textBox.AttachedToVisualTree += (_, __) =>
+            {
+                textBox.Focus();
+                textBox.SelectAll();
+            };
+
             var button = new Avalonia.Controls.Button
             {
                 Content = "Rename",
@@ -172,10 +178,25 @@ namespace CloudNotes.Desktop.ViewModel
             dialog.Content = stack;
 
             var tcs = new TaskCompletionSource<string?>();
+
             button.Click += (_, __) =>
             {
-                tcs.SetResult(textBox.Text);
+                tcs.TrySetResult(textBox.Text);
                 dialog.Close();
+            };
+
+            dialog.KeyDown += (_, e_) =>
+            {
+                if (e_.Key == Avalonia.Input.Key.Enter)
+                {
+                    tcs.TrySetResult(textBox.Text);
+                    dialog.Close();
+                }
+                else if (e_.Key == Avalonia.Input.Key.Escape)
+                {
+                    tcs.TrySetResult(null);
+                    dialog.Close();
+                }
             };
             dialog.Show();
             var newTitle = await tcs.Task;
@@ -188,6 +209,12 @@ namespace CloudNotes.Desktop.ViewModel
                 if (note != null)
                 {
                     note.Title = newTitle;
+                }
+
+                var favorite = Favorites.FirstOrDefault(f => f.Id == SelectedListItem.Id);
+                if (favorite != null)
+                {
+                    favorite.Title = newTitle;
                 }
             }
         } // RenameNote
@@ -207,6 +234,11 @@ namespace CloudNotes.Desktop.ViewModel
             if (note != null)
             {
                 AllNotes.Remove(note);
+            }
+            var favorite = Favorites.FirstOrDefault(f => f.Id == noteToRemove.Id);
+            if (favorite != null)
+            {
+                Favorites.Remove(favorite);
             }
 
             if (SelectedNote != null && SelectedNote.Id == noteToRemove.Id)
