@@ -1,6 +1,8 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             x:Class="CloudNotes.Desktop.Views.NoteListView">
+             x:Class="CloudNotes.Desktop.Views.NoteListView"
+             Focusable="True"
+             KeyDown="OnKeyDown">
 
     <StackPanel>
         <TextBlock Text="NoteListView placeholder"/>
