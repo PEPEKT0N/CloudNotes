@@ -6,15 +6,15 @@ using System.ComponentModel;
 using System.Windows.Input;
 using System.Linq;
 using System.Threading.Tasks;
-
 using CloudNotes.Desktop.Model;
-
-
+using CloudNotes.Desktop.Services;
 
 namespace CloudNotes.Desktop.ViewModel
 {
     public class NotesViewModel : INotifyPropertyChanged
     {
+        private readonly INoteService _noteService;
+
         public event PropertyChangedEventHandler? PropertyChanged;
         public ObservableCollection<NoteListItem> Notes { get; } = new();
         public ObservableCollection<NoteListItem> Favorites { get; } = new();
@@ -44,7 +44,8 @@ namespace CloudNotes.Desktop.ViewModel
                 {
                     selectedListItem = value;
                     OnPropertyChanged();
-                    UpdateSelectedNote(value);
+                    // --- этот вызв заменяет UpdateSelectedNote ---
+                    _ = LoadSelectedNoteFromDatabaseAsync(value);
                 }
             }
         }
@@ -68,48 +69,111 @@ namespace CloudNotes.Desktop.ViewModel
         public ICommand RenameNoteCommand { get; }
         public ICommand DeleteNoteCommand { get; }
 
-        public NotesViewModel()
+        public NotesViewModel(INoteService noteService)
         {
+            _noteService = noteService ?? throw new ArgumentNullException(nameof(noteService));
+
             CreateNoteCommand = new RelayCommand(_ => CreateNote());
             AddToFavoritesCommand = new RelayCommand(_ => AddToFavorites(), _ => CanModifyNote());
             RenameNoteCommand = new RelayCommand(async _ => await RenameNoteAsync(), _ => CanModifyNote());
             DeleteNoteCommand = new RelayCommand(_ => DeleteNote(), _ => CanModifyNote());
             RemoveFromFavoritesCommand = new RelayCommand(_ => RemoveFromFavorites(), _ => SelectedFavoriteItem != null);
 
-            Favorites = new ObservableCollection<NoteListItem>(AllNotes.Where(n => n.IsFavorite).Select(n => new NoteListItem(n.Id, n.Title)));
-            AddDefaultNote();
-
+            // --- ИЗМЕНЕНО: Заменено AddDefaultNote() на LoadNotesFromDatabaseAsync() ---
+            _ = LoadNotesFromDatabaseAsync();
         }
+
+        // --- ИЗМЕНЕНО: Метод для загрузки заметок из БД ---
+        private async Task LoadNotesFromDatabaseAsync()
+        {
+            try
+            {
+                var allNotesInDb = await _noteService.GetAllNoteAsync();
+                var welcomeNoteExists = allNotesInDb.Any(n => n.Title == "Welcome note");
+                var secondNoteExists = allNotesInDb.Any(n => n.Title == "Second note");
+
+                // Если одной из дефолтных заметок нет, создаём её
+                if (!welcomeNoteExists)
+                {
+                    var welcomeNote = new Note
+                    {
+                        Id = Guid.NewGuid(),
+                        Title = "Welcome note",
+                        Content = "This is a sample note. You can edit it",
+                        UpdatedAt = DateTime.UtcNow
+                    };
+                    await _noteService.CreateNoteAsync(welcomeNote);
+                }
+
+                if (!secondNoteExists)
+                {
+                    var secondNote = new Note
+                    {
+                        Id = Guid.NewGuid(),
+                        Title = "Second note",
+                        Content = "Another sample note to test selection.",
+                        UpdatedAt = DateTime.UtcNow.AddHours(-1)
+                    };
+                    await _noteService.CreateNoteAsync(secondNote);
+                }
+
+                //загружаем все заметки из БД
+                allNotesInDb = await _noteService.GetAllNoteAsync();
+
+                // Очищаем текущие коллекции
+                Notes.Clear();
+                AllNotes.Clear();
+                Favorites.Clear();
+
+                foreach (var note in allNotesInDb)
+                {
+                    AllNotes.Add(note);
+                    Notes.Add(GenerateListItem(note));
+                    // Если заметка в избранном, добавляем в Favorites (если используется)
+                    // if (note.IsFavorite) // Предположим, у Note есть поле IsFavorite
+                    // {
+                    //     Favorites.Add(GenerateListItem(note));
+                    // }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading notes from database: {ex.Message}");
+            }
+        }
+
+        // --- ИЗМЕНЕНО: Метод для загрузки SelectedNote из БД ---
+        private async Task LoadSelectedNoteFromDatabaseAsync(NoteListItem? listItem)
+        {
+            if (listItem == null)
+            {
+                SelectedNote = null;
+                return;
+            }
+
+            try
+            {
+                // Загружаем полную заметку из БД по ID через NoteService
+                var fullNote = await _noteService.GetNoteByIdAsync(listItem.Id);
+                SelectedNote = fullNote;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading note details from database: {ex.Message}");
+                SelectedNote = null;
+            }
+        }
+
         private bool CanModifyNote()
         {
             return SelectedListItem != null;
         }
-        private void AddDefaultNote()
-        {
-            AddNote(new Note
-            {
-                Id = Guid.NewGuid(),
-                Title = "Welcome note",
-                Content = "This is a sample note. You can edit it",
-                UpdatedAt = DateTime.Now
-            });
 
-            AddNote(new Note
-            {
-                Id = Guid.NewGuid(),
-                Title = "Second note",
-                Content = "Another sample note to test selection.",
-                UpdatedAt = DateTime.Now.AddHours(-1)
-            });
 
-            SelectedListItem = null;
-            SelectedNote = null;
-        }
         private void AddNote(Note note)
         {
             AllNotes.Add(note);
             Notes.Add(GenerateListItem(note));
-            //SelectedListItem = Notes[^1];
         }
 
         private void AddToFavorites()
@@ -140,7 +204,7 @@ namespace CloudNotes.Desktop.ViewModel
 
         private async Task RenameNoteAsync()
         {
-            if (SelectedListItem == null)
+            if (SelectedListItem == null || SelectedNote == null)
             {
                 return;
             }
@@ -219,7 +283,13 @@ namespace CloudNotes.Desktop.ViewModel
             }
         } // RenameNote
 
+        // --- ИЗМЕНЕНО: Метод DeleteNote теперь асинхронный ---
         private void DeleteNote()
+        {
+            _ = DeleteNoteAsync();
+        }
+
+        private async Task DeleteNoteAsync()
         {
             if (SelectedListItem == null)
             {
@@ -228,22 +298,39 @@ namespace CloudNotes.Desktop.ViewModel
 
             var noteToRemove = SelectedListItem;
 
-            Notes.Remove(noteToRemove);
+            try
+            {
+                // --- ИЗМЕНЕНО: Удаление через NoteService ---
+                var success = await _noteService.DeleteNoteAsync(noteToRemove.Id);
+                if (success)
+                {
+                    // Только если удаление из БД прошло успешно, удаляем из локальных коллекций
+                    Notes.Remove(noteToRemove);
 
-            var note = AllNotes.FirstOrDefault(n => n.Id == noteToRemove.Id);
-            if (note != null)
-            {
-                AllNotes.Remove(note);
-            }
-            var favorite = Favorites.FirstOrDefault(f => f.Id == noteToRemove.Id);
-            if (favorite != null)
-            {
-                Favorites.Remove(favorite);
-            }
+                    var note = AllNotes.FirstOrDefault(n => n.Id == noteToRemove.Id);
+                    if (note != null)
+                    {
+                        AllNotes.Remove(note);
+                    }
+                    var favorite = Favorites.FirstOrDefault(f => f.Id == noteToRemove.Id);
+                    if (favorite != null)
+                    {
+                        Favorites.Remove(favorite);
+                    }
 
-            if (SelectedNote != null && SelectedNote.Id == noteToRemove.Id)
+                    if (SelectedNote != null && SelectedNote.Id == noteToRemove.Id)
+                    {
+                        SelectedNote = null;
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"Note with Id {noteToRemove.Id} was not found in database during deletion.");
+                }
+            }
+            catch (Exception ex)
             {
-                SelectedNote = null;
+                Console.WriteLine($"Error deleting note from database: {ex.Message}");
             }
         }
 
@@ -265,44 +352,46 @@ namespace CloudNotes.Desktop.ViewModel
             SelectedFavoriteItem = null;
         }
 
-        private void UpdateSelectedNote(NoteListItem? listItem)
-        {
-            if (listItem == null)
-            {
-                SelectedNote = null;
-                return;
-            }
-            SelectedNote = AllNotes.Find(n => n.Id == listItem.Id);
-        }
 
+        // --- ИЗМЕНЕНО: Метод CreateNote теперь асинхронный ---
         public void CreateNote()
         {
-            var newNote = new Note
-            {
-                Id = Guid.NewGuid(),
-                Title = "Unnamed",
-                Content = "",
-                UpdatedAt = DateTime.Now
-            };
-
-            AllNotes.Add(newNote);
-
-            var newListItem = GenerateListItem(newNote);
-
-            Notes.Add(newListItem);
-            SelectedListItem = newListItem;
-            SelectedNote = newNote;
+            _ = CreateNoteAsync();
         }
 
+        private async Task CreateNoteAsync()
+        {
+            try
+            {
+                var newNote = new Note
+                {
+                    Id = Guid.NewGuid(),
+                    Title = "Unnamed",
+                    Content = "",
+                    UpdatedAt = DateTime.UtcNow 
+                };
+
+                var createdNote = await _noteService.CreateNoteAsync(newNote);
+
+                // Добавляем в локальные коллекции (AllNotes, Notes)
+                AllNotes.Add(createdNote);
+                var newListItem = GenerateListItem(createdNote);
+                Notes.Add(newListItem);
+
+                // Выбираем новую заметку
+                SelectedListItem = newListItem;
+                SelectedNote = createdNote;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error creating note in database: {ex.Message}");
+            }
+        }
+
+        // --- ИЗМЕНЕНО: Метод OnNoteSelected теперь использует LoadSelectedNoteFromDatabaseAsync ---
         public void OnNoteSelected(NoteListItem? listItem)
         {
-            if (listItem == null)
-            {
-                SelectedNote = null;
-                return;
-            }
-
-            SelectedNote = AllNotes.Find(n => n.Id == listItem.Id);
+            // Теперь вызывается через SelectedListItem setter
         }
 
         private NoteListItem GenerateListItem(Note note)

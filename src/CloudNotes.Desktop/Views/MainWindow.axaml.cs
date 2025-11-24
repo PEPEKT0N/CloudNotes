@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using CloudNotes.Desktop.ViewModel;
 using CloudNotes.Desktop.Model;
 using System.Linq;
+using CloudNotes.Desktop.Services;
 
 namespace CloudNotes.Desktop.Views;
 
@@ -12,8 +13,11 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        ViewModel = new NotesViewModel();
-        DataContext = this;
+        var noteService = new NoteService();
+
+        var viewModel = new NotesViewModel(noteService);
+
+        DataContext = viewModel;
     }
 
     private void OnListBoxSelectionChanged(object? sender, SelectionChangedEventArgs e)
