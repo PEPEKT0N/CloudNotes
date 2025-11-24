@@ -368,7 +368,7 @@ namespace CloudNotes.Desktop.ViewModel
                     Id = Guid.NewGuid(),
                     Title = "Unnamed",
                     Content = "",
-                    UpdatedAt = DateTime.UtcNow 
+                    UpdatedAt = DateTime.UtcNow
                 };
 
                 var createdNote = await _noteService.CreateNoteAsync(newNote);

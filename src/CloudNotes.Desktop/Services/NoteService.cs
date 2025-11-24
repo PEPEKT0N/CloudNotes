@@ -11,7 +11,7 @@ public class NoteService : INoteService
 {
     public NoteService()
     {
-        
+
     }
 
     public async Task<Note> CreateNoteAsync(Note note)
