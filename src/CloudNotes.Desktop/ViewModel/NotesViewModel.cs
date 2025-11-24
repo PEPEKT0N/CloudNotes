@@ -8,6 +8,7 @@ using System.Linq;
 using System.Threading.Tasks;
 
 using CloudNotes.Desktop.Model;
+using Avalonia.Controls;
 
 
 
@@ -15,6 +16,20 @@ namespace CloudNotes.Desktop.ViewModel
 {
     public class NotesViewModel : INotifyPropertyChanged
     {
+        private Note? activeNote;
+        public Note? ActiveNote
+        {
+            get => activeNote;
+            private set
+            {
+                if (activeNote != value)
+                {
+                    activeNote = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         public event PropertyChangedEventHandler? PropertyChanged;
         public ObservableCollection<NoteListItem> Notes { get; } = new();
         public ObservableCollection<NoteListItem> Favorites { get; } = new();
@@ -270,9 +285,11 @@ namespace CloudNotes.Desktop.ViewModel
             if (listItem == null)
             {
                 SelectedNote = null;
+                ActiveNote = null;
                 return;
             }
             SelectedNote = AllNotes.Find(n => n.Id == listItem.Id);
+            ActiveNote = SelectedNote;
         }
 
         public void CreateNote()
@@ -314,5 +331,97 @@ namespace CloudNotes.Desktop.ViewModel
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
-    }
+
+        public async Task CreateNewNoteAsync()
+        {
+            var note = new Note
+            {
+                Id = Guid.NewGuid(),
+                Title = "Unnamed",
+                Content = "",
+                UpdatedAt = DateTime.Now
+            };
+
+            AllNotes.Add(note);
+
+            var item = new NoteListItem(note.Id, note.Title, note.UpdatedAt);
+            Notes.Add(item);
+
+            SelectedListItem = item;
+            SelectedNote = note;
+            ActiveNote = note;
+        }
+
+        public async Task SaveActiveNoteAsync()
+        {
+            if (ActiveNote == null)
+            {
+                return;
+            }
+
+            ActiveNote.UpdatedAt = DateTime.Now;
+            OnPropertyChanged(nameof(ActiveNote));
+
+            var listItem = Notes.FirstOrDefault(x => x.Id == ActiveNote.Id);
+            if (listItem != null)
+            {
+                listItem.UpdatedAt = ActiveNote.UpdatedAt;
+            }
+        }
+
+        public async Task DeleteActiveNoteAsync()
+        {
+            if (ActiveNote == null)
+            {
+                return;
+            }
+
+            var id = ActiveNote.Id;
+
+            var listItem = Notes.FirstOrDefault(x => x.Id == id);
+            if (listItem != null)
+            {
+                Notes.Remove(listItem);
+            }
+
+            var note = AllNotes.FirstOrDefault(x => x.Id == id);
+            if (note != null)
+            {
+                AllNotes.Remove(note);
+            }
+
+            var favorite = Favorites.FirstOrDefault(x => x.Id == id);
+            if (favorite != null)
+            {
+                Favorites.Remove(favorite);
+            }
+
+            ActiveNote = null;
+            SelectedListItem = null;
+            SelectedNote = null;
+        }
+
+        public async Task RenameActiveNoteAsync(string newName)
+        {
+            if (ActiveNote == null)
+            {
+                return;
+            }
+
+            ActiveNote.Title = newName;
+            OnPropertyChanged(nameof(ActiveNote));
+
+            var listItem = Notes.FirstOrDefault(x => x.Id == ActiveNote.Id);
+            if (listItem != null)
+            {
+                listItem.Title = newName;
+            }
+
+            var favorite = Favorites.FirstOrDefault(x => x.Id == ActiveNote.Id);
+            if (favorite != null)
+            {
+                favorite.Title = newName;
+            }
+        }
+    } // class NotesViewModel
 }

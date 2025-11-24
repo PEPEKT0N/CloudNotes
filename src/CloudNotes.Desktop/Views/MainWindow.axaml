@@ -3,6 +3,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:model="clr-namespace:CloudNotes.Desktop.Model"               
+        xmlns:views="clr-namespace:CloudNotes.Desktop.Views"
         x:Class="CloudNotes.Desktop.Views.MainWindow"        
         mc:Ignorable="d"
         Title="CloudNotes"
@@ -10,7 +11,7 @@
         d:DesignHeight="450">
 
     <Grid Background="lightblue" ColumnDefinitions="200, *">
-        <Border Padding="20" Grid.Column="0">
+        <Border Padding="20" Grid.Column="0">            
             <StackPanel>
                 <TextBox>CloudNotes</TextBox>
 
