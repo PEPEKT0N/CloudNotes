@@ -1,19 +1,43 @@
 using System;
 using System.Linq;
+using Microsoft.EntityFrameworkCore;
 using Xunit;
 
 using CloudNotes.Desktop.ViewModel;
 using CloudNotes.Desktop.Model;
+using CloudNotes.Desktop.Data;
+using CloudNotes.Desktop.Services;
 
 namespace CloudNotes.Desktop.Tests
 {
-    public class NotesViewModelTests
+    [Collection("Sequential")]
+    public class NotesViewModelTests : IDisposable
     {
+        private readonly AppDbContext _context;
+        private readonly INoteService _noteService;
         private readonly NotesViewModel vm;
 
         public NotesViewModelTests()
         {
-            vm = new NotesViewModel();
+            // Создаем InMemory базу для каждого теста
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            _context = new AppDbContext(options);
+            _context.Database.EnsureCreated();
+
+            // Создаем сервис с нашим контекстом
+            _noteService = new NoteService(_context);
+
+            // Создаем ViewModel с нашим сервисом
+            vm = new NotesViewModel(_noteService);
+        }
+
+        public void Dispose()
+        {
+            _context.Database.EnsureDeleted();
+            _context.Dispose();
         }
 
         // Тесты для CreateNote
@@ -56,32 +80,39 @@ namespace CloudNotes.Desktop.Tests
             [Fact]
             public void AddToFavorites_AddsSelectedNoteToFavorites()
             {
-                vm.SelectedListItem = vm.Notes[0];
+                Assert.NotEmpty(vm.Notes);
+                var firstNote = vm.Notes.First();
+                vm.SelectedListItem = firstNote;
 
                 vm.AddToFavoritesCommand.Execute(null);
 
-                Assert.Single(vm.Favorites);
-                Assert.Equal(vm.Notes[0].Id, vm.Favorites[0].Id);
+                Assert.NotEmpty(vm.Favorites);
+                Assert.Contains(vm.Favorites, f => f.Id == firstNote.Id);
             }
 
             [Fact]
             public void RemoveFromFavorites_RemovesNoteFromFavorites()
             {
-                vm.SelectedListItem = vm.Notes[0];
+                Assert.NotEmpty(vm.Notes);
+                var firstNote = vm.Notes.First();
+                vm.SelectedListItem = firstNote;
                 vm.AddToFavoritesCommand.Execute(null);
-                Assert.Single(vm.Favorites);
+                Assert.NotEmpty(vm.Favorites);
 
-                vm.SelectedFavoriteItem = vm.Favorites[0];
+                var favoriteItem = vm.Favorites.First(f => f.Id == firstNote.Id);
+                vm.SelectedFavoriteItem = favoriteItem;
                 vm.RemoveFromFavoritesCommand.Execute(null);
 
-                Assert.Empty(vm.Favorites);
+                Assert.DoesNotContain(vm.Favorites, f => f.Id == firstNote.Id);
             }
 
             [Fact]
             public void AddToFavorites_SetsIsFavoriteFlag()
             {
-                vm.SelectedListItem = vm.Notes[0];
-                var noteId = vm.Notes[0].Id;
+                Assert.NotEmpty(vm.Notes);
+                var firstNote = vm.Notes.First();
+                vm.SelectedListItem = firstNote;
+                var noteId = firstNote.Id;
 
                 vm.AddToFavoritesCommand.Execute(null);
 
@@ -92,11 +123,14 @@ namespace CloudNotes.Desktop.Tests
             [Fact]
             public void RemoveFromFavorites_ClearsIsFavoriteFlag()
             {
-                vm.SelectedListItem = vm.Notes[0];
-                var noteId = vm.Notes[0].Id;
+                Assert.NotEmpty(vm.Notes);
+                var firstNote = vm.Notes.First();
+                vm.SelectedListItem = firstNote;
+                var noteId = firstNote.Id;
                 vm.AddToFavoritesCommand.Execute(null);
 
-                vm.SelectedFavoriteItem = vm.Favorites[0];
+                var favoriteItem = vm.Favorites.First(f => f.Id == noteId);
+                vm.SelectedFavoriteItem = favoriteItem;
                 vm.RemoveFromFavoritesCommand.Execute(null);
 
                 var note = vm.AllNotes.First(n => n.Id == noteId);
@@ -110,12 +144,15 @@ namespace CloudNotes.Desktop.Tests
             [Fact]
             public void RenameActiveNote_ChangesNoteTitle()
             {
-                vm.SelectedListItem = vm.Notes[0];
-                var noteId = vm.Notes[0].Id;
+                Assert.NotEmpty(vm.Notes);
+                var firstNote = vm.Notes.First();
+                vm.SelectedListItem = firstNote;
+                var noteId = firstNote.Id;
 
                 vm.RenameActiveNote("Hello World");
 
-                Assert.Equal("Hello World", vm.Notes[0].Title);
+                var updatedNote = vm.Notes.First(n => n.Id == noteId);
+                Assert.Equal("Hello World", updatedNote.Title);
 
                 var note = vm.AllNotes.First(n => n.Id == noteId);
                 Assert.Equal("Hello World", note.Title);
@@ -124,8 +161,10 @@ namespace CloudNotes.Desktop.Tests
             [Fact]
             public void RenameActiveNote_UpdatesTimestamp()
             {
-                vm.SelectedListItem = vm.Notes[0];
-                var noteId = vm.Notes[0].Id;
+                Assert.NotEmpty(vm.Notes);
+                var firstNote = vm.Notes.First();
+                vm.SelectedListItem = firstNote;
+                var noteId = firstNote.Id;
                 var originalTime = vm.AllNotes.First(n => n.Id == noteId).UpdatedAt;
 
                 System.Threading.Thread.Sleep(10);
@@ -140,11 +179,13 @@ namespace CloudNotes.Desktop.Tests
             public void RenameActiveNote_UpdatesFavoriteItemTitle()
             {
                 vm.SelectedListItem = vm.Notes[0];
+                var noteId = vm.Notes[0].Id;
                 vm.AddToFavoritesCommand.Execute(null);
 
                 vm.RenameActiveNote("Renamed Note");
 
-                Assert.Equal("Renamed Note", vm.Favorites[0].Title);
+                var favoriteItem = vm.Favorites.First(f => f.Id == noteId);
+                Assert.Equal("Renamed Note", favoriteItem.Title);
             }
         }
 
@@ -154,9 +195,11 @@ namespace CloudNotes.Desktop.Tests
             [Fact]
             public void DeleteNote_RemovesNoteFromAllCollections()
             {
+                Assert.NotEmpty(vm.Notes);
                 var initialCount = vm.AllNotes.Count;
-                vm.SelectedListItem = vm.Notes[0];
-                var deletedId = vm.Notes[0].Id;
+                var firstNote = vm.Notes.First();
+                vm.SelectedListItem = firstNote;
+                var deletedId = firstNote.Id;
 
                 vm.DeleteNoteCommand.Execute(null);
 
@@ -170,21 +213,24 @@ namespace CloudNotes.Desktop.Tests
             [Fact]
             public void DeleteNote_RemovesFromFavoritesIfPresent()
             {
+                var initialFavoritesCount = vm.Favorites.Count;
                 vm.SelectedListItem = vm.Notes[0];
                 var deletedId = vm.Notes[0].Id;
                 vm.AddToFavoritesCommand.Execute(null);
-                Assert.Single(vm.Favorites);
+                Assert.Equal(initialFavoritesCount + 1, vm.Favorites.Count);
 
                 vm.DeleteNoteCommand.Execute(null);
 
-                Assert.Empty(vm.Favorites);
+                Assert.Equal(initialFavoritesCount, vm.Favorites.Count);
                 Assert.DoesNotContain(vm.Favorites, f => f.Id == deletedId);
             }
 
             [Fact]
             public void DeleteNote_ClearsSelection()
             {
-                vm.SelectedListItem = vm.Notes[0];
+                Assert.NotEmpty(vm.Notes);
+                var firstNote = vm.Notes.First();
+                vm.SelectedListItem = firstNote;
 
                 vm.DeleteNoteCommand.Execute(null);
 
@@ -195,9 +241,11 @@ namespace CloudNotes.Desktop.Tests
             [Fact]
             public void DeleteActiveNote_WorksWithActiveListItem()
             {
+                Assert.NotEmpty(vm.Notes);
                 var initialCount = vm.AllNotes.Count;
-                vm.SelectedListItem = vm.Notes[0];
-                var deletedId = vm.Notes[0].Id;
+                var firstNote = vm.Notes.First();
+                vm.SelectedListItem = firstNote;
+                var deletedId = firstNote.Id;
 
                 vm.DeleteActiveNote();
 
@@ -223,7 +271,9 @@ namespace CloudNotes.Desktop.Tests
             [Fact]
             public void CtrlR_RenamesSelectedNote()
             {
-                vm.SelectedListItem = vm.Notes[0];
+                Assert.NotEmpty(vm.Notes);
+                var firstNote = vm.Notes.First();
+                vm.SelectedListItem = firstNote;
 
                 vm.RenameActiveNote("Test Note");
 
@@ -246,9 +296,11 @@ namespace CloudNotes.Desktop.Tests
             [Fact]
             public void CtrlD_DeletesSelectedNote()
             {
+                Assert.NotEmpty(vm.Notes);
                 var initialCount = vm.Notes.Count;
-                vm.SelectedListItem = vm.Notes[0];
-                var deletedId = vm.Notes[0].Id;
+                var firstNote = vm.Notes.First();
+                vm.SelectedListItem = firstNote;
+                var deletedId = firstNote.Id;
 
                 vm.DeleteActiveNote();
 
@@ -263,23 +315,28 @@ namespace CloudNotes.Desktop.Tests
             [Fact]
             public void FullScenario_AddRemoveFavorites_Rename_Delete()
             {
-                vm.SelectedListItem = vm.Notes[0];
-                var welcomeNoteId = vm.Notes[0].Id;
+                Assert.NotEmpty(vm.Notes);
+                var initialNotesCount = vm.Notes.Count;
+                var initialFavoritesCount = vm.Favorites.Count;
+                var firstNote = vm.Notes.First();
+                vm.SelectedListItem = firstNote;
+                var testNoteId = firstNote.Id;
 
                 vm.AddToFavoritesCommand.Execute(null);
-                Assert.Single(vm.Favorites);
+                Assert.Equal(initialFavoritesCount + 1, vm.Favorites.Count);
 
-                vm.SelectedFavoriteItem = vm.Favorites[0];
+                var favoriteItem = vm.Favorites.First(f => f.Id == testNoteId);
+                vm.SelectedFavoriteItem = favoriteItem;
                 vm.RemoveFromFavoritesCommand.Execute(null);
-                Assert.Empty(vm.Favorites);
+                Assert.Equal(initialFavoritesCount, vm.Favorites.Count);
 
-                vm.SelectedListItem = vm.Notes.First(n => n.Id == welcomeNoteId);
+                vm.SelectedListItem = vm.Notes.First(n => n.Id == testNoteId);
                 vm.RenameActiveNote("Hello World");
-                Assert.Equal("Hello World", vm.Notes.First(n => n.Id == welcomeNoteId).Title);
+                Assert.Equal("Hello World", vm.Notes.First(n => n.Id == testNoteId).Title);
 
                 vm.DeleteNoteCommand.Execute(null);
-                Assert.Single(vm.Notes);
-                Assert.DoesNotContain(vm.Notes, n => n.Id == welcomeNoteId);
+                Assert.Equal(initialNotesCount - 1, vm.Notes.Count);
+                Assert.DoesNotContain(vm.Notes, n => n.Id == testNoteId);
             }
         }
 
