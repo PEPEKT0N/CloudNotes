@@ -38,9 +38,9 @@ public partial class NoteListView : UserControl
                 e.Handled = true;
                 break;
 
-            // Ctrl+S — сохранить (пока заглушка)
+            // Ctrl+S — сохранить
             case Key.S when ctrl:
-                SaveNotes();
+                await SaveNotesAsync(vm);
                 e.Handled = true;
                 break;
         }
@@ -60,10 +60,12 @@ public partial class NoteListView : UserControl
         }
     }
 
-    private void SaveNotes()
+    private async Task SaveNotesAsync(NotesViewModel vm)
     {
-        // TODO: Реализовать сохранение в БД
-        System.Diagnostics.Debug.WriteLine("Ctrl+S pressed — Save notes (not implemented yet)");
+        if (vm.SelectedNote != null)
+        {
+            await vm.SaveNoteAsync(vm.SelectedNote);
+        }
     }
 
     private void OnListBoxSelectionChanged(object? sender, SelectionChangedEventArgs e)

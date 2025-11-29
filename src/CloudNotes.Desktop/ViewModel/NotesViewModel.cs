@@ -5,7 +5,10 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Windows.Input;
 using System.Linq;
+using System.Threading.Tasks;
 using CloudNotes.Desktop.Model;
+using CloudNotes.Desktop.Services;
+using CloudNotes.Services;
 
 namespace CloudNotes.Desktop.ViewModel
 {
@@ -88,14 +91,21 @@ namespace CloudNotes.Desktop.ViewModel
         public ICommand RemoveFromFavoritesCommand { get; }
         public ICommand DeleteNoteCommand { get; }
 
+        // Сервис для работы с БД
+        private readonly INoteService _noteService;
+
         public NotesViewModel()
         {
+            var context = DbContextProvider.GetContext();
+            _noteService = new NoteService(context);
+
             CreateNoteCommand = new RelayCommand(_ => CreateNote());
             AddToFavoritesCommand = new RelayCommand(_ => AddToFavorites(), _ => CanModifyNote());
             DeleteNoteCommand = new RelayCommand(_ => DeleteNote(), _ => CanModifyNote());
             RemoveFromFavoritesCommand = new RelayCommand(_ => RemoveFromFavorites(), _ => SelectedFavoriteItem != null);
 
-            AddDefaultNote();
+            // Загружаем заметки из БД асинхронно
+            Task.Run(async () => await LoadNotesFromDbAsync());
         }
 
         private bool CanModifyNote() => SelectedListItem != null;
@@ -105,26 +115,65 @@ namespace CloudNotes.Desktop.ViewModel
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
-        private void AddDefaultNote()
+        private async Task LoadNotesFromDbAsync()
         {
-            AddNote(new Note
+            // Загружаем заметки из БД
+            var notesFromDb = await _noteService.GetAllNoteAsync();
+
+            if (!notesFromDb.Any())
+            {
+                // Если БД пустая, создаем дефолтные заметки в БД
+                await CreateDefaultNotesInDb();
+                // После создания загружаем их из БД
+                notesFromDb = await _noteService.GetAllNoteAsync();
+            }
+
+            // Загружаем все заметки из БД в коллекцию
+            foreach (var note in notesFromDb)
+            {
+                AllNotes.Add(note);
+                Notes.Add(CreateListItem(note));
+
+                // Добавляем в избранное, если нужно
+                if (note.IsFavorite)
+                {
+                    Favorites.Add(CreateListItem(note));
+                }
+            }
+
+            SelectedListItem = null;
+            SelectedNote = null;
+        }
+
+        private async Task CreateDefaultNotesInDb()
+        {
+            var note1 = new Note
             {
                 Id = Guid.NewGuid(),
                 Title = "Welcome note",
                 Content = "This is a sample note. You can edit it.",
                 UpdatedAt = DateTime.Now
-            });
+            };
 
-            AddNote(new Note
+            var note2 = new Note
             {
                 Id = Guid.NewGuid(),
                 Title = "Second note",
                 Content = "Another sample note to test selection.",
                 UpdatedAt = DateTime.Now.AddHours(-1)
-            });
+            };
 
-            SelectedListItem = null;
-            SelectedNote = null;
+            // Сохраняем дефолтные заметки только в БД
+            await _noteService.CreateNoteAsync(note1);
+            await _noteService.CreateNoteAsync(note2);
+        }
+
+        public async Task SaveNoteAsync(Note note)
+        {
+            if (note == null) return;
+
+            note.UpdatedAt = DateTime.Now;
+            await _noteService.UpdateNoteAsync(note);
         }
 
         private void AddNote(Note note)
@@ -174,6 +223,9 @@ namespace CloudNotes.Desktop.ViewModel
             SelectedListItem = listItem;
             SelectedNote = note;
             ActiveListItem = listItem;
+
+            // Сохраняем в БД асинхронно
+            Task.Run(async () => await _noteService.CreateNoteAsync(note));
         }
 
         public void RenameActiveNote(string newName)
@@ -190,6 +242,9 @@ namespace CloudNotes.Desktop.ViewModel
             {
                 note.Title = newName;
                 note.UpdatedAt = DateTime.Now;
+
+                // Сохраняем изменения в БД
+                Task.Run(async () => await _noteService.UpdateNoteAsync(note));
             }
 
             // Обновляем в избранном, если есть
@@ -210,6 +265,8 @@ namespace CloudNotes.Desktop.ViewModel
             if (!note.IsFavorite)
             {
                 note.IsFavorite = true;
+                // Сохраняем изменения в БД
+                Task.Run(async () => await _noteService.UpdateNoteAsync(note));
             }
 
             if (!Favorites.Any(f => f.Id == note.Id))
@@ -223,6 +280,7 @@ namespace CloudNotes.Desktop.ViewModel
             if (SelectedListItem == null) return;
 
             var listItem = SelectedListItem;
+            var noteId = listItem.Id;
 
             // Удаляем из UI коллекций
             Notes.Remove(listItem);
@@ -238,6 +296,9 @@ namespace CloudNotes.Desktop.ViewModel
             {
                 AllNotes.Remove(note);
             }
+
+            // Удаляем из БД
+            Task.Run(async () => await _noteService.DeleteNoteAsync(noteId));
 
             // Сбрасываем выбор
             if (SelectedNote?.Id == listItem.Id)
@@ -257,6 +318,8 @@ namespace CloudNotes.Desktop.ViewModel
             var listItem = ActiveListItem ?? SelectedListItem;
             if (listItem == null) return;
 
+            var noteId = listItem.Id;
+
             // Удаляем из UI коллекций
             Notes.Remove(listItem);
             var favoriteItem = Favorites.FirstOrDefault(f => f.Id == listItem.Id);
@@ -272,6 +335,9 @@ namespace CloudNotes.Desktop.ViewModel
                 AllNotes.Remove(note);
             }
 
+            // Удаляем из БД
+            Task.Run(async () => await _noteService.DeleteNoteAsync(noteId));
+
             // Сбрасываем выбор
             SelectedNote = null;
             SelectedListItem = null;
@@ -286,6 +352,8 @@ namespace CloudNotes.Desktop.ViewModel
             if (note != null)
             {
                 note.IsFavorite = false;
+                // Сохраняем изменения в БД
+                Task.Run(async () => await _noteService.UpdateNoteAsync(note));
             }
 
             Favorites.Remove(SelectedFavoriteItem);
