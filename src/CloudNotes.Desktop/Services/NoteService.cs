@@ -11,6 +11,11 @@ public class NoteService : INoteService
 {
     private readonly AppDbContext _context;
 
+    public NoteService(AppDbContext context)
+    {
+        _context = context;
+    }
+
     public async Task<Note> CreateNoteAsync(Note note)
     {
         note.UpdatedAt = DateTime.Now;
@@ -44,6 +49,7 @@ public class NoteService : INoteService
         //Update the note
         existingNote.Title = note.Title;
         existingNote.Content = note.Content;
+        existingNote.IsFavorite = note.IsFavorite;
         existingNote.UpdatedAt = DateTime.Now;
 
         // Save changes
