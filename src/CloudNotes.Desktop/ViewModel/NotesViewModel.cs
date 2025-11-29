@@ -104,8 +104,22 @@ namespace CloudNotes.Desktop.ViewModel
             DeleteNoteCommand = new RelayCommand(_ => DeleteNote(), _ => CanModifyNote());
             RemoveFromFavoritesCommand = new RelayCommand(_ => RemoveFromFavorites(), _ => SelectedFavoriteItem != null);
 
-            // Загружаем заметки из БД асинхронно
-            Task.Run(async () => await LoadNotesFromDbAsync());
+            // Загружаем заметки из БД синхронно для совместимости с тестами
+            LoadNotesFromDbAsync().GetAwaiter().GetResult();
+        }
+
+        // Конструктор для тестов с переданным сервисом
+        public NotesViewModel(INoteService noteService)
+        {
+            _noteService = noteService;
+
+            CreateNoteCommand = new RelayCommand(_ => CreateNote());
+            AddToFavoritesCommand = new RelayCommand(_ => AddToFavorites(), _ => CanModifyNote());
+            DeleteNoteCommand = new RelayCommand(_ => DeleteNote(), _ => CanModifyNote());
+            RemoveFromFavoritesCommand = new RelayCommand(_ => RemoveFromFavorites(), _ => SelectedFavoriteItem != null);
+
+            // Загружаем заметки из БД синхронно для совместимости с тестами
+            LoadNotesFromDbAsync().GetAwaiter().GetResult();
         }
 
         private bool CanModifyNote() => SelectedListItem != null;
