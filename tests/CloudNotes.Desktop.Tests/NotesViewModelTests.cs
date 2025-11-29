@@ -16,7 +16,7 @@ namespace CloudNotes.Desktop.Tests
             vm = new NotesViewModel();
         }
 
-        // Тесты для CreateNote        
+        // Тесты для CreateNote
         public class CreateNote : NotesViewModelTests
         {
             [Fact]
@@ -50,16 +50,16 @@ namespace CloudNotes.Desktop.Tests
             }
         }
 
-        // Тесты для контекстного меню: Избранное        
+        // Тесты для контекстного меню: Избранное
         public class FavoritesTests : NotesViewModelTests
         {
             [Fact]
             public void AddToFavorites_AddsSelectedNoteToFavorites()
-            {                
+            {
                 vm.SelectedListItem = vm.Notes[0];
-                
+
                 vm.AddToFavoritesCommand.Execute(null);
-                
+
                 Assert.Single(vm.Favorites);
                 Assert.Equal(vm.Notes[0].Id, vm.Favorites[0].Id);
             }
@@ -92,7 +92,6 @@ namespace CloudNotes.Desktop.Tests
             [Fact]
             public void RemoveFromFavorites_ClearsIsFavoriteFlag()
             {
-                // Добавляем и удаляем из избранного
                 vm.SelectedListItem = vm.Notes[0];
                 var noteId = vm.Notes[0].Id;
                 vm.AddToFavoritesCommand.Execute(null);
@@ -113,7 +112,7 @@ namespace CloudNotes.Desktop.Tests
             {
                 vm.SelectedListItem = vm.Notes[0];
                 var noteId = vm.Notes[0].Id;
-                
+
                 vm.RenameActiveNote("Hello World");
 
                 Assert.Equal("Hello World", vm.Notes[0].Title);
@@ -142,9 +141,9 @@ namespace CloudNotes.Desktop.Tests
             {
                 vm.SelectedListItem = vm.Notes[0];
                 vm.AddToFavoritesCommand.Execute(null);
-                
+
                 vm.RenameActiveNote("Renamed Note");
-                
+
                 Assert.Equal("Renamed Note", vm.Favorites[0].Title);
             }
         }
@@ -177,7 +176,7 @@ namespace CloudNotes.Desktop.Tests
                 Assert.Single(vm.Favorites);
 
                 vm.DeleteNoteCommand.Execute(null);
-                
+
                 Assert.Empty(vm.Favorites);
                 Assert.DoesNotContain(vm.Favorites, f => f.Id == deletedId);
             }
@@ -213,9 +212,8 @@ namespace CloudNotes.Desktop.Tests
             [Fact]
             public void CtrlN_CreatesNewNoteWithUnnamedTitle()
             {
-                var initialCount = vm.Notes.Count; // 2 дефолтные
+                var initialCount = vm.Notes.Count;
 
-                // Эмулируем Ctrl+N
                 vm.CreateNote();
 
                 Assert.Equal(initialCount + 1, vm.Notes.Count);
@@ -227,7 +225,6 @@ namespace CloudNotes.Desktop.Tests
             {
                 vm.SelectedListItem = vm.Notes[0];
 
-                // Эмулируем Ctrl+R с вводом "Test Note"
                 vm.RenameActiveNote("Test Note");
 
                 Assert.Equal("Test Note", vm.SelectedListItem.Title);
@@ -259,8 +256,8 @@ namespace CloudNotes.Desktop.Tests
                 Assert.DoesNotContain(vm.AllNotes, n => n.Id == deletedId);
             }
         }
-        
-        // контекстное меню        
+
+        // Полный сценарий: контекстное меню
         public class ContextMenuFullScenario : NotesViewModelTests
         {
             [Fact]
@@ -281,18 +278,18 @@ namespace CloudNotes.Desktop.Tests
                 Assert.Equal("Hello World", vm.Notes.First(n => n.Id == welcomeNoteId).Title);
 
                 vm.DeleteNoteCommand.Execute(null);
-                Assert.Single(vm.Notes); 
+                Assert.Single(vm.Notes);
                 Assert.DoesNotContain(vm.Notes, n => n.Id == welcomeNoteId);
             }
         }
 
-        // горячие клавиши        
+        // Полный сценарий: горячие клавиши
         public class HotkeysFullScenario : NotesViewModelTests
         {
             [Fact]
             public void FullScenario_Create_Rename_EditContent_Delete()
             {
-                var initialCount = vm.Notes.Count; // 2
+                var initialCount = vm.Notes.Count;
 
                 vm.CreateNote();
                 Assert.Equal(initialCount + 1, vm.Notes.Count);
@@ -307,7 +304,7 @@ namespace CloudNotes.Desktop.Tests
                 Assert.Equal("Hello CloudNotes app", note.Content);
 
                 vm.DeleteActiveNote();
-                Assert.Equal(initialCount, vm.Notes.Count); 
+                Assert.Equal(initialCount, vm.Notes.Count);
                 Assert.DoesNotContain(vm.AllNotes, n => n.Id == newNoteId);
             }
         }
