@@ -5,36 +5,22 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Windows.Input;
 using System.Linq;
-using System.Threading.Tasks;
-
 using CloudNotes.Desktop.Model;
-using Avalonia.Controls;
-
-
 
 namespace CloudNotes.Desktop.ViewModel
 {
     public class NotesViewModel : INotifyPropertyChanged
     {
-        private Note? activeNote;
-        public Note? ActiveNote
-        {
-            get => activeNote;
-            private set
-            {
-                if (activeNote != value)
-                {
-                    activeNote = value;
-                    OnPropertyChanged();
-                }
-            }
-        }
-
         public event PropertyChangedEventHandler? PropertyChanged;
+
+        // UI коллекции — NoteListItem (с INotifyPropertyChanged)
         public ObservableCollection<NoteListItem> Notes { get; } = new();
         public ObservableCollection<NoteListItem> Favorites { get; } = new();
+
+        // Данные — Note (чистая сущность)
         public List<Note> AllNotes { get; } = new();
 
+        // Выбранный элемент в списке избранного
         private NoteListItem? selectedFavoriteItem;
         public NoteListItem? SelectedFavoriteItem
         {
@@ -49,10 +35,12 @@ namespace CloudNotes.Desktop.ViewModel
                 }
             }
         }
+
+        // Выбранный элемент в основном списке
         private NoteListItem? selectedListItem;
         public NoteListItem? SelectedListItem
         {
-            get { return selectedListItem; }
+            get => selectedListItem;
             set
             {
                 if (selectedListItem != value)
@@ -63,10 +51,12 @@ namespace CloudNotes.Desktop.ViewModel
                 }
             }
         }
+
+        // Текущая выбранная заметка (для редактирования контента)
         private Note? selectedNote;
         public Note? SelectedNote
         {
-            get { return selectedNote; }
+            get => selectedNote;
             set
             {
                 if (selectedNote != value)
@@ -77,35 +67,51 @@ namespace CloudNotes.Desktop.ViewModel
             }
         }
 
+        // Активная заметка (для операций через контекстное меню/горячие клавиши)
+        private NoteListItem? activeListItem;
+        public NoteListItem? ActiveListItem
+        {
+            get => activeListItem;
+            private set
+            {
+                if (activeListItem != value)
+                {
+                    activeListItem = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        // Команды
         public ICommand CreateNoteCommand { get; }
         public ICommand AddToFavoritesCommand { get; }
         public ICommand RemoveFromFavoritesCommand { get; }
-        public ICommand RenameNoteCommand { get; }
         public ICommand DeleteNoteCommand { get; }
 
         public NotesViewModel()
         {
             CreateNoteCommand = new RelayCommand(_ => CreateNote());
             AddToFavoritesCommand = new RelayCommand(_ => AddToFavorites(), _ => CanModifyNote());
-            RenameNoteCommand = new RelayCommand(async _ => await RenameNoteAsync(), _ => CanModifyNote());
             DeleteNoteCommand = new RelayCommand(_ => DeleteNote(), _ => CanModifyNote());
             RemoveFromFavoritesCommand = new RelayCommand(_ => RemoveFromFavorites(), _ => SelectedFavoriteItem != null);
 
-            Favorites = new ObservableCollection<NoteListItem>(AllNotes.Where(n => n.IsFavorite).Select(n => new NoteListItem(n.Id, n.Title)));
             AddDefaultNote();
+        }
 
-        }
-        private bool CanModifyNote()
+        private bool CanModifyNote() => SelectedListItem != null;
+
+        private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
         {
-            return SelectedListItem != null;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
+
         private void AddDefaultNote()
         {
             AddNote(new Note
             {
                 Id = Guid.NewGuid(),
                 Title = "Welcome note",
-                Content = "This is a sample note. You can edit it",
+                Content = "This is a sample note. You can edit it.",
                 UpdatedAt = DateTime.Now
             });
 
@@ -120,219 +126,37 @@ namespace CloudNotes.Desktop.ViewModel
             SelectedListItem = null;
             SelectedNote = null;
         }
+
         private void AddNote(Note note)
         {
             AllNotes.Add(note);
-            Notes.Add(GenerateListItem(note));
-            //SelectedListItem = Notes[^1];
+            Notes.Add(CreateListItem(note));
         }
 
-        private void AddToFavorites()
+        private NoteListItem CreateListItem(Note note)
         {
-            if (SelectedListItem == null)
-            {
-                return;
-            }
-
-            var note = AllNotes.FirstOrDefault(n => n.Id == SelectedListItem.Id);
-            if (note == null)
-            {
-                return;
-            }
-
-            if (!note.IsFavorite)
-            {
-                note.IsFavorite = true;
-            }
-
-            if (!Favorites.Any(f => f.Id == note.Id))
-            {
-                Favorites.Add(new NoteListItem(note.Id, note.Title));
-            }
-
-            (AddToFavoritesCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            return new NoteListItem(note.Id, note.Title, note.UpdatedAt);
         }
 
-        private async Task RenameNoteAsync()
-        {
-            if (SelectedListItem == null)
-            {
-                return;
-            }
-
-            var dialog = new Avalonia.Controls.Window
-            {
-                Width = 300,
-                Height = 100,
-                Title = "Rename Note"
-            };
-
-            var textBox = new Avalonia.Controls.TextBox
-            {
-                Text = SelectedListItem.Title,
-                Margin = new Avalonia.Thickness(10)
-            };
-
-            textBox.AttachedToVisualTree += (_, __) =>
-            {
-                textBox.Focus();
-                textBox.SelectAll();
-            };
-
-            var button = new Avalonia.Controls.Button
-            {
-                Content = "Rename",
-                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
-                Margin = new Avalonia.Thickness(10)
-            };
-
-            var stack = new Avalonia.Controls.StackPanel();
-            stack.Children.Add(textBox);
-            stack.Children.Add(button);
-
-            dialog.Content = stack;
-
-            var tcs = new TaskCompletionSource<string?>();
-
-            button.Click += (_, __) =>
-            {
-                tcs.TrySetResult(textBox.Text);
-                dialog.Close();
-            };
-
-            dialog.KeyDown += (_, e_) =>
-            {
-                if (e_.Key == Avalonia.Input.Key.Enter)
-                {
-                    tcs.TrySetResult(textBox.Text);
-                    dialog.Close();
-                }
-                else if (e_.Key == Avalonia.Input.Key.Escape)
-                {
-                    tcs.TrySetResult(null);
-                    dialog.Close();
-                }
-            };
-            dialog.Show();
-            var newTitle = await tcs.Task;
-
-            if (!string.IsNullOrWhiteSpace(newTitle))
-            {
-                SelectedListItem.Title = newTitle;
-
-                var note = AllNotes.FirstOrDefault(n => n.Id == SelectedListItem.Id);
-                if (note != null)
-                {
-                    note.Title = newTitle;
-                }
-
-                var favorite = Favorites.FirstOrDefault(f => f.Id == SelectedListItem.Id);
-                if (favorite != null)
-                {
-                    favorite.Title = newTitle;
-                }
-            }
-        } // RenameNote
-
-        private void DeleteNote()
-        {
-            if (SelectedListItem == null)
-            {
-                return;
-            }
-
-            var noteToRemove = SelectedListItem;
-
-            Notes.Remove(noteToRemove);
-
-            var note = AllNotes.FirstOrDefault(n => n.Id == noteToRemove.Id);
-            if (note != null)
-            {
-                AllNotes.Remove(note);
-            }
-            var favorite = Favorites.FirstOrDefault(f => f.Id == noteToRemove.Id);
-            if (favorite != null)
-            {
-                Favorites.Remove(favorite);
-            }
-
-            if (SelectedNote != null && SelectedNote.Id == noteToRemove.Id)
-            {
-                SelectedNote = null;
-            }
-        }
-
-        private void RemoveFromFavorites()
-        {
-            if (SelectedFavoriteItem == null)
-            {
-                return;
-            }
-
-            var note = AllNotes.FirstOrDefault(n => n.Id == SelectedFavoriteItem.Id);
-            if (note != null)
-            {
-                note.IsFavorite = false;
-            }
-
-            Favorites.Remove(SelectedFavoriteItem);
-
-            SelectedFavoriteItem = null;
-        }
 
         private void UpdateSelectedNote(NoteListItem? listItem)
         {
             if (listItem == null)
             {
                 SelectedNote = null;
-                ActiveNote = null;
+                ActiveListItem = null;
                 return;
             }
+
             SelectedNote = AllNotes.Find(n => n.Id == listItem.Id);
-            ActiveNote = SelectedNote;
+            ActiveListItem = listItem;
         }
+
+        // -------------------------------------------------------
+        // CRUD операции
+        // -------------------------------------------------------
 
         public void CreateNote()
-        {
-            var newNote = new Note
-            {
-                Id = Guid.NewGuid(),
-                Title = "Unnamed",
-                Content = "",
-                UpdatedAt = DateTime.Now
-            };
-
-            AllNotes.Add(newNote);
-
-            var newListItem = GenerateListItem(newNote);
-
-            Notes.Add(newListItem);
-            SelectedListItem = newListItem;
-            SelectedNote = newNote;
-        }
-
-        public void OnNoteSelected(NoteListItem? listItem)
-        {
-            if (listItem == null)
-            {
-                SelectedNote = null;
-                return;
-            }
-
-            SelectedNote = AllNotes.Find(n => n.Id == listItem.Id);
-        }
-
-        private NoteListItem GenerateListItem(Note note)
-        {
-            return new NoteListItem(note.Id, note.Title, note.UpdatedAt);
-        }
-
-        private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-
-        public async Task CreateNewNoteAsync()
         {
             var note = new Note
             {
@@ -344,84 +168,128 @@ namespace CloudNotes.Desktop.ViewModel
 
             AllNotes.Add(note);
 
-            var item = new NoteListItem(note.Id, note.Title, note.UpdatedAt);
-            Notes.Add(item);
+            var listItem = CreateListItem(note);
+            Notes.Add(listItem);
 
-            SelectedListItem = item;
+            SelectedListItem = listItem;
             SelectedNote = note;
-            ActiveNote = note;
+            ActiveListItem = listItem;
         }
 
-        public async Task SaveActiveNoteAsync()
+        public void RenameActiveNote(string newName)
         {
-            if (ActiveNote == null)
+            var listItem = ActiveListItem ?? SelectedListItem;
+            if (listItem == null) return;
+
+            // Обновляем UI (NoteListItem уведомит об изменении)
+            listItem.Title = newName;
+
+            // Обновляем данные
+            var note = AllNotes.FirstOrDefault(n => n.Id == listItem.Id);
+            if (note != null)
             {
-                return;
+                note.Title = newName;
+                note.UpdatedAt = DateTime.Now;
             }
 
-            ActiveNote.UpdatedAt = DateTime.Now;
-            OnPropertyChanged(nameof(ActiveNote));
-
-            var listItem = Notes.FirstOrDefault(x => x.Id == ActiveNote.Id);
-            if (listItem != null)
+            // Обновляем в избранном, если есть
+            var favoriteItem = Favorites.FirstOrDefault(f => f.Id == listItem.Id);
+            if (favoriteItem != null)
             {
-                listItem.UpdatedAt = ActiveNote.UpdatedAt;
+                favoriteItem.Title = newName;
             }
         }
 
-        public async Task DeleteActiveNoteAsync()
+        private void AddToFavorites()
         {
-            if (ActiveNote == null)
+            if (SelectedListItem == null) return;
+
+            var note = AllNotes.FirstOrDefault(n => n.Id == SelectedListItem.Id);
+            if (note == null) return;
+
+            if (!note.IsFavorite)
             {
-                return;
+                note.IsFavorite = true;
             }
 
-            var id = ActiveNote.Id;
-
-            var listItem = Notes.FirstOrDefault(x => x.Id == id);
-            if (listItem != null)
+            if (!Favorites.Any(f => f.Id == note.Id))
             {
-                Notes.Remove(listItem);
+                Favorites.Add(new NoteListItem(note.Id, note.Title, note.UpdatedAt));
+            }
+        }
+
+        private void DeleteNote()
+        {
+            if (SelectedListItem == null) return;
+
+            var listItem = SelectedListItem;
+
+            // Удаляем из UI коллекций
+            Notes.Remove(listItem);
+            var favoriteItem = Favorites.FirstOrDefault(f => f.Id == listItem.Id);
+            if (favoriteItem != null)
+            {
+                Favorites.Remove(favoriteItem);
             }
 
-            var note = AllNotes.FirstOrDefault(x => x.Id == id);
+            // Удаляем из данных
+            var note = AllNotes.FirstOrDefault(n => n.Id == listItem.Id);
             if (note != null)
             {
                 AllNotes.Remove(note);
             }
 
-            var favorite = Favorites.FirstOrDefault(x => x.Id == id);
-            if (favorite != null)
+            // Сбрасываем выбор
+            if (SelectedNote?.Id == listItem.Id)
             {
-                Favorites.Remove(favorite);
+                SelectedNote = null;
+            }
+            if (ActiveListItem?.Id == listItem.Id)
+            {
+                ActiveListItem = null;
             }
 
-            ActiveNote = null;
             SelectedListItem = null;
-            SelectedNote = null;
         }
 
-        public async Task RenameActiveNoteAsync(string newName)
+        public void DeleteActiveNote()
         {
-            if (ActiveNote == null)
+            var listItem = ActiveListItem ?? SelectedListItem;
+            if (listItem == null) return;
+
+            // Удаляем из UI коллекций
+            Notes.Remove(listItem);
+            var favoriteItem = Favorites.FirstOrDefault(f => f.Id == listItem.Id);
+            if (favoriteItem != null)
             {
-                return;
+                Favorites.Remove(favoriteItem);
             }
 
-            ActiveNote.Title = newName;
-            OnPropertyChanged(nameof(ActiveNote));
-
-            var listItem = Notes.FirstOrDefault(x => x.Id == ActiveNote.Id);
-            if (listItem != null)
+            // Удаляем из данных
+            var note = AllNotes.FirstOrDefault(n => n.Id == listItem.Id);
+            if (note != null)
             {
-                listItem.Title = newName;
+                AllNotes.Remove(note);
             }
 
-            var favorite = Favorites.FirstOrDefault(x => x.Id == ActiveNote.Id);
-            if (favorite != null)
-            {
-                favorite.Title = newName;
-            }
+            // Сбрасываем выбор
+            SelectedNote = null;
+            SelectedListItem = null;
+            ActiveListItem = null;
         }
-    } // class NotesViewModel
+
+        private void RemoveFromFavorites()
+        {
+            if (SelectedFavoriteItem == null) return;
+
+            var note = AllNotes.FirstOrDefault(n => n.Id == SelectedFavoriteItem.Id);
+            if (note != null)
+            {
+                note.IsFavorite = false;
+            }
+
+            Favorites.Remove(SelectedFavoriteItem);
+            SelectedFavoriteItem = null;
+        }
+    }
 }

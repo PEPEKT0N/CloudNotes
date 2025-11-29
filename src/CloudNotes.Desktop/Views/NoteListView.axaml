@@ -2,10 +2,70 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="CloudNotes.Desktop.Views.NoteListView"
              Focusable="True"
-             KeyDown="OnKeyDown">
+             >
 
-    <StackPanel>
-        <TextBlock Text="NoteListView placeholder"/>
-    </StackPanel>
+        <Border Padding="20">
+            <StackPanel>
+                <TextBox>CloudNotes</TextBox>
+
+                <Button Margin="0.5"
+                        Content="Create note"
+                        Command="{Binding CreateNoteCommand}" />
+
+                <TextBlock Text="Favorites"
+                            FontWeight="Bold"
+                            FontSize="16"
+                            Margin="0,20,0,10" />
+
+                <ListBox ItemsSource="{Binding Favorites}"
+                         SelectedItem="{Binding SelectedFavoriteItem, Mode=TwoWay}"
+                         SelectionChanged="OnFavoritesSelectionChanged">
+                    <ListBox.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Remove from favorites"
+                                        Command="{Binding RemoveFromFavoritesCommand}" />
+                            <MenuItem Header="Rename" Click="OnRenameMenuClick" />
+                            <MenuItem Header="Delete"
+                                        Command="{Binding DeleteNoteCommand}" />
+                        </ContextMenu> 
+                    </ListBox.ContextMenu>
+
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Title}" />
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+
+                <TextBlock Text="Your Notes"
+                           FontWeight="Bold"
+                           FontSize="16"
+                           Margin="0,30,0,10" />
+
+                <ListBox ItemsSource="{Binding Notes}"
+                         SelectedItem="{Binding SelectedListItem, Mode=TwoWay}"
+                         SelectionChanged="OnListBoxSelectionChanged">
+
+                    <ListBox.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Add to favorites"
+                                        Command="{Binding AddToFavoritesCommand}" />
+                            <MenuItem Header="Rename" Click="OnRenameMenuClick" />
+                            <MenuItem Header="Delete"
+                                        Command="{Binding DeleteNoteCommand}" />
+                        </ContextMenu>
+                    </ListBox.ContextMenu>
+
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Title}" />
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </StackPanel>
+        </Border>
+
+    
 
 </UserControl>
