@@ -134,10 +134,14 @@ namespace CloudNotes.Desktop.ViewModel
             // Загружаем заметки из БД
             var notesFromDb = await _noteService.GetAllNoteAsync();
 
-            if (!notesFromDb.Any())
+            // Проверяем наличие дефолтных заметок
+            var hasWelcomeNote = notesFromDb.Any(n => n.Title == "Welcome note");
+            var hasSecondNote = notesFromDb.Any(n => n.Title == "Second note");
+
+            if (!hasWelcomeNote || !hasSecondNote)
             {
-                // Если БД пустая, создаем дефолтные заметки в БД
-                await CreateDefaultNotesInDb();
+                // Если дефолтных заметок нет, создаем их в БД
+                await CreateDefaultNotesInDb(hasWelcomeNote, hasSecondNote);
                 // После создания загружаем их из БД
                 notesFromDb = await _noteService.GetAllNoteAsync();
             }
@@ -159,27 +163,32 @@ namespace CloudNotes.Desktop.ViewModel
             SelectedNote = null;
         }
 
-        private async Task CreateDefaultNotesInDb()
+        private async Task CreateDefaultNotesInDb(bool hasWelcomeNote, bool hasSecondNote)
         {
-            var note1 = new Note
+            // Создаем только те дефолтные заметки, которых нет
+            if (!hasWelcomeNote)
             {
-                Id = Guid.NewGuid(),
-                Title = "Welcome note",
-                Content = "This is a sample note. You can edit it.",
-                UpdatedAt = DateTime.Now
-            };
+                var note1 = new Note
+                {
+                    Id = Guid.NewGuid(),
+                    Title = "Welcome note",
+                    Content = "This is a sample note. You can edit it.",
+                    UpdatedAt = DateTime.Now
+                };
+                await _noteService.CreateNoteAsync(note1);
+            }
 
-            var note2 = new Note
+            if (!hasSecondNote)
             {
-                Id = Guid.NewGuid(),
-                Title = "Second note",
-                Content = "Another sample note to test selection.",
-                UpdatedAt = DateTime.Now.AddHours(-1)
-            };
-
-            // Сохраняем дефолтные заметки только в БД
-            await _noteService.CreateNoteAsync(note1);
-            await _noteService.CreateNoteAsync(note2);
+                var note2 = new Note
+                {
+                    Id = Guid.NewGuid(),
+                    Title = "Second note",
+                    Content = "Another sample note to test selection.",
+                    UpdatedAt = DateTime.Now.AddHours(-1)
+                };
+                await _noteService.CreateNoteAsync(note2);
+            }
         }
 
         public async Task SaveNoteAsync(Note note)
