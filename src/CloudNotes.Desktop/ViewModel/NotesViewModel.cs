@@ -23,6 +23,9 @@ namespace CloudNotes.Desktop.ViewModel
         // Данные — Note (чистая сущность)
         public List<Note> AllNotes { get; } = new();
 
+        // Флаг для предотвращения рекурсии при сбросе выбора между списками
+        private bool _isUpdatingSelection = false;
+
         // Выбранный элемент в списке избранного
         private NoteListItem? selectedFavoriteItem;
         public NoteListItem? SelectedFavoriteItem
@@ -35,6 +38,19 @@ namespace CloudNotes.Desktop.ViewModel
                     selectedFavoriteItem = value;
                     OnPropertyChanged();
                     (RemoveFromFavoritesCommand as RelayCommand)?.RaiseCanExecuteChanged();
+
+                    // При выборе в избранном сбрасываем выбор в основном списке
+                    // и обновляем SelectedNote/ActiveListItem
+                    if (value != null && !_isUpdatingSelection)
+                    {
+                        _isUpdatingSelection = true;
+                        SelectedListItem = null;
+                        _isUpdatingSelection = false;
+
+                        // Обновляем SelectedNote и ActiveListItem
+                        SelectedNote = AllNotes.Find(n => n.Id == value.Id);
+                        ActiveListItem = value;
+                    }
                 }
             }
         }
@@ -50,6 +66,15 @@ namespace CloudNotes.Desktop.ViewModel
                 {
                     selectedListItem = value;
                     OnPropertyChanged();
+
+                    // При выборе в основном списке сбрасываем выбор в избранном
+                    if (value != null && !_isUpdatingSelection)
+                    {
+                        _isUpdatingSelection = true;
+                        SelectedFavoriteItem = null;
+                        _isUpdatingSelection = false;
+                    }
+
                     UpdateSelectedNote(value);
                 }
             }
@@ -81,6 +106,10 @@ namespace CloudNotes.Desktop.ViewModel
                 {
                     activeListItem = value;
                     OnPropertyChanged();
+
+                    // Обновляем доступность команд
+                    (AddToFavoritesCommand as RelayCommand)?.RaiseCanExecuteChanged();
+                    (DeleteNoteCommand as RelayCommand)?.RaiseCanExecuteChanged();
                 }
             }
         }
@@ -122,7 +151,7 @@ namespace CloudNotes.Desktop.ViewModel
             LoadNotesFromDbAsync().GetAwaiter().GetResult();
         }
 
-        private bool CanModifyNote() => SelectedListItem != null;
+        private bool CanModifyNote() => ActiveListItem != null;
 
         private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
         {
@@ -270,9 +299,16 @@ namespace CloudNotes.Desktop.ViewModel
                 Task.Run(async () => await _noteService.UpdateNoteAsync(note));
             }
 
+            // Обновляем в основном списке, если есть
+            var noteItem = Notes.FirstOrDefault(n => n.Id == listItem.Id);
+            if (noteItem != null && noteItem != listItem)
+            {
+                noteItem.Title = newName;
+            }
+
             // Обновляем в избранном, если есть
             var favoriteItem = Favorites.FirstOrDefault(f => f.Id == listItem.Id);
-            if (favoriteItem != null)
+            if (favoriteItem != null && favoriteItem != listItem)
             {
                 favoriteItem.Title = newName;
             }
@@ -344,7 +380,12 @@ namespace CloudNotes.Desktop.ViewModel
             var noteId = listItem.Id;
 
             // Удаляем из UI коллекций
-            Notes.Remove(listItem);
+            var noteItem = Notes.FirstOrDefault(n => n.Id == listItem.Id);
+            if (noteItem != null)
+            {
+                Notes.Remove(noteItem);
+            }
+
             var favoriteItem = Favorites.FirstOrDefault(f => f.Id == listItem.Id);
             if (favoriteItem != null)
             {
