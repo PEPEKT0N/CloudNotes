@@ -15,7 +15,7 @@ public static class DbContextProvider
             var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
             optionsBuilder.UseSqlite($"Data Source={Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)}/CloudNotes/notes.db");
             _context = new AppDbContext(optionsBuilder.Options);
-            _context.Database.EnsureCreated(); // Creates a database on the first access
+            _context.Database.Migrate(); // Applies migrations to update database schema
         }
 
         return _context;

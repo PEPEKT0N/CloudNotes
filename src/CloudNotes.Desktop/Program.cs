@@ -26,10 +26,10 @@ class Program
         var optionsBuidler = new DbContextOptionsBuilder<AppDbContext>();
         optionsBuilder.UseSqlite($"Data Source={dbPath}");
 
-        // Create context and call EnsureCreated
+        // Create context and apply migrations
         using (var context = new AppDbContext(optionsBuilder.Options))
         {
-            context.Database.EnsureCreated();
+            context.Database.Migrate();
         }
 
         // Launch the Avalonia application
