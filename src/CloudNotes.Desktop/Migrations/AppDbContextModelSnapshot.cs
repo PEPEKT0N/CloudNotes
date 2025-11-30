@@ -28,7 +28,7 @@ namespace CloudNotes.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("IsFavorite")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("BOOLEAN");
 
                     b.Property<string>("Title")
                         .IsRequired()
