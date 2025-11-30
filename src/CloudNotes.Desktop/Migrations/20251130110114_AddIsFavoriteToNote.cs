@@ -13,7 +13,7 @@ namespace CloudNotes.Migrations
             migrationBuilder.AddColumn<bool>(
                 name: "IsFavorite",
                 table: "Notes",
-                type: "INTEGER",
+                type: "BOOLEAN",
                 nullable: false,
                 defaultValue: false);
         }
