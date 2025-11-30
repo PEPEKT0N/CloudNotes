@@ -259,9 +259,13 @@ namespace CloudNotes.Desktop.Tests
                 };
 
                 await _noteService.CreateNoteAsync(note);
-                var originalTimestamp = note.UpdatedAt;
 
-                await Task.Delay(10); // Небольшая задержка для гарантии разницы во времени
+                // Получаем заметку из БД, чтобы получить актуальный UpdatedAt после создания
+                var createdNote = await _noteService.GetNoteByIdAsync(note.Id);
+                Assert.NotNull(createdNote);
+                var originalTimestamp = createdNote!.UpdatedAt;
+
+                await Task.Delay(100); // Задержка для гарантии разницы во времени
 
                 var beforeUpdate = DateTime.Now;
                 var result = await _noteService.UpdateNoteAsync(note);

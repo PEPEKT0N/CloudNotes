@@ -18,8 +18,6 @@ public class NoteService : INoteService
 
     public async Task<Note> CreateNoteAsync(Note note)
     {
-        note.UpdatedAt = DateTime.Now;
-
         _context.Notes.Add(note);
 
         await _context.SaveChangesAsync();
@@ -50,9 +48,11 @@ public class NoteService : INoteService
         existingNote.Title = note.Title;
         existingNote.Content = note.Content;
         existingNote.IsFavorite = note.IsFavorite;
-        existingNote.UpdatedAt = DateTime.Now;
 
-        // Save changes
+        // Явно помечаем сущность как измененную для гарантии обновления UpdatedAt
+        _context.Entry(existingNote).State = EntityState.Modified;
+
+        // Save changes (UpdatedAt обновится автоматически в SaveChangesAsync)
         await _context.SaveChangesAsync();
 
         return true;
