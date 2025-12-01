@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using CloudNotes.Desktop.Data;
 using CloudNotes.Desktop.Model;
+using CloudNotes.Services; // Убедись, что это пространство имён для INoteService
 using Microsoft.EntityFrameworkCore;
 
 namespace CloudNotes.Desktop.Services;
@@ -37,14 +38,12 @@ public class NoteService : INoteService
 
     public async Task<bool> UpdateNoteAsync(Note note)
     {
-        //Check if the note exists
         var existingNote = await _context.Notes.FindAsync(note.Id);
         if (existingNote == null)
         {
             return false;
         }
 
-        //Update the note
         existingNote.Title = note.Title;
         existingNote.Content = note.Content;
         existingNote.IsFavorite = note.IsFavorite;
@@ -60,14 +59,12 @@ public class NoteService : INoteService
 
     public async Task<bool> DeleteNoteAsync(Guid id)
     {
-        // Find the note by Id
         var note = await _context.Notes.FindAsync(id);
         if (note == null)
         {
             return false;
         }
 
-        // Remove the note
         _context.Notes.Remove(note);
 
         await _context.SaveChangesAsync();
