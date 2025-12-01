@@ -2,111 +2,33 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:CloudNotes.Desktop.Views"
-        xmlns:model="clr-namespace:CloudNotes.Desktop.Model"
-        x:Class="CloudNotes.Desktop.Views.MainWindow"
-        x:DataType="local:MainWindow" 
+        xmlns:model="clr-namespace:CloudNotes.Desktop.Model"               
+        xmlns:views="clr-namespace:CloudNotes.Desktop.Views"
+        xmlns:html="clr-namespace:TheArtOfDev.HtmlRenderer.Avalonia;assembly=Avalonia.HtmlRenderer"
+        x:Class="CloudNotes.Desktop.Views.MainWindow"        
         mc:Ignorable="d"
         Title="CloudNotes"
         Width="800"
         Height="450">
 
-    <Grid Background="LightBlue" ColumnDefinitions="200, *">
-        <!-- Левая панель: Список заметок -->
-        <Border Grid.Column="0" Padding="10">
-            <DockPanel>
-                <Button DockPanel.Dock="Top" 
-                        Margin="0,5" 
-                        Command="{Binding CreateNoteCommand}">
-                    Create Note
-                </Button>
+    <Grid Background="lightblue" ColumnDefinitions="200, *">
+        <views:NoteListView x:Name="NoteListViewControl" Grid.Column="0" />
 
-                <Button Margin="0,5"
-                        Content="Create note"
-                        Command="{Binding ViewModel.CreateNoteCommand}" />
-
-                <TextBlock Text="Favorites"
-                           FontWeight="Bold"
-                           FontSize="16"
-                           Margin="0,20,0,10" />
-
-                <ListBox ItemsSource="{Binding ViewModel.Favorites}"
-                         SelectedItem="{Binding ViewModel.SelectedFavoriteItem, Mode=TwoWay}"
-                         SelectionChanged="OnFavoritesSelectionChanged">
-                    <ListBox.ContextMenu>
-                        <ContextMenu>
-                            <MenuItem Header="Remove from favorites"
-                                        Command="{Binding ViewModel.RemoveFromFavoritesCommand}" />
-                            <MenuItem Header="Rename"
-                                        Command="{Binding ViewModel.RenameNoteCommand}" />
-                            <MenuItem Header="Delete"
-                                        Command="{Binding ViewModel.DeleteNoteCommand}" />
-                        </ContextMenu> 
-                    </ListBox.ContextMenu>
-
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding Title}" />
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-
-
-                <TextBlock Text="Your Notes"
-                           FontWeight="Bold"
-                           FontSize="16"
-                           Margin="0,30,0,10" />
-
-                <ListBox ItemsSource="{Binding ViewModel.Notes}"
-                         SelectedItem="{Binding ViewModel.SelectedListItem, Mode=TwoWay}"
-                         SelectionChanged="OnListBoxSelectionChanged">
-
-                    <ListBox.ContextMenu>
-                        <ContextMenu>
-                            <MenuItem Header="Add to favorites"
-                                        Command="{Binding ViewModel.AddToFavoritesCommand}" />
-                            <MenuItem Header="Rename"
-                                        Command="{Binding ViewModel.RenameNoteCommand}" />
-                            <MenuItem Header="Delete"
-                                        Command="{Binding ViewModel.DeleteNoteCommand}" />
-                        </ContextMenu>
-                    </ListBox.ContextMenu>
-
-                    <ListBox.ItemTemplate>
-                        <DataTemplate x:DataType="model:NoteListItem">
-                            <TextBlock Text="{Binding Title}" 
-                                       ToolTip.Tip="{Binding UpdatedAt}"/> 
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-            </DockPanel>
-        </Border>
-
-        <!-- Правая панель: Редактор заметки -->
-        <Border Grid.Column="1" Padding="10">
-            <DockPanel>
-                <StackPanel DockPanel.Dock="Bottom" 
-                            Orientation="Horizontal" 
-                            HorizontalAlignment="Left" 
-                            Margin="0,5,0,0">
-                    <Button Command="{Binding UpdateNoteCommand}" 
-                            Margin="0,0,5,0" 
-                            IsEnabled="{Binding SelectedNote, Converter={x:Static ObjectConverters.IsNotNull}}">
-                        Update
-                    </Button>
-                    <Button Command="{Binding DeleteNoteCommand}" 
-                            IsEnabled="{Binding SelectedNote, Converter={x:Static ObjectConverters.IsNotNull}}">
-                        Delete
-                    </Button>
-                </StackPanel>
-
-                <TextBox Name="NoteEditorTextBox"
-                         Text="{Binding SelectedNote.Content, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                         AcceptsReturn="True"
+        <Border Padding="5" Grid.Column="1">
+            <Grid>
+                <!-- Режим редактирования (Markdown) -->
+                <TextBox AcceptsReturn="True"
                          TextWrapping="Wrap"
-                         IsEnabled="{Binding SelectedNote, Converter={x:Static ObjectConverters.IsNotNull}}"
-                         Watermark="Select a note to edit..."/>
-            </DockPanel>
+                         IsVisible="{Binding IsEditMode}"
+                         Text="{Binding SelectedNote.Content,
+                                        Mode=TwoWay,
+                                        FallbackValue='Select a note'}" />
+                
+                <!-- Режим превью (HTML) -->
+                <html:HtmlPanel IsVisible="{Binding IsPreviewMode}"
+                                Text="{Binding HtmlContent}" 
+                                Background="White" />
+            </Grid>
         </Border>
     </Grid>
 </Window>

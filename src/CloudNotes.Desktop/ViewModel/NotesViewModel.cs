@@ -6,20 +6,27 @@ using System.ComponentModel;
 using System.Windows.Input;
 using System.Linq;
 using System.Threading.Tasks;
-
 using CloudNotes.Desktop.Model;
-
-
+using CloudNotes.Desktop.Services;
+using CloudNotes.Services;
 
 namespace CloudNotes.Desktop.ViewModel
 {
     public class NotesViewModel : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler? PropertyChanged;
+
+        // UI коллекции — NoteListItem (с INotifyPropertyChanged)
         public ObservableCollection<NoteListItem> Notes { get; } = new();
         public ObservableCollection<NoteListItem> Favorites { get; } = new();
+
+        // Данные — Note (чистая сущность)
         public List<Note> AllNotes { get; } = new();
 
+        // Флаг для предотвращения рекурсии при сбросе выбора между списками
+        private bool _isUpdatingSelection = false;
+
+        // Выбранный элемент в списке избранного
         private NoteListItem? selectedFavoriteItem;
         public NoteListItem? SelectedFavoriteItem
         {
@@ -31,27 +38,53 @@ namespace CloudNotes.Desktop.ViewModel
                     selectedFavoriteItem = value;
                     OnPropertyChanged();
                     (RemoveFromFavoritesCommand as RelayCommand)?.RaiseCanExecuteChanged();
+
+                    // При выборе в избранном сбрасываем выбор в основном списке
+                    // и обновляем SelectedNote/ActiveListItem
+                    if (value != null && !_isUpdatingSelection)
+                    {
+                        _isUpdatingSelection = true;
+                        SelectedListItem = null;
+                        _isUpdatingSelection = false;
+
+                        // Обновляем SelectedNote и ActiveListItem
+                        SelectedNote = AllNotes.Find(n => n.Id == value.Id);
+                        ActiveListItem = value;
+                    }
                 }
             }
         }
+
+        // Выбранный элемент в основном списке
         private NoteListItem? selectedListItem;
         public NoteListItem? SelectedListItem
         {
-            get { return selectedListItem; }
+            get => selectedListItem;
             set
             {
                 if (selectedListItem != value)
                 {
                     selectedListItem = value;
                     OnPropertyChanged();
+
+                    // При выборе в основном списке сбрасываем выбор в избранном
+                    if (value != null && !_isUpdatingSelection)
+                    {
+                        _isUpdatingSelection = true;
+                        SelectedFavoriteItem = null;
+                        _isUpdatingSelection = false;
+                    }
+
                     UpdateSelectedNote(value);
                 }
             }
         }
+
+        // Текущая выбранная заметка (для редактирования контента)
         private Note? selectedNote;
         public Note? SelectedNote
         {
-            get { return selectedNote; }
+            get => selectedNote;
             set
             {
                 if (selectedNote != value)
@@ -62,225 +95,410 @@ namespace CloudNotes.Desktop.ViewModel
             }
         }
 
+        // Активная заметка (для операций через контекстное меню/горячие клавиши)
+        private NoteListItem? activeListItem;
+        public NoteListItem? ActiveListItem
+        {
+            get => activeListItem;
+            private set
+            {
+                if (activeListItem != value)
+                {
+                    activeListItem = value;
+                    OnPropertyChanged();
+
+                    // Обновляем доступность команд
+                    (AddToFavoritesCommand as RelayCommand)?.RaiseCanExecuteChanged();
+                    (DeleteNoteCommand as RelayCommand)?.RaiseCanExecuteChanged();
+                }
+            }
+        }
+
+        // Команды
         public ICommand CreateNoteCommand { get; }
         public ICommand AddToFavoritesCommand { get; }
         public ICommand RemoveFromFavoritesCommand { get; }
-        public ICommand RenameNoteCommand { get; }
         public ICommand DeleteNoteCommand { get; }
+
+        // Сервис для работы с БД
+        private readonly INoteService _noteService;
+
+        // Сервис для конвертации Markdown в HTML
+        private readonly IMarkdownConverter _markdownConverter;
+
+        // Режим превью (true = просмотр HTML, false = редактирование Markdown)
+        private bool isPreviewMode;
+        public bool IsPreviewMode
+        {
+            get => isPreviewMode;
+            set
+            {
+                if (isPreviewMode != value)
+                {
+                    isPreviewMode = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(IsEditMode));
+
+                    // При переключении в режим превью обновляем HTML
+                    if (value)
+                    {
+                        UpdateHtmlContent();
+                    }
+                }
+            }
+        }
+
+        // Обратное свойство для удобства биндинга
+        public bool IsEditMode => !IsPreviewMode;
+
+        // HTML-контент для превью
+        private string htmlContent = string.Empty;
+        public string HtmlContent
+        {
+            get => htmlContent;
+            private set
+            {
+                if (htmlContent != value)
+                {
+                    htmlContent = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        // Команда переключения режима
+        public ICommand TogglePreviewModeCommand { get; }
 
         public NotesViewModel()
         {
+            var context = DbContextProvider.GetContext();
+            _noteService = new NoteService(context);
+            _markdownConverter = new MarkdownConverter();
+
             CreateNoteCommand = new RelayCommand(_ => CreateNote());
             AddToFavoritesCommand = new RelayCommand(_ => AddToFavorites(), _ => CanModifyNote());
-            RenameNoteCommand = new RelayCommand(async _ => await RenameNoteAsync(), _ => CanModifyNote());
             DeleteNoteCommand = new RelayCommand(_ => DeleteNote(), _ => CanModifyNote());
             RemoveFromFavoritesCommand = new RelayCommand(_ => RemoveFromFavorites(), _ => SelectedFavoriteItem != null);
+            TogglePreviewModeCommand = new RelayCommand(_ => TogglePreviewMode());
 
-            Favorites = new ObservableCollection<NoteListItem>(AllNotes.Where(n => n.IsFavorite).Select(n => new NoteListItem(n.Id, n.Title)));
-            AddDefaultNote();
-
+            // Загружаем заметки из БД синхронно для совместимости с тестами
+            LoadNotesFromDbAsync().GetAwaiter().GetResult();
         }
-        private bool CanModifyNote()
-        {
-            return SelectedListItem != null;
-        }
-        private void AddDefaultNote()
-        {
-            AddNote(new Note
-            {
-                Id = Guid.NewGuid(),
-                Title = "Welcome note",
-                Content = "This is a sample note. You can edit it",
-                UpdatedAt = DateTime.Now
-            });
 
-            AddNote(new Note
+        // Конструктор для тестов с переданным сервисом
+        public NotesViewModel(INoteService noteService)
+        {
+            _noteService = noteService;
+            _markdownConverter = new MarkdownConverter();
+
+            CreateNoteCommand = new RelayCommand(_ => CreateNote());
+            AddToFavoritesCommand = new RelayCommand(_ => AddToFavorites(), _ => CanModifyNote());
+            DeleteNoteCommand = new RelayCommand(_ => DeleteNote(), _ => CanModifyNote());
+            RemoveFromFavoritesCommand = new RelayCommand(_ => RemoveFromFavorites(), _ => SelectedFavoriteItem != null);
+            TogglePreviewModeCommand = new RelayCommand(_ => TogglePreviewMode());
+
+            // Загружаем заметки из БД синхронно для совместимости с тестами
+            LoadNotesFromDbAsync().GetAwaiter().GetResult();
+        }
+
+        private bool CanModifyNote() => ActiveListItem != null;
+
+        private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        private async Task LoadNotesFromDbAsync()
+        {
+            // Загружаем заметки из БД
+            var notesFromDb = await _noteService.GetAllNoteAsync();
+
+            // Проверяем наличие дефолтных заметок
+            var hasWelcomeNote = notesFromDb.Any(n => n.Title == "Welcome note");
+            var hasSecondNote = notesFromDb.Any(n => n.Title == "Second note");
+
+            if (!hasWelcomeNote || !hasSecondNote)
             {
-                Id = Guid.NewGuid(),
-                Title = "Second note",
-                Content = "Another sample note to test selection.",
-                UpdatedAt = DateTime.Now.AddHours(-1)
-            });
+                // Если дефолтных заметок нет, создаем их в БД
+                await CreateDefaultNotesInDb(hasWelcomeNote, hasSecondNote);
+                // После создания загружаем их из БД
+                notesFromDb = await _noteService.GetAllNoteAsync();
+            }
+
+            // Загружаем все заметки из БД в коллекцию
+            foreach (var note in notesFromDb)
+            {
+                AllNotes.Add(note);
+                Notes.Add(CreateListItem(note));
+
+                // Добавляем в избранное, если нужно
+                if (note.IsFavorite)
+                {
+                    Favorites.Add(CreateListItem(note));
+                }
+            }
 
             SelectedListItem = null;
             SelectedNote = null;
         }
+
+        private async Task CreateDefaultNotesInDb(bool hasWelcomeNote, bool hasSecondNote)
+        {
+            // Создаем только те дефолтные заметки, которых нет
+            if (!hasWelcomeNote)
+            {
+                var note1 = new Note
+                {
+                    Id = Guid.NewGuid(),
+                    Title = "Welcome note",
+                    Content = "This is a sample note. You can edit it."
+                };
+                await _noteService.CreateNoteAsync(note1);
+            }
+
+            if (!hasSecondNote)
+            {
+                var note2 = new Note
+                {
+                    Id = Guid.NewGuid(),
+                    Title = "Second note",
+                    Content = "Another sample note to test selection."
+                };
+                await _noteService.CreateNoteAsync(note2);
+            }
+        }
+
+        public async Task SaveNoteAsync(Note note)
+        {
+            if (note == null) return;
+
+            // UpdatedAt обновится автоматически в SaveChangesAsync
+            await _noteService.UpdateNoteAsync(note);
+        }
+
         private void AddNote(Note note)
         {
             AllNotes.Add(note);
-            Notes.Add(GenerateListItem(note));
-            //SelectedListItem = Notes[^1];
+            Notes.Add(CreateListItem(note));
         }
 
-        private void AddToFavorites()
+        private NoteListItem CreateListItem(Note note)
         {
-            if (SelectedListItem == null)
-            {
-                return;
-            }
-
-            var note = AllNotes.FirstOrDefault(n => n.Id == SelectedListItem.Id);
-            if (note == null)
-            {
-                return;
-            }
-
-            if (!note.IsFavorite)
-            {
-                note.IsFavorite = true;
-            }
-
-            if (!Favorites.Any(f => f.Id == note.Id))
-            {
-                Favorites.Add(new NoteListItem(note.Id, note.Title));
-            }
-
-            (AddToFavoritesCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            return new NoteListItem(note.Id, note.Title, note.UpdatedAt);
         }
 
-        private async Task RenameNoteAsync()
-        {
-            if (SelectedListItem == null)
-            {
-                return;
-            }
-
-            var dialog = new Avalonia.Controls.Window
-            {
-                Width = 300,
-                Height = 100,
-                Title = "Rename Note"
-            };
-
-            var textBox = new Avalonia.Controls.TextBox
-            {
-                Text = SelectedListItem.Title,
-                Margin = new Avalonia.Thickness(10)
-            };
-
-            var button = new Avalonia.Controls.Button
-            {
-                Content = "Rename",
-                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
-                Margin = new Avalonia.Thickness(10)
-            };
-
-            var stack = new Avalonia.Controls.StackPanel();
-            stack.Children.Add(textBox);
-            stack.Children.Add(button);
-
-            dialog.Content = stack;
-
-            var tcs = new TaskCompletionSource<string?>();
-            button.Click += (_, __) =>
-            {
-                tcs.SetResult(textBox.Text);
-                dialog.Close();
-            };
-            dialog.Show();
-            var newTitle = await tcs.Task;
-
-            if (!string.IsNullOrWhiteSpace(newTitle))
-            {
-                SelectedListItem.Title = newTitle;
-
-                var note = AllNotes.FirstOrDefault(n => n.Id == SelectedListItem.Id);
-                if (note != null)
-                {
-                    note.Title = newTitle;
-                }
-            }
-        } // RenameNote
-
-        private void DeleteNote()
-        {
-            if (SelectedListItem == null)
-            {
-                return;
-            }
-
-            var noteToRemove = SelectedListItem;
-
-            Notes.Remove(noteToRemove);
-
-            var note = AllNotes.FirstOrDefault(n => n.Id == noteToRemove.Id);
-            if (note != null)
-            {
-                AllNotes.Remove(note);
-            }
-
-            if (SelectedNote != null && SelectedNote.Id == noteToRemove.Id)
-            {
-                SelectedNote = null;
-            }
-        }
-
-        private void RemoveFromFavorites()
-        {
-            if (SelectedFavoriteItem == null)
-            {
-                return;
-            }
-
-            var note = AllNotes.FirstOrDefault(n => n.Id == SelectedFavoriteItem.Id);
-            if (note != null)
-            {
-                note.IsFavorite = false;
-            }
-
-            Favorites.Remove(SelectedFavoriteItem);
-
-            SelectedFavoriteItem = null;
-        }
 
         private void UpdateSelectedNote(NoteListItem? listItem)
         {
             if (listItem == null)
             {
                 SelectedNote = null;
+                ActiveListItem = null;
                 return;
             }
+
             SelectedNote = AllNotes.Find(n => n.Id == listItem.Id);
+            ActiveListItem = listItem;
         }
+
+        // -------------------------------------------------------
+        // CRUD операции
+        // -------------------------------------------------------
 
         public void CreateNote()
         {
-            var newNote = new Note
+            var note = new Note
             {
                 Id = Guid.NewGuid(),
                 Title = "Unnamed",
                 Content = "",
-                UpdatedAt = DateTime.Now
+                UpdatedAt = DateTime.Now // Для UI, в БД обновится автоматически при сохранении
             };
 
-            AllNotes.Add(newNote);
+            AllNotes.Add(note);
 
-            var newListItem = GenerateListItem(newNote);
+            var listItem = CreateListItem(note);
+            Notes.Add(listItem);
 
-            Notes.Add(newListItem);
-            SelectedListItem = newListItem;
-            SelectedNote = newNote;
+            SelectedListItem = listItem;
+            SelectedNote = note;
+            ActiveListItem = listItem;
+
+            // Сохраняем в БД асинхронно (UpdatedAt обновится автоматически в SaveChangesAsync)
+            Task.Run(async () => await _noteService.CreateNoteAsync(note));
         }
 
-        public void OnNoteSelected(NoteListItem? listItem)
+        public void RenameActiveNote(string newName)
         {
-            if (listItem == null)
+            var listItem = ActiveListItem ?? SelectedListItem;
+            if (listItem == null) return;
+
+            // Обновляем UI (NoteListItem уведомит об изменении)
+            listItem.Title = newName;
+
+            // Обновляем данные
+            var note = AllNotes.FirstOrDefault(n => n.Id == listItem.Id);
+            if (note != null)
+            {
+                note.Title = newName;
+                note.UpdatedAt = DateTime.Now; // Для UI, в БД обновится автоматически при сохранении
+                listItem.UpdatedAt = note.UpdatedAt;
+
+                // Сохраняем изменения в БД (UpdatedAt обновится автоматически в SaveChangesAsync)
+                Task.Run(async () => await _noteService.UpdateNoteAsync(note));
+            }
+
+            // Обновляем в основном списке, если есть
+            var noteItem = Notes.FirstOrDefault(n => n.Id == listItem.Id);
+            if (noteItem != null && noteItem != listItem && note != null)
+            {
+                noteItem.Title = newName;
+                noteItem.UpdatedAt = note.UpdatedAt;
+            }
+
+            // Обновляем в избранном, если есть
+            var favoriteItem = Favorites.FirstOrDefault(f => f.Id == listItem.Id);
+            if (favoriteItem != null && favoriteItem != listItem && note != null)
+            {
+                favoriteItem.Title = newName;
+                favoriteItem.UpdatedAt = note.UpdatedAt;
+            }
+        }
+
+        private void AddToFavorites()
+        {
+            if (SelectedListItem == null) return;
+
+            var note = AllNotes.FirstOrDefault(n => n.Id == SelectedListItem.Id);
+            if (note == null) return;
+
+            if (!note.IsFavorite)
+            {
+                note.IsFavorite = true;
+                // Сохраняем изменения в БД
+                Task.Run(async () => await _noteService.UpdateNoteAsync(note));
+            }
+
+            if (!Favorites.Any(f => f.Id == note.Id))
+            {
+                Favorites.Add(new NoteListItem(note.Id, note.Title, note.UpdatedAt));
+            }
+        }
+
+        private void DeleteNote()
+        {
+            if (SelectedListItem == null) return;
+
+            var listItem = SelectedListItem;
+            var noteId = listItem.Id;
+
+            // Удаляем из UI коллекций
+            Notes.Remove(listItem);
+            var favoriteItem = Favorites.FirstOrDefault(f => f.Id == listItem.Id);
+            if (favoriteItem != null)
+            {
+                Favorites.Remove(favoriteItem);
+            }
+
+            // Удаляем из данных
+            var note = AllNotes.FirstOrDefault(n => n.Id == listItem.Id);
+            if (note != null)
+            {
+                AllNotes.Remove(note);
+            }
+
+            // Удаляем из БД
+            Task.Run(async () => await _noteService.DeleteNoteAsync(noteId));
+
+            // Сбрасываем выбор
+            if (SelectedNote?.Id == listItem.Id)
             {
                 SelectedNote = null;
+            }
+            if (ActiveListItem?.Id == listItem.Id)
+            {
+                ActiveListItem = null;
+            }
+
+            SelectedListItem = null;
+        }
+
+        public void DeleteActiveNote()
+        {
+            var listItem = ActiveListItem ?? SelectedListItem;
+            if (listItem == null) return;
+
+            var noteId = listItem.Id;
+
+            // Удаляем из UI коллекций
+            var noteItem = Notes.FirstOrDefault(n => n.Id == listItem.Id);
+            if (noteItem != null)
+            {
+                Notes.Remove(noteItem);
+            }
+
+            var favoriteItem = Favorites.FirstOrDefault(f => f.Id == listItem.Id);
+            if (favoriteItem != null)
+            {
+                Favorites.Remove(favoriteItem);
+            }
+
+            // Удаляем из данных
+            var note = AllNotes.FirstOrDefault(n => n.Id == listItem.Id);
+            if (note != null)
+            {
+                AllNotes.Remove(note);
+            }
+
+            // Удаляем из БД
+            Task.Run(async () => await _noteService.DeleteNoteAsync(noteId));
+
+            // Сбрасываем выбор
+            SelectedNote = null;
+            SelectedListItem = null;
+            ActiveListItem = null;
+        }
+
+        private void RemoveFromFavorites()
+        {
+            if (SelectedFavoriteItem == null) return;
+
+            var note = AllNotes.FirstOrDefault(n => n.Id == SelectedFavoriteItem.Id);
+            if (note != null)
+            {
+                note.IsFavorite = false;
+                // Сохраняем изменения в БД
+                Task.Run(async () => await _noteService.UpdateNoteAsync(note));
+            }
+
+            Favorites.Remove(SelectedFavoriteItem);
+            SelectedFavoriteItem = null;
+        }
+
+        // -------------------------------------------------------
+        // Markdown Preview
+        // -------------------------------------------------------
+
+        /// <summary>
+        /// Переключает режим между редактированием и превью.
+        /// </summary>
+        public void TogglePreviewMode()
+        {
+            IsPreviewMode = !IsPreviewMode;
+        }
+
+        /// <summary>
+        /// Обновляет HTML-контент на основе текущей заметки.
+        /// </summary>
+        private void UpdateHtmlContent()
+        {
+            if (SelectedNote == null || string.IsNullOrEmpty(SelectedNote.Content))
+            {
+                HtmlContent = string.Empty;
                 return;
             }
 
-            SelectedNote = AllNotes.Find(n => n.Id == listItem.Id);
-        }
-
-        private NoteListItem GenerateListItem(Note note)
-        {
-            return new NoteListItem(note.Id, note.Title, note.UpdatedAt);
-        }
-
-        private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            HtmlContent = _markdownConverter.ConvertToHtml(SelectedNote.Content);
         }
     }
 }
