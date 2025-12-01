@@ -30,5 +30,12 @@ public partial class MainWindow : Window
             NoteListViewControl.Focus();  // Передаём фокус на список
             e.Handled = true;
         }
+
+        // Ctrl+E — переключение между режимом редактирования и превью
+        if (e.Key == Key.E && e.KeyModifiers.HasFlag(KeyModifiers.Control))
+        {
+            _viewModel.TogglePreviewMode();
+            e.Handled = true;
+        }
     }
 }

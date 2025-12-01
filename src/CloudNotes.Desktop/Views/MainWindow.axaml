@@ -4,6 +4,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:model="clr-namespace:CloudNotes.Desktop.Model"               
         xmlns:views="clr-namespace:CloudNotes.Desktop.Views"
+        xmlns:html="clr-namespace:TheArtOfDev.HtmlRenderer.Avalonia;assembly=Avalonia.HtmlRenderer"
         x:Class="CloudNotes.Desktop.Views.MainWindow"        
         mc:Ignorable="d"
         Title="CloudNotes"
@@ -14,11 +15,20 @@
         <views:NoteListView x:Name="NoteListViewControl" Grid.Column="0" />
 
         <Border Padding="5" Grid.Column="1">
-            <TextBox AcceptsReturn="True"
-                     TextWrapping="Wrap"
-                     Text="{Binding SelectedNote.Content,
-                                    Mode=TwoWay,
-                                    FallbackValue='Select a note'}" />
+            <Grid>
+                <!-- Режим редактирования (Markdown) -->
+                <TextBox AcceptsReturn="True"
+                         TextWrapping="Wrap"
+                         IsVisible="{Binding IsEditMode}"
+                         Text="{Binding SelectedNote.Content,
+                                        Mode=TwoWay,
+                                        FallbackValue='Select a note'}" />
+                
+                <!-- Режим превью (HTML) -->
+                <html:HtmlPanel IsVisible="{Binding IsPreviewMode}"
+                                Text="{Binding HtmlContent}" 
+                                Background="White" />
+            </Grid>
         </Border>
     </Grid>
 </Window>

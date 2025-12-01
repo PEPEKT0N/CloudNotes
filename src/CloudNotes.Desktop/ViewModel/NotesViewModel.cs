@@ -123,15 +123,63 @@ namespace CloudNotes.Desktop.ViewModel
         // Сервис для работы с БД
         private readonly INoteService _noteService;
 
+        // Сервис для конвертации Markdown в HTML
+        private readonly IMarkdownConverter _markdownConverter;
+
+        // Режим превью (true = просмотр HTML, false = редактирование Markdown)
+        private bool isPreviewMode;
+        public bool IsPreviewMode
+        {
+            get => isPreviewMode;
+            set
+            {
+                if (isPreviewMode != value)
+                {
+                    isPreviewMode = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(IsEditMode));
+
+                    // При переключении в режим превью обновляем HTML
+                    if (value)
+                    {
+                        UpdateHtmlContent();
+                    }
+                }
+            }
+        }
+
+        // Обратное свойство для удобства биндинга
+        public bool IsEditMode => !IsPreviewMode;
+
+        // HTML-контент для превью
+        private string htmlContent = string.Empty;
+        public string HtmlContent
+        {
+            get => htmlContent;
+            private set
+            {
+                if (htmlContent != value)
+                {
+                    htmlContent = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        // Команда переключения режима
+        public ICommand TogglePreviewModeCommand { get; }
+
         public NotesViewModel()
         {
             var context = DbContextProvider.GetContext();
             _noteService = new NoteService(context);
+            _markdownConverter = new MarkdownConverter();
 
             CreateNoteCommand = new RelayCommand(_ => CreateNote());
             AddToFavoritesCommand = new RelayCommand(_ => AddToFavorites(), _ => CanModifyNote());
             DeleteNoteCommand = new RelayCommand(_ => DeleteNote(), _ => CanModifyNote());
             RemoveFromFavoritesCommand = new RelayCommand(_ => RemoveFromFavorites(), _ => SelectedFavoriteItem != null);
+            TogglePreviewModeCommand = new RelayCommand(_ => TogglePreviewMode());
 
             // Загружаем заметки из БД синхронно для совместимости с тестами
             LoadNotesFromDbAsync().GetAwaiter().GetResult();
@@ -141,11 +189,13 @@ namespace CloudNotes.Desktop.ViewModel
         public NotesViewModel(INoteService noteService)
         {
             _noteService = noteService;
+            _markdownConverter = new MarkdownConverter();
 
             CreateNoteCommand = new RelayCommand(_ => CreateNote());
             AddToFavoritesCommand = new RelayCommand(_ => AddToFavorites(), _ => CanModifyNote());
             DeleteNoteCommand = new RelayCommand(_ => DeleteNote(), _ => CanModifyNote());
             RemoveFromFavoritesCommand = new RelayCommand(_ => RemoveFromFavorites(), _ => SelectedFavoriteItem != null);
+            TogglePreviewModeCommand = new RelayCommand(_ => TogglePreviewMode());
 
             // Загружаем заметки из БД синхронно для совместимости с тестами
             LoadNotesFromDbAsync().GetAwaiter().GetResult();
@@ -423,6 +473,32 @@ namespace CloudNotes.Desktop.ViewModel
 
             Favorites.Remove(SelectedFavoriteItem);
             SelectedFavoriteItem = null;
+        }
+
+        // -------------------------------------------------------
+        // Markdown Preview
+        // -------------------------------------------------------
+
+        /// <summary>
+        /// Переключает режим между редактированием и превью.
+        /// </summary>
+        public void TogglePreviewMode()
+        {
+            IsPreviewMode = !IsPreviewMode;
+        }
+
+        /// <summary>
+        /// Обновляет HTML-контент на основе текущей заметки.
+        /// </summary>
+        private void UpdateHtmlContent()
+        {
+            if (SelectedNote == null || string.IsNullOrEmpty(SelectedNote.Content))
+            {
+                HtmlContent = string.Empty;
+                return;
+            }
+
+            HtmlContent = _markdownConverter.ConvertToHtml(SelectedNote.Content);
         }
     }
 }
