@@ -201,8 +201,7 @@ namespace CloudNotes.Desktop.ViewModel
                 {
                     Id = Guid.NewGuid(),
                     Title = "Welcome note",
-                    Content = "This is a sample note. You can edit it.",
-                    UpdatedAt = DateTime.Now
+                    Content = "This is a sample note. You can edit it."
                 };
                 await _noteService.CreateNoteAsync(note1);
             }
@@ -213,8 +212,7 @@ namespace CloudNotes.Desktop.ViewModel
                 {
                     Id = Guid.NewGuid(),
                     Title = "Second note",
-                    Content = "Another sample note to test selection.",
-                    UpdatedAt = DateTime.Now.AddHours(-1)
+                    Content = "Another sample note to test selection."
                 };
                 await _noteService.CreateNoteAsync(note2);
             }
@@ -224,7 +222,7 @@ namespace CloudNotes.Desktop.ViewModel
         {
             if (note == null) return;
 
-            note.UpdatedAt = DateTime.Now;
+            // UpdatedAt обновится автоматически в SaveChangesAsync
             await _noteService.UpdateNoteAsync(note);
         }
 
@@ -264,7 +262,7 @@ namespace CloudNotes.Desktop.ViewModel
                 Id = Guid.NewGuid(),
                 Title = "Unnamed",
                 Content = "",
-                UpdatedAt = DateTime.Now
+                UpdatedAt = DateTime.Now // Для UI, в БД обновится автоматически при сохранении
             };
 
             AllNotes.Add(note);
@@ -276,7 +274,7 @@ namespace CloudNotes.Desktop.ViewModel
             SelectedNote = note;
             ActiveListItem = listItem;
 
-            // Сохраняем в БД асинхронно
+            // Сохраняем в БД асинхронно (UpdatedAt обновится автоматически в SaveChangesAsync)
             Task.Run(async () => await _noteService.CreateNoteAsync(note));
         }
 
@@ -293,24 +291,27 @@ namespace CloudNotes.Desktop.ViewModel
             if (note != null)
             {
                 note.Title = newName;
-                note.UpdatedAt = DateTime.Now;
+                note.UpdatedAt = DateTime.Now; // Для UI, в БД обновится автоматически при сохранении
+                listItem.UpdatedAt = note.UpdatedAt;
 
-                // Сохраняем изменения в БД
+                // Сохраняем изменения в БД (UpdatedAt обновится автоматически в SaveChangesAsync)
                 Task.Run(async () => await _noteService.UpdateNoteAsync(note));
             }
 
             // Обновляем в основном списке, если есть
             var noteItem = Notes.FirstOrDefault(n => n.Id == listItem.Id);
-            if (noteItem != null && noteItem != listItem)
+            if (noteItem != null && noteItem != listItem && note != null)
             {
                 noteItem.Title = newName;
+                noteItem.UpdatedAt = note.UpdatedAt;
             }
 
             // Обновляем в избранном, если есть
             var favoriteItem = Favorites.FirstOrDefault(f => f.Id == listItem.Id);
-            if (favoriteItem != null && favoriteItem != listItem)
+            if (favoriteItem != null && favoriteItem != listItem && note != null)
             {
                 favoriteItem.Title = newName;
+                favoriteItem.UpdatedAt = note.UpdatedAt;
             }
         }
 
