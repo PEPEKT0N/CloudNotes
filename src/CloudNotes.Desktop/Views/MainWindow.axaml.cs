@@ -1,47 +1,42 @@
 using System.Linq;
 using Avalonia.Controls;
-using CloudNotes.Desktop.Model;
+using Avalonia.Input;
 using CloudNotes.Desktop.ViewModel;
-
 
 namespace CloudNotes.Desktop.Views;
 
 public partial class MainWindow : Window
 {
-    public NotesViewModel ViewModel { get; }
+    private NotesViewModel _viewModel;
 
     public MainWindow()
     {
         InitializeComponent();
-        ViewModel = new NotesViewModel();
-        DataContext = this;
+
+        _viewModel = new NotesViewModel();
+        DataContext = _viewModel;
+
+        NoteListViewControl.DataContext = _viewModel;
+
+        // Глобальные горячие клавиши
+        KeyDown += OnKeyDown;
     }
 
-    private void OnListBoxSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    private void OnKeyDown(object? sender, KeyEventArgs e)
     {
-        if (sender is ListBox listBox && listBox.SelectedItem is NoteListItem listItem)
+        // Ctrl+N — создать заметку (работает всегда)
+        if (e.Key == Key.N && e.KeyModifiers.HasFlag(KeyModifiers.Control))
         {
-            ViewModel.OnNoteSelected(listItem);
-        }
-    }
-
-    private void OnFavoritesSelectionChanged(object? sender, SelectionChangedEventArgs e)
-    {
-        if (DataContext is not NotesViewModel vm)
-        {
-            return;
+            _viewModel.CreateNote();
+            NoteListViewControl.Focus();  // Передаём фокус на список
+            e.Handled = true;
         }
 
-        if (sender is ListBox listBox)
+        // Ctrl+E — переключение между режимом редактирования и превью
+        if (e.Key == Key.E && e.KeyModifiers.HasFlag(KeyModifiers.Control))
         {
-            var selected = listBox.SelectedItem as NoteListItem;
-            vm.SelectedListItem = selected;
-
-            if (selected != null)
-            {
-                var note = vm.AllNotes.FirstOrDefault(n => n.Id == selected.Id);
-                vm.SelectedNote = note;
-            }
+            _viewModel.TogglePreviewMode();
+            e.Handled = true;
         }
     }
 }

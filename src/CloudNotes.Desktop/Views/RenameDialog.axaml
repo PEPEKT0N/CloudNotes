@@ -1,0 +1,21 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="CloudNotes.Desktop.Views.RenameDialog"
+        Width="360"
+        Height="140"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        Title="Rename note">
+
+  <StackPanel Margin="10" Spacing="8">
+    <TextBlock Text="New name:" />
+    <TextBox x:Name="NameTextBox"
+             Watermark="Enter new name"
+             AcceptsReturn="False" />
+
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+      <Button x:Name="OkButton" Content="OK" IsDefault="True" MinWidth="70" />
+      <Button x:Name="CancelButton" Content="Cancel" IsCancel="True" MinWidth="70" />
+    </StackPanel>
+  </StackPanel>
+</Window>

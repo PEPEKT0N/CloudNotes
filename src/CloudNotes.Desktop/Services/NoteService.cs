@@ -12,23 +12,13 @@ public class NoteService : INoteService
 {
     private readonly AppDbContext _context;
 
-    // Новый конструктор: принимает контекст извне (например, из DI или тестов)
     public NoteService(AppDbContext context)
     {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-    }
-
-    // Старый конструктор: для совместимости с существующим кодом (например, MainWindow)
-    // Помечаем как устаревший, чтобы в будущем избавиться от него
-    [Obsolete("Use constructor with AppDbContext for better testability and DI.")]
-    public NoteService() : this(DbContextProvider.GetContext()) // Вызов нового конструктора
-    {
+        _context = context;
     }
 
     public async Task<Note> CreateNoteAsync(Note note)
     {
-        note.UpdatedAt = DateTime.Now;
-
         _context.Notes.Add(note);
 
         await _context.SaveChangesAsync();
@@ -56,8 +46,12 @@ public class NoteService : INoteService
 
         existingNote.Title = note.Title;
         existingNote.Content = note.Content;
-        existingNote.UpdatedAt = DateTime.Now;
+        existingNote.IsFavorite = note.IsFavorite;
 
+        // Явно помечаем сущность как измененную для гарантии обновления UpdatedAt
+        _context.Entry(existingNote).State = EntityState.Modified;
+
+        // Save changes (UpdatedAt обновится автоматически в SaveChangesAsync)
         await _context.SaveChangesAsync();
 
         return true;
