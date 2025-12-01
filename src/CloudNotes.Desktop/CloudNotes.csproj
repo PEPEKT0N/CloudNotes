@@ -26,5 +26,7 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.10" />
+    <PackageReference Include="Markdig" Version="0.38.0" />
+    <PackageReference Include="Avalonia.HtmlRenderer" Version="11.0.0" />
   </ItemGroup>
 </Project>
