@@ -30,9 +30,16 @@ services:
     container_name: cloudnotes-api
     restart: unless-stopped
     environment:
-      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
       ASPNETCORE_URLS: http://+:8080
-      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=cloudnotes_dev;Username=postgres;Password=postgres"
+      # Connection string - можно переопределить через .env файл
+      ConnectionStrings__DefaultConnection: ${CONNECTION_STRING:-Host=postgres;Port=5432;Database=cloudnotes_dev;Username=postgres;Password=postgres}
+      # JWT настройки - можно переопределить через .env файл
+      Jwt__SecretKey: ${JWT_SECRET_KEY:-}
+      Jwt__Issuer: ${JWT_ISSUER:-CloudNotes}
+      Jwt__Audience: ${JWT_AUDIENCE:-CloudNotesUsers}
+      Jwt__AccessTokenLifetimeMinutes: ${JWT_ACCESS_TOKEN_LIFETIME_MINUTES:-60}
+      Jwt__RefreshTokenLifetimeDays: ${JWT_REFRESH_TOKEN_LIFETIME_DAYS:-7}
     ports:
       - "8080:8080"
     depends_on:

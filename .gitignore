@@ -454,3 +454,8 @@ $RECYCLE.BIN/
 !.vscode/extensions.json
 
 .cursorrules
+
+# Environment variables
+.env
+.env.local
+.env.*.local
