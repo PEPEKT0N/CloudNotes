@@ -28,7 +28,7 @@ public class HealthController : ControllerBase
     {
         var healthReport = await _healthCheckService.CheckHealthAsync();
 
-        var status = healthReport.Status == HealthStatus.Healthy ? "healthy" : 
+        var status = healthReport.Status == HealthStatus.Healthy ? "healthy" :
                      healthReport.Status == HealthStatus.Degraded ? "degraded" : "unhealthy";
 
         return Ok(new

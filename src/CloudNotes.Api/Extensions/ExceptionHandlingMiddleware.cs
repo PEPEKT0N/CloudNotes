@@ -42,16 +42,16 @@ public class ExceptionHandlingMiddleware
 
         var (statusCode, error, message) = exception switch
         {
-            ArgumentException or ArgumentNullException => 
+            ArgumentException or ArgumentNullException =>
                 (HttpStatusCode.BadRequest, "Неверный запрос", exception.Message),
-            UnauthorizedAccessException => 
+            UnauthorizedAccessException =>
                 (HttpStatusCode.Unauthorized, "Доступ запрещён", exception.Message),
-            KeyNotFoundException => 
+            KeyNotFoundException =>
                 (HttpStatusCode.NotFound, "Ресурс не найден", exception.Message),
-            DbUpdateException => 
+            DbUpdateException =>
                 (HttpStatusCode.BadRequest, "Ошибка базы данных", "Произошла ошибка при работе с базой данных"),
-            _ => 
-                (HttpStatusCode.InternalServerError, "Внутренняя ошибка сервера", 
+            _ =>
+                (HttpStatusCode.InternalServerError, "Внутренняя ошибка сервера",
                     _environment.IsDevelopment() ? exception.Message : null)
         };
 
