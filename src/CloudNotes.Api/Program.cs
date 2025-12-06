@@ -1,10 +1,30 @@
 using CloudNotes.Api.Data;
+using CloudNotes.Api.Extensions;
 using CloudNotes.Api.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
+using Serilog;
 
-var builder = WebApplication.CreateBuilder(args);
+// ===== Serilog Configuration =====
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .WriteTo.File("logs/cloudnotes-.log", rollingInterval: RollingInterval.Day)
+    .CreateBootstrapLogger();
+
+try
+{
+    Log.Information("Запуск CloudNotes API");
+
+    var builder = WebApplication.CreateBuilder(args);
+
+    // Используем Serilog вместо стандартного логирования
+    builder.Host.UseSerilog((context, services, configuration) => configuration
+        .ReadFrom.Configuration(context.Configuration)
+        .ReadFrom.Services(services)
+        .Enrich.FromLogContext()
+        .WriteTo.Console()
+        .WriteTo.File("logs/cloudnotes-.log", rollingInterval: RollingInterval.Day));
 
 // ===== Services =====
 
@@ -29,6 +49,21 @@ builder.Services.AddIdentity<User, IdentityRole>(options =>
 // Controllers
 builder.Services.AddControllers();
 
+// HTTP Logging
+builder.Services.AddHttpLogging(options =>
+{
+    options.LoggingFields = Microsoft.AspNetCore.HttpLogging.HttpLoggingFields.All;
+    options.RequestBodyLogLimit = 4096;
+    options.ResponseBodyLogLimit = 4096;
+});
+
+// Health Checks
+builder.Services.AddHealthChecks()
+    .AddNpgSql(
+        builder.Configuration.GetConnectionString("DefaultConnection") ?? "",
+        name: "database",
+        timeout: TimeSpan.FromSeconds(3));
+
 // Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -44,6 +79,30 @@ builder.Services.AddSwaggerGen(options =>
 var app = builder.Build();
 
 // ===== Middleware Pipeline =====
+
+// Exception Handling (должен быть первым)
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+
+// HTTP Logging
+app.UseHttpLogging();
+
+// Request Logging через Serilog
+app.UseSerilogRequestLogging(options =>
+{
+    options.MessageTemplate = "HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.0000} ms";
+    options.GetLevel = (httpContext, elapsed, ex) => ex != null
+        ? Serilog.Events.LogEventLevel.Error
+        : elapsed > 1000
+            ? Serilog.Events.LogEventLevel.Warning
+            : Serilog.Events.LogEventLevel.Information;
+    options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
+    {
+        diagnosticContext.Set("RequestHost", httpContext.Request.Host.Value);
+        diagnosticContext.Set("RequestScheme", httpContext.Request.Scheme);
+        diagnosticContext.Set("RemoteIpAddress", httpContext.Connection.RemoteIpAddress?.ToString());
+        diagnosticContext.Set("UserAgent", httpContext.Request.Headers["User-Agent"].ToString());
+    };
+});
 
 // Swagger (в Development)
 if (app.Environment.IsDevelopment())
@@ -62,6 +121,27 @@ app.UseRouting();
 // TODO: app.UseAuthentication();
 // TODO: app.UseAuthorization();
 
+// Health Check endpoints
+app.MapHealthChecks("/health");
+app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready")
+});
+app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = _ => false
+});
+
 app.MapControllers();
 
 app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Приложение завершилось с ошибкой");
+    throw;
+}
+finally
+{
+    Log.CloseAndFlush();
+}
