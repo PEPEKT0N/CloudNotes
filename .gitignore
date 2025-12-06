@@ -459,3 +459,7 @@ $RECYCLE.BIN/
 .env
 .env.local
 .env.*.local
+
+# Logs
+logs/
+*.log

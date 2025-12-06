@@ -21,6 +21,9 @@ RUN dotnet publish "CloudNotes.Api.csproj" -c Release -o /app/publish /p:UseAppH
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
 WORKDIR /app
 
+# Устанавливаем curl для health checks
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
 # Копируем опубликованные файлы из publish stage
 COPY --from=publish /app/publish .
 

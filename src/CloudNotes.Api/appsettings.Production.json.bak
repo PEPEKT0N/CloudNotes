@@ -6,17 +6,6 @@
       "Microsoft.EntityFrameworkCore": "Warning"
     }
   },
-  "Serilog": {
-    "MinimumLevel": {
-      "Default": "Warning",
-      "Override": {
-        "Microsoft": "Warning",
-        "Microsoft.AspNetCore": "Warning",
-        "Microsoft.EntityFrameworkCore": "Warning",
-        "System": "Warning"
-      }
-    }
-  },
   "AllowedHosts": "*",
   "ConnectionStrings": {
     "DefaultConnection": ""
