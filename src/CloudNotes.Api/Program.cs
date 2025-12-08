@@ -1,8 +1,12 @@
+using System.Text;
 using CloudNotes.Api.Data;
 using CloudNotes.Api.Extensions;
 using CloudNotes.Api.Models;
+using CloudNotes.Api.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
 
@@ -45,6 +49,35 @@ try
         })
         .AddEntityFrameworkStores<ApiDbContext>()
         .AddDefaultTokenProviders();
+
+    // JWT Authentication
+    var jwtSecret = builder.Configuration["Jwt:Secret"]
+        ?? throw new InvalidOperationException("JWT Secret не настроен в конфигурации");
+    var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "CloudNotes.Api";
+    var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "CloudNotes.Client";
+
+    builder.Services.AddAuthentication(options =>
+        {
+            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        })
+        .AddJwtBearer(options =>
+        {
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                ValidIssuer = jwtIssuer,
+                ValidAudience = jwtAudience,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
+                ClockSkew = TimeSpan.Zero
+            };
+        });
+
+    // Application Services
+    builder.Services.AddScoped<ITokenService, TokenService>();
 
     // Controllers
     builder.Services.AddControllers();
@@ -118,8 +151,9 @@ try
     // Routing
     app.UseRouting();
 
-    // TODO: app.UseAuthentication();
-    // TODO: app.UseAuthorization();
+    // Authentication & Authorization
+    app.UseAuthentication();
+    app.UseAuthorization();
 
     // Health Check endpoints
     app.MapHealthChecks("/health");
