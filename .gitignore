@@ -262,7 +262,6 @@ UpgradeLog*.XML
 UpgradeLog*.htm
 ServiceFabricBackup/
 *.rptproj.bak
-*.bak
 
 # SQL Server files
 *.mdf
@@ -455,12 +454,3 @@ $RECYCLE.BIN/
 !.vscode/extensions.json
 
 .cursorrules
-
-# Environment variables
-.env
-.env.local
-.env.*.local
-
-# Logs
-logs/
-*.log

@@ -14,4 +14,3 @@ namespace CloudNotes.Desktop.Services
     }
 }
 
-
