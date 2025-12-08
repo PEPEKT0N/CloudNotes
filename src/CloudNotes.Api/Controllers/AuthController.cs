@@ -1,5 +1,6 @@
 using CloudNotes.Api.DTOs.Auth;
 using CloudNotes.Api.Models;
+using CloudNotes.Api.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,15 +15,18 @@ public class AuthController : ControllerBase
 {
     private readonly UserManager<User> _userManager;
     private readonly SignInManager<User> _signInManager;
+    private readonly ITokenService _tokenService;
     private readonly ILogger<AuthController> _logger;
 
     public AuthController(
         UserManager<User> userManager,
         SignInManager<User> signInManager,
+        ITokenService tokenService,
         ILogger<AuthController> logger)
     {
         _userManager = userManager;
         _signInManager = signInManager;
+        _tokenService = tokenService;
         _logger = logger;
     }
 
@@ -59,15 +63,9 @@ public class AuthController : ControllerBase
 
         _logger.LogInformation("Пользователь {Email} успешно зарегистрирован", dto.Email);
 
-        // TODO: Генерация токенов будет добавлена в B2.* (TokenService)
-        var response = new TokenResponseDto
-        {
-            AccessToken = "TODO: implement in B2",
-            RefreshToken = "TODO: implement in B2",
-            ExpiresAt = DateTime.UtcNow.AddHours(1)
-        };
+        var tokens = await _tokenService.GenerateTokensAsync(user);
 
-        return CreatedAtAction(nameof(Register), response);
+        return CreatedAtAction(nameof(Register), tokens);
     }
 
     /// <summary>
@@ -95,15 +93,9 @@ public class AuthController : ControllerBase
 
         _logger.LogInformation("Пользователь {Email} успешно вошёл", dto.Email);
 
-        // TODO: Генерация токенов будет добавлена в B2.* (TokenService)
-        var response = new TokenResponseDto
-        {
-            AccessToken = "TODO: implement in B2",
-            RefreshToken = "TODO: implement in B2",
-            ExpiresAt = DateTime.UtcNow.AddHours(1)
-        };
+        var tokens = await _tokenService.GenerateTokensAsync(user);
 
-        return Ok(response);
+        return Ok(tokens);
     }
 
     /// <summary>
@@ -116,10 +108,16 @@ public class AuthController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Refresh([FromBody] RefreshTokenDto dto)
     {
-        // TODO: Валидация и обновление токенов будет добавлена в B2.* (TokenService)
-        await Task.CompletedTask;
+        var tokens = await _tokenService.RefreshTokensAsync(dto.RefreshToken);
 
-        return Unauthorized(new { error = "TODO: implement in B2" });
+        if (tokens == null)
+        {
+            return Unauthorized(new { error = "Недействительный или истёкший refresh токен" });
+        }
+
+        _logger.LogInformation("Токены успешно обновлены");
+
+        return Ok(tokens);
     }
 
     /// <summary>
@@ -132,12 +130,15 @@ public class AuthController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Logout([FromBody] RefreshTokenDto dto)
     {
-        // TODO: Инвалидация токена будет добавлена в B2.* (TokenService)
-        await Task.CompletedTask;
+        var revoked = await _tokenService.RevokeTokenAsync(dto.RefreshToken);
+
+        if (!revoked)
+        {
+            return BadRequest(new { error = "Токен не найден или уже отозван" });
+        }
 
         _logger.LogInformation("Пользователь вышел из системы");
 
         return NoContent();
     }
 }
-
