@@ -105,8 +105,52 @@ try
         {
             Title = "CloudNotes API",
             Version = "v1",
-            Description = "API для синхронизации заметок CloudNotes"
+            Description = @"API для синхронизации заметок CloudNotes.
+
+## Аутентификация
+Используйте JWT Bearer токен для доступа к защищённым эндпоинтам.
+1. Получите токен через `POST /api/auth/login` или `POST /api/auth/register`
+2. Нажмите кнопку 'Authorize' и введите: `Bearer <ваш_токен>`
+
+## Конфликт-резолвер (Last Write Wins)
+При обновлении заметки (`PUT /api/notes/{id}`) можно передать `clientUpdatedAt`.
+- Если `clientUpdatedAt >= server.updatedAt` → изменения принимаются
+- Если `clientUpdatedAt < server.updatedAt` → возвращается `409 Conflict` с актуальной версией заметки"
         });
+
+        // JWT Authorization в Swagger UI
+        options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+        {
+            Name = "Authorization",
+            Type = SecuritySchemeType.Http,
+            Scheme = "bearer",
+            BearerFormat = "JWT",
+            In = ParameterLocation.Header,
+            Description = "Введите JWT токен. Пример: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        });
+
+        options.AddSecurityRequirement(new OpenApiSecurityRequirement
+        {
+            {
+                new OpenApiSecurityScheme
+                {
+                    Reference = new OpenApiReference
+                    {
+                        Type = ReferenceType.SecurityScheme,
+                        Id = "Bearer"
+                    }
+                },
+                Array.Empty<string>()
+            }
+        });
+
+        // XML комментарии
+        var xmlFilename = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+        var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFilename);
+        if (File.Exists(xmlPath))
+        {
+            options.IncludeXmlComments(xmlPath);
+        }
     });
 
     var app = builder.Build();
