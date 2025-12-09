@@ -68,6 +68,27 @@ public class NotesController : ControllerBase
     }
 
     /// <summary>
+    /// Получить заметки по тегу.
+    /// </summary>
+    /// <param name="tag">Название тега.</param>
+    /// <returns>Список заметок с указанным тегом.</returns>
+    [HttpGet("by-tag/{tag}")]
+    [ProducesResponseType(typeof(IEnumerable<NoteDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetByTag(string tag)
+    {
+        var userId = HttpContext.GetRequiredUserId();
+
+        var notes = await _context.Notes
+            .Where(n => n.UserId == userId && !n.IsDeleted &&
+                        n.NoteTags.Any(nt => EF.Functions.ILike(nt.Tag.Name, tag)))
+            .OrderByDescending(n => n.UpdatedAt)
+            .Select(n => MapToDto(n))
+            .ToListAsync();
+
+        return Ok(notes);
+    }
+
+    /// <summary>
     /// Поиск заметок по заголовку.
     /// </summary>
     /// <param name="title">Часть заголовка для поиска.</param>
