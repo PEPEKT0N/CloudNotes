@@ -1,3 +1,4 @@
+using System;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
@@ -45,7 +46,7 @@ public partial class App : Application
         services.AddSingleton<IConfiguration>(configuration);
 
         // Получение базового URL из конфигурации
-        var baseUrl = configuration["Api:BaseUrl"] 
+        var baseUrl = configuration["Api:BaseUrl"]
             ?? throw new InvalidOperationException("Api:BaseUrl не настроен в appsettings.json");
 
         // Регистрация Refit клиента
