@@ -37,17 +37,20 @@ public partial class App : Application
 
     private void ConfigureServices(IServiceCollection services)
     {
+        // Получаем директорию, где находится исполняемый файл
+        var assemblyLocation = System.Reflection.Assembly.GetExecutingAssembly().Location;
+        var assemblyDirectory = Path.GetDirectoryName(assemblyLocation) ?? Directory.GetCurrentDirectory();
+
         // Настройка конфигурации
         var configuration = new ConfigurationBuilder()
-            .SetBasePath(Directory.GetCurrentDirectory())
-            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+            .SetBasePath(assemblyDirectory)
+            .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
             .Build();
 
         services.AddSingleton<IConfiguration>(configuration);
 
-        // Получение базового URL из конфигурации
-        var baseUrl = configuration["Api:BaseUrl"]
-            ?? throw new InvalidOperationException("Api:BaseUrl не настроен в appsettings.json");
+        // Получение базового URL из конфигурации (с дефолтным значением)
+        var baseUrl = configuration["Api:BaseUrl"] ?? "http://localhost:5000";
 
         // Регистрация Refit клиента
         services.AddRefitClient<ICloudNotesApi>()
