@@ -6,5 +6,48 @@
 
     <Application.Styles>
         <FluentTheme />
+        
+        <!-- Кастомные стили для TextBox -->
+        <Style Selector="TextBox">
+            <Setter Property="Background" Value="#D0D0D0" />
+            <Setter Property="BorderBrush" Value="#9E9E9E" />
+            <Setter Property="Foreground" Value="#000000" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.2" />
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.2" />
+                </Transitions>
+            </Setter>
+        </Style>
+        
+        <!-- Убираем изменение при наведении -->
+        <Style Selector="TextBox:pointerover /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="#D0D0D0" />
+            <Setter Property="BorderBrush" Value="#9E9E9E" />
+        </Style>
+        
+        <!-- Стиль при фокусе — темнее -->
+        <Style Selector="TextBox:focus">
+            <Setter Property="Foreground" Value="#000000" />
+        </Style>
+        
+        <Style Selector="TextBox:focus /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="#BDBDBD" />
+            <Setter Property="BorderBrush" Value="#757575" />            
+        </Style>
+        
+        <Style Selector="TextBox:focus-within">
+            <Setter Property="Foreground" Value="#000000" />
+        </Style>
+        
+        <Style Selector="TextBox:focus-within /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="#BDBDBD" />
+            <Setter Property="BorderBrush" Value="#757575" />            
+        </Style>
+        
+        <!-- Цвет текста в TextPresenter -->
+        <Style Selector="TextBox /template/ TextPresenter">
+            <Setter Property="TextElement.Foreground" Value="#000000" />
+        </Style>
     </Application.Styles>
 </Application>
