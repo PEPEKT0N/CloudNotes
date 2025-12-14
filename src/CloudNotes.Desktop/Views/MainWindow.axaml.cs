@@ -1,4 +1,3 @@
-using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Input;
 using CloudNotes.Desktop.ViewModel;
@@ -36,6 +35,36 @@ public partial class MainWindow : Window
         if (e.Key == Key.E && e.KeyModifiers.HasFlag(KeyModifiers.Control))
         {
             _viewModel.TogglePreviewMode();
+            e.Handled = true;
+        }
+    }
+
+    /// <summary>
+    /// Обработчик нажатия Enter в поле автокомплита тега.
+    /// </summary>
+    private void OnTagAutoCompleteKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter && sender is AutoCompleteBox autoCompleteBox)
+        {
+            string? tagName = null;
+
+            // Если выбран существующий тег из списка
+            if (autoCompleteBox.SelectedItem is CloudNotes.Desktop.Model.Tag selectedTag)
+            {
+                tagName = selectedTag.Name;
+            }
+            // Иначе берём введённый текст
+            else if (!string.IsNullOrWhiteSpace(autoCompleteBox.Text))
+            {
+                tagName = autoCompleteBox.Text.Trim();
+            }
+
+            if (!string.IsNullOrEmpty(tagName))
+            {
+                _viewModel.AddTagCommand.Execute(tagName);
+                autoCompleteBox.Text = string.Empty;
+                autoCompleteBox.SelectedItem = null;
+            }
             e.Handled = true;
         }
     }
