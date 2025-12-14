@@ -19,7 +19,8 @@
 
                 <ListBox ItemsSource="{Binding Favorites}"
                          SelectedItem="{Binding SelectedFavoriteItem, Mode=TwoWay}"
-                         SelectionChanged="OnFavoritesSelectionChanged">
+                         SelectionChanged="OnFavoritesSelectionChanged"
+                         MaxHeight="200">
                     <ListBox.ContextMenu>
                         <ContextMenu>
                             <MenuItem Header="Remove from favorites"
@@ -45,7 +46,8 @@
 
                 <ListBox ItemsSource="{Binding Notes}"
                          SelectedItem="{Binding SelectedListItem, Mode=TwoWay}"
-                         SelectionChanged="OnListBoxSelectionChanged">
+                         SelectionChanged="OnListBoxSelectionChanged"
+                         MaxHeight="300">
 
                     <ListBox.ContextMenu>
                         <ContextMenu>
