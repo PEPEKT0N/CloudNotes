@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace CloudNotes.Desktop.Model;
@@ -19,4 +20,9 @@ public class Tag
     [Required]
     [MaxLength(100)]
     public string Name { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Заметки с этим тегом (Many-to-Many через NoteTag).
+    /// </summary>
+    public ICollection<NoteTag> NoteTags { get; set; } = new List<NoteTag>();
 }

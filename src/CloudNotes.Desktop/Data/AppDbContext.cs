@@ -15,6 +15,29 @@ public class AppDbContext : DbContext
     }
 
     public DbSet<Note> Notes { get; set; } = null!;
+    public DbSet<Tag> Tags { get; set; } = null!;
+    public DbSet<NoteTag> NoteTags { get; set; } = null!;
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        // Настройка Many-to-Many связи Note ↔ Tag через NoteTag
+        modelBuilder.Entity<NoteTag>()
+            .HasKey(nt => new { nt.NoteId, nt.TagId });
+
+        modelBuilder.Entity<NoteTag>()
+            .HasOne(nt => nt.Note)
+            .WithMany(n => n.NoteTags)
+            .HasForeignKey(nt => nt.NoteId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<NoteTag>()
+            .HasOne(nt => nt.Tag)
+            .WithMany(t => t.NoteTags)
+            .HasForeignKey(nt => nt.TagId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
