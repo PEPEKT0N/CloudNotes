@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using CloudNotes.Desktop.Model;
 using CloudNotes.Desktop.Services;
 using CloudNotes.Services;
+using Avalonia.Threading;
 
 namespace CloudNotes.Desktop.ViewModel
 {
@@ -50,6 +51,9 @@ namespace CloudNotes.Desktop.ViewModel
                         // Обновляем SelectedNote и ActiveListItem
                         SelectedNote = AllNotes.Find(n => n.Id == value.Id);
                         ActiveListItem = value;
+
+                        // Загружаем теги для выбранной заметки
+                        Task.Run(async () => await LoadTagsForCurrentNoteAsync());
                     }
                 }
             }
@@ -123,8 +127,21 @@ namespace CloudNotes.Desktop.ViewModel
         // Сервис для работы с БД
         private readonly INoteService _noteService;
 
+        // Сервис для работы с тегами
+        private readonly ITagService? _tagService;
+
         // Сервис для конвертации Markdown в HTML
         private readonly IMarkdownConverter _markdownConverter;
+
+        // Теги текущей выбранной заметки
+        public ObservableCollection<Tag> CurrentNoteTags { get; } = new();
+
+        // Все доступные теги для автокомплита
+        public ObservableCollection<Tag> AllTags { get; } = new();
+
+        // Команды для тегов
+        public ICommand AddTagCommand { get; }
+        public ICommand RemoveTagCommand { get; }
 
         // Режим превью (true = просмотр HTML, false = редактирование Markdown)
         private bool isPreviewMode;
@@ -173,6 +190,7 @@ namespace CloudNotes.Desktop.ViewModel
         {
             var context = DbContextProvider.GetContext();
             _noteService = new NoteService(context);
+            _tagService = new TagService(context);
             _markdownConverter = new MarkdownConverter();
 
             CreateNoteCommand = new RelayCommand(_ => CreateNote());
@@ -180,15 +198,19 @@ namespace CloudNotes.Desktop.ViewModel
             DeleteNoteCommand = new RelayCommand(_ => DeleteNote(), _ => CanModifyNote());
             RemoveFromFavoritesCommand = new RelayCommand(_ => RemoveFromFavorites(), _ => SelectedFavoriteItem != null);
             TogglePreviewModeCommand = new RelayCommand(_ => TogglePreviewMode());
+            AddTagCommand = new RelayCommand(param => AddTagToCurrentNote(param as string), _ => SelectedNote != null);
+            RemoveTagCommand = new RelayCommand(param => RemoveTagFromCurrentNote(param as Tag), _ => SelectedNote != null);
 
             // Загружаем заметки из БД синхронно для совместимости с тестами
             LoadNotesFromDbAsync().GetAwaiter().GetResult();
+            LoadAllTagsAsync().GetAwaiter().GetResult();
         }
 
         // Конструктор для тестов с переданным сервисом
-        public NotesViewModel(INoteService noteService)
+        public NotesViewModel(INoteService noteService, ITagService? tagService = null)
         {
             _noteService = noteService;
+            _tagService = tagService;
             _markdownConverter = new MarkdownConverter();
 
             CreateNoteCommand = new RelayCommand(_ => CreateNote());
@@ -196,9 +218,15 @@ namespace CloudNotes.Desktop.ViewModel
             DeleteNoteCommand = new RelayCommand(_ => DeleteNote(), _ => CanModifyNote());
             RemoveFromFavoritesCommand = new RelayCommand(_ => RemoveFromFavorites(), _ => SelectedFavoriteItem != null);
             TogglePreviewModeCommand = new RelayCommand(_ => TogglePreviewMode());
+            AddTagCommand = new RelayCommand(param => AddTagToCurrentNote(param as string), _ => SelectedNote != null);
+            RemoveTagCommand = new RelayCommand(param => RemoveTagFromCurrentNote(param as Tag), _ => SelectedNote != null);
 
             // Загружаем заметки из БД синхронно для совместимости с тестами
             LoadNotesFromDbAsync().GetAwaiter().GetResult();
+            if (_tagService != null)
+            {
+                LoadAllTagsAsync().GetAwaiter().GetResult();
+            }
         }
 
         private bool CanModifyNote() => ActiveListItem != null;
@@ -294,11 +322,15 @@ namespace CloudNotes.Desktop.ViewModel
             {
                 SelectedNote = null;
                 ActiveListItem = null;
+                CurrentNoteTags.Clear();
                 return;
             }
 
             SelectedNote = AllNotes.Find(n => n.Id == listItem.Id);
             ActiveListItem = listItem;
+
+            // Загружаем теги для выбранной заметки
+            Task.Run(async () => await LoadTagsForCurrentNoteAsync());
         }
 
         // -------------------------------------------------------
@@ -499,6 +531,105 @@ namespace CloudNotes.Desktop.ViewModel
             }
 
             HtmlContent = _markdownConverter.ConvertToHtml(SelectedNote.Content);
+        }
+
+        // -------------------------------------------------------
+        // Работа с тегами
+        // -------------------------------------------------------
+
+        /// <summary>
+        /// Загружает все теги из БД.
+        /// </summary>
+        private async Task LoadAllTagsAsync()
+        {
+            if (_tagService == null) return;
+
+            var tags = await _tagService.GetAllTagsAsync();
+            AllTags.Clear();
+            foreach (var tag in tags)
+            {
+                AllTags.Add(tag);
+            }
+        }
+
+        /// <summary>
+        /// Загружает теги для текущей заметки.
+        /// </summary>
+        public async Task LoadTagsForCurrentNoteAsync()
+        {
+            CurrentNoteTags.Clear();
+
+            if (SelectedNote == null || _tagService == null) return;
+
+            var tags = await _tagService.GetTagsForNoteAsync(SelectedNote.Id);
+            foreach (var tag in tags)
+            {
+                CurrentNoteTags.Add(tag);
+            }
+        }
+
+        /// <summary>
+        /// Добавляет тег к текущей заметке.
+        /// </summary>
+        private void AddTagToCurrentNote(string? tagName)
+        {
+            if (string.IsNullOrWhiteSpace(tagName) || SelectedNote == null || _tagService == null)
+                return;
+
+            var noteId = SelectedNote.Id;
+            var trimmedName = tagName.Trim();
+
+            Task.Run(async () =>
+            {
+                // Получаем или создаём тег
+                var tag = await _tagService.GetOrCreateTagAsync(trimmedName);
+
+                // Добавляем тег к заметке
+                await _tagService.AddTagToNoteAsync(noteId, tag.Id);
+
+                // Обновляем UI в главном потоке
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    // Добавляем в список тегов заметки, если ещё нет
+                    if (!CurrentNoteTags.Any(t => t.Id == tag.Id))
+                    {
+                        CurrentNoteTags.Add(tag);
+                    }
+
+                    // Добавляем в общий список тегов, если ещё нет
+                    if (!AllTags.Any(t => t.Id == tag.Id))
+                    {
+                        AllTags.Add(tag);
+                    }
+                });
+            });
+        }
+
+        /// <summary>
+        /// Удаляет тег из текущей заметки.
+        /// </summary>
+        private void RemoveTagFromCurrentNote(Tag? tag)
+        {
+            if (tag == null || SelectedNote == null || _tagService == null)
+                return;
+
+            var noteId = SelectedNote.Id;
+            var tagId = tag.Id;
+
+            Task.Run(async () =>
+            {
+                await _tagService.RemoveTagFromNoteAsync(noteId, tagId);
+
+                // Обновляем UI в главном потоке
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    var tagToRemove = CurrentNoteTags.FirstOrDefault(t => t.Id == tagId);
+                    if (tagToRemove != null)
+                    {
+                        CurrentNoteTags.Remove(tagToRemove);
+                    }
+                });
+            });
         }
     }
 }
