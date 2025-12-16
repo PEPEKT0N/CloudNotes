@@ -84,7 +84,24 @@ public class AuthService : IAuthService
     public async Task<string?> GetAccessTokenAsync()
     {
         var tokens = await LoadTokensAsync();
-        return tokens?.AccessToken;
+        if (tokens is null)
+        {
+            return null;
+        }
+
+        var now = DateTime.UtcNow;
+        var skew = TimeSpan.FromMinutes(1);
+
+        if (tokens.ExpiresAt <= now.Add(skew))
+        {
+            tokens = await TryRefreshTokensAsync(tokens);
+            if (tokens is null)
+            {
+                return null;
+            }
+        }
+
+        return tokens.AccessToken;
     }
 
     private static string GetTokensFilePath()
