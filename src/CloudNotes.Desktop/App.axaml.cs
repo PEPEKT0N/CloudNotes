@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using CloudNotes.Desktop.Api;
+using CloudNotes.Desktop.Services;
 using CloudNotes.Desktop.Views;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -55,5 +56,8 @@ public partial class App : Application
         // Регистрация Refit клиента
         services.AddRefitClient<ICloudNotesApi>()
             .ConfigureHttpClient(c => c.BaseAddress = new Uri(baseUrl));
+
+        // Auth
+        services.AddSingleton<IAuthService, AuthService>();
     }
 }
