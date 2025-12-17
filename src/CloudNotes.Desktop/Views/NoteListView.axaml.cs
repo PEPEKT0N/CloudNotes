@@ -80,7 +80,7 @@ public partial class NoteListView : UserControl
         while (true)
         {
             var result = await authWindow.ShowDialog<AuthResult?>(owner);
-            
+
             if (result == null)
             {
                 // Пользователь закрыл окно
@@ -118,7 +118,7 @@ public partial class NoteListView : UserControl
             {
                 // Обработка ошибок от сервера
                 var errorMessage = ParseApiError(apiEx);
-                
+
                 // Создаём новое окно для повторной попытки
                 authWindow = new AuthWindow();
                 if (result.IsLogin)
