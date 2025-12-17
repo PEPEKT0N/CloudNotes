@@ -6,7 +6,35 @@
 
         <Border Padding="20">
             <StackPanel>
-                <TextBox>CloudNotes</TextBox>
+                <!-- Header с hamburger menu -->
+                <Grid ColumnDefinitions="Auto, *" Margin="0,0,0,10">
+                    <Button Grid.Column="0"
+                            x:Name="HamburgerButton"
+                            Content="☰"
+                            FontSize="18"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Padding="5,2"
+                            VerticalAlignment="Center">
+                        <Button.Flyout>
+                            <MenuFlyout Placement="BottomEdgeAlignedLeft">
+                                <!-- Email (только когда авторизован) -->
+                                <MenuItem x:Name="UserEmailMenuItem" Header="📧 user@email.com" IsEnabled="False" IsVisible="False" />
+                                <Separator x:Name="EmailSeparator" IsVisible="False" />
+                                <!-- Всегда видны -->
+                                <MenuItem x:Name="SignInMenuItem" Header="🔑 Log in / Sign up" />
+                                <MenuItem x:Name="LogoutMenuItem" Header="🚪 Sign out" IsEnabled="False" />
+                            </MenuFlyout>
+                        </Button.Flyout>
+                    </Button>
+                    
+                    <TextBlock Grid.Column="1"
+                               Text="CloudNotes"
+                               FontSize="20"
+                               FontWeight="Bold"
+                               VerticalAlignment="Center"
+                               Margin="10,0,0,0" />
+                </Grid>
 
                 <Button Margin="0.5"
                         Content="Create note"
@@ -19,7 +47,8 @@
 
                 <ListBox ItemsSource="{Binding Favorites}"
                          SelectedItem="{Binding SelectedFavoriteItem, Mode=TwoWay}"
-                         SelectionChanged="OnFavoritesSelectionChanged">
+                         SelectionChanged="OnFavoritesSelectionChanged"
+                         MaxHeight="200">
                     <ListBox.ContextMenu>
                         <ContextMenu>
                             <MenuItem Header="Remove from favorites"
@@ -45,7 +74,8 @@
 
                 <ListBox ItemsSource="{Binding Notes}"
                          SelectedItem="{Binding SelectedListItem, Mode=TwoWay}"
-                         SelectionChanged="OnListBoxSelectionChanged">
+                         SelectionChanged="OnListBoxSelectionChanged"
+                         MaxHeight="300">
 
                     <ListBox.ContextMenu>
                         <ContextMenu>
