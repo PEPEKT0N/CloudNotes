@@ -1,7 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Input;
+using CloudNotes.Desktop.Services;
 using System;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace CloudNotes.Desktop.Views
@@ -11,20 +11,6 @@ namespace CloudNotes.Desktop.Views
     /// </summary>
     public partial class AuthWindow : Window
     {
-        // Константы валидации
-        private const int MinPasswordLength = 6;
-        private const int MinUsernameLength = 3;
-        private const int MaxUsernameLength = 30;
-        
-        // Regex для валидации
-        private static readonly Regex EmailRegex = new(
-            @"^[^@\s]+@[^@\s]+\.[^@\s]+$", 
-            RegexOptions.Compiled | RegexOptions.IgnoreCase);
-        
-        private static readonly Regex UsernameRegex = new(
-            @"^[a-zA-Z0-9_]+$", 
-            RegexOptions.Compiled);
-
         /// <summary>
         /// Результат авторизации.
         /// </summary>
@@ -47,6 +33,7 @@ namespace CloudNotes.Desktop.Views
             RegisterUsernameTextBox.TextChanged += (_, _) => ClearRegisterError();
             RegisterEmailTextBox.TextChanged += (_, _) => ClearRegisterError();
             RegisterPasswordTextBox.TextChanged += (_, _) => ClearRegisterError();
+            RegisterConfirmPasswordTextBox.TextChanged += (_, _) => ClearRegisterError();
 
             // Enter для Login
             LoginPasswordTextBox.KeyDown += (s, e) =>
@@ -58,8 +45,8 @@ namespace CloudNotes.Desktop.Views
                 }
             };
 
-            // Enter для Register
-            RegisterPasswordTextBox.KeyDown += (s, e) =>
+            // Enter для Register (на последнем поле)
+            RegisterConfirmPasswordTextBox.KeyDown += (s, e) =>
             {
                 if (e.Key == Key.Enter)
                 {
@@ -88,7 +75,7 @@ namespace CloudNotes.Desktop.Views
             var password = LoginPasswordTextBox.Text;
 
             // Валидация email
-            var emailError = ValidateEmail(email);
+            var emailError = AuthValidator.ValidateEmail(email);
             if (emailError != null)
             {
                 ShowLoginError(emailError);
@@ -99,7 +86,7 @@ namespace CloudNotes.Desktop.Views
             // Валидация пароля
             if (string.IsNullOrWhiteSpace(password))
             {
-                ShowLoginError("Please enter your password");
+                ShowLoginError("Password is required");
                 LoginPasswordTextBox.Focus();
                 return;
             }
@@ -119,9 +106,10 @@ namespace CloudNotes.Desktop.Views
             var username = RegisterUsernameTextBox.Text?.Trim();
             var email = RegisterEmailTextBox.Text?.Trim();
             var password = RegisterPasswordTextBox.Text;
+            var confirmPassword = RegisterConfirmPasswordTextBox.Text;
 
             // Валидация username
-            var usernameError = ValidateUsername(username);
+            var usernameError = AuthValidator.ValidateUsername(username);
             if (usernameError != null)
             {
                 ShowRegisterError(usernameError);
@@ -130,7 +118,7 @@ namespace CloudNotes.Desktop.Views
             }
 
             // Валидация email
-            var emailError = ValidateEmail(email);
+            var emailError = AuthValidator.ValidateEmail(email);
             if (emailError != null)
             {
                 ShowRegisterError(emailError);
@@ -139,11 +127,20 @@ namespace CloudNotes.Desktop.Views
             }
 
             // Валидация пароля
-            var passwordError = ValidatePassword(password);
+            var passwordError = AuthValidator.ValidatePassword(password);
             if (passwordError != null)
             {
                 ShowRegisterError(passwordError);
                 RegisterPasswordTextBox.Focus();
+                return;
+            }
+
+            // Проверка совпадения паролей
+            var confirmError = AuthValidator.ValidatePasswordConfirmation(password, confirmPassword);
+            if (confirmError != null)
+            {
+                ShowRegisterError(confirmError);
+                RegisterConfirmPasswordTextBox.Focus();
                 return;
             }
 
@@ -157,58 +154,6 @@ namespace CloudNotes.Desktop.Views
 
             Close(Result);
         }
-
-        #region Validation Methods
-
-        /// <summary>
-        /// Валидация email.
-        /// </summary>
-        private static string? ValidateEmail(string? email)
-        {
-            if (string.IsNullOrWhiteSpace(email))
-                return "Email is required";
-
-            if (!EmailRegex.IsMatch(email))
-                return "Invalid email format";
-
-            return null;
-        }
-
-        /// <summary>
-        /// Валидация username.
-        /// </summary>
-        private static string? ValidateUsername(string? username)
-        {
-            if (string.IsNullOrWhiteSpace(username))
-                return "Username is required";
-
-            if (username.Length < MinUsernameLength)
-                return $"Username must be at least {MinUsernameLength} characters";
-
-            if (username.Length > MaxUsernameLength)
-                return $"Username must be at most {MaxUsernameLength} characters";
-
-            if (!UsernameRegex.IsMatch(username))
-                return "Username can only contain letters, numbers and underscores";
-
-            return null;
-        }
-
-        /// <summary>
-        /// Валидация пароля.
-        /// </summary>
-        private static string? ValidatePassword(string? password)
-        {
-            if (string.IsNullOrWhiteSpace(password))
-                return "Password is required";
-
-            if (password.Length < MinPasswordLength)
-                return $"Password must be at least {MinPasswordLength} characters";
-
-            return null;
-        }
-
-        #endregion
 
         /// <summary>
         /// Показать ошибку на вкладке Login.
@@ -281,11 +226,12 @@ namespace CloudNotes.Desktop.Views
         /// <summary>
         /// Установить значения полей Register.
         /// </summary>
-        public void SetRegisterFields(string username, string email, string password)
+        public void SetRegisterFields(string username, string email, string password, string confirmPassword = "")
         {
             RegisterUsernameTextBox.Text = username;
             RegisterEmailTextBox.Text = email;
             RegisterPasswordTextBox.Text = password;
+            RegisterConfirmPasswordTextBox.Text = confirmPassword;
         }
 
         /// <summary>
