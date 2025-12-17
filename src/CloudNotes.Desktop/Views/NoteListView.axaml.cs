@@ -62,6 +62,9 @@ public partial class NoteListView : UserControl
         UserEmailMenuItem.IsVisible = isLoggedIn;
         EmailSeparator.IsVisible = isLoggedIn;
 
+        // Sign in — disabled когда авторизован
+        SignInMenuItem.IsEnabled = !isLoggedIn;
+
         // Sign out — всегда видна, но enabled только когда авторизован
         LogoutMenuItem.IsEnabled = isLoggedIn;
 
