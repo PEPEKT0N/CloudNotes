@@ -16,6 +16,7 @@ namespace CloudNotes.Desktop.Views;
 public partial class NoteListView : UserControl
 {
     private readonly IAuthService? _authService;
+    private string? _currentUserEmail;
 
     public NoteListView()
     {
@@ -28,30 +29,52 @@ public partial class NoteListView : UserControl
         KeyDown += OnKeyDown;
 
         // Обработчики меню авторизации
-        LoginMenuItem.Click += OnLoginMenuItemClick;
-        RegisterMenuItem.Click += OnRegisterMenuItemClick;
+        SignInMenuItem.Click += OnSignInMenuItemClick;
+        LogoutMenuItem.Click += OnLogoutMenuItemClick;
+
+        // Проверяем состояние авторизации при загрузке
+        this.Loaded += async (_, _) => await UpdateAuthMenuAsync();
     }
 
-    private async void OnLoginMenuItemClick(object? sender, RoutedEventArgs e)
+    private async void OnSignInMenuItemClick(object? sender, RoutedEventArgs e)
     {
-        await OpenAuthWindowAsync(showLoginTab: true);
+        await OpenAuthWindowAsync();
     }
 
-    private async void OnRegisterMenuItemClick(object? sender, RoutedEventArgs e)
+    private async void OnLogoutMenuItemClick(object? sender, RoutedEventArgs e)
     {
-        await OpenAuthWindowAsync(showLoginTab: false);
+        if (_authService != null)
+        {
+            await _authService.LogoutAsync();
+            _currentUserEmail = null;
+            await UpdateAuthMenuAsync();
+        }
     }
 
-    private async Task OpenAuthWindowAsync(bool showLoginTab)
+    /// <summary>
+    /// Обновить состояние меню авторизации.
+    /// </summary>
+    private async Task UpdateAuthMenuAsync()
+    {
+        var isLoggedIn = _authService != null && await _authService.IsLoggedInAsync();
+
+        // Email и разделитель — только когда авторизован
+        UserEmailMenuItem.IsVisible = isLoggedIn;
+        EmailSeparator.IsVisible = isLoggedIn;
+
+        // Sign out — всегда видна, но enabled только когда авторизован
+        LogoutMenuItem.IsEnabled = isLoggedIn;
+
+        if (isLoggedIn && !string.IsNullOrEmpty(_currentUserEmail))
+        {
+            UserEmailMenuItem.Header = $"📧 {_currentUserEmail}";
+        }
+    }
+
+    private async Task OpenAuthWindowAsync()
     {
         var owner = this.VisualRoot as Window;
         var authWindow = new AuthWindow();
-        
-        // Переключаем на нужную вкладку
-        if (!showLoginTab)
-        {
-            authWindow.SelectRegisterTab();
-        }
 
         // Цикл для повторных попыток при ошибках
         while (true)
@@ -84,9 +107,10 @@ public partial class NoteListView : UserControl
 
                 if (success)
                 {
-                    // Успешная авторизация
+                    // Успешная авторизация — сохраняем email и обновляем меню
+                    _currentUserEmail = result.Email;
+                    await UpdateAuthMenuAsync();
                     System.Diagnostics.Debug.WriteLine($"Auth successful: {result.Email}");
-                    // TODO: Обновить UI (показать email в меню, скрыть Login/Register)
                     break;
                 }
             }
@@ -134,8 +158,7 @@ public partial class NoteListView : UserControl
                 // Неизвестная ошибка
                 System.Diagnostics.Debug.WriteLine($"Auth error: {ex}");
                 authWindow = new AuthWindow();
-                var tab = result.IsLogin;
-                if (tab)
+                if (result.IsLogin)
                 {
                     authWindow.SelectLoginTab();
                     authWindow.ShowLoginError("An unexpected error occurred. Please try again.");
