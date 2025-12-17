@@ -83,9 +83,9 @@
                          AcceptsReturn="True"
                          TextWrapping="Wrap"
                          IsVisible="{Binding IsEditMode}"
-                         Text="{Binding SelectedNote.Content,
-                                        Mode=TwoWay,
-                                        FallbackValue='Select a note'}" />
+                         IsEnabled="{Binding SelectedNote, Converter={x:Static ObjectConverters.IsNotNull}}"
+                         Text="{Binding SelectedNote.Content, Mode=TwoWay}"
+                         Watermark="Select a note" />
                 
                 <!-- Режим превью (HTML) -->
                 <html:HtmlPanel Grid.Row="2"
