@@ -1,0 +1,85 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        x:Class="CloudNotes.Desktop.Views.AuthWindow"
+        mc:Ignorable="d"
+        Title="CloudNotes - Authorization"
+        Width="400"
+        Height="350"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False">
+
+    <Grid Margin="20">
+        <TabControl x:Name="AuthTabControl">
+            <!-- Login Tab -->
+            <TabItem Header="Login">
+                <StackPanel Spacing="15" Margin="10,20,10,10">
+                    <StackPanel Spacing="5">
+                        <TextBlock Text="Email" FontWeight="SemiBold" />
+                        <TextBox x:Name="LoginEmailTextBox"
+                                 Watermark="Enter your email"
+                                 AcceptsReturn="False" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="5">
+                        <TextBlock Text="Password" FontWeight="SemiBold" />
+                        <TextBox x:Name="LoginPasswordTextBox"
+                                 Watermark="Enter your password"
+                                 PasswordChar="•"
+                                 AcceptsReturn="False" />
+                    </StackPanel>
+
+                    <TextBlock x:Name="LoginErrorTextBlock"
+                               Foreground="Red"
+                               TextWrapping="Wrap"
+                               IsVisible="False" />
+
+                    <Button x:Name="LoginButton"
+                            Content="Login"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Center"
+                            Margin="0,10,0,0" />
+                </StackPanel>
+            </TabItem>
+
+            <!-- Register Tab -->
+            <TabItem Header="Register">
+                <StackPanel Spacing="15" Margin="10,20,10,10">
+                    <StackPanel Spacing="5">
+                        <TextBlock Text="Username" FontWeight="SemiBold" />
+                        <TextBox x:Name="RegisterUsernameTextBox"
+                                 Watermark="Enter your username"
+                                 AcceptsReturn="False" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="5">
+                        <TextBlock Text="Email" FontWeight="SemiBold" />
+                        <TextBox x:Name="RegisterEmailTextBox"
+                                 Watermark="Enter your email"
+                                 AcceptsReturn="False" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="5">
+                        <TextBlock Text="Password" FontWeight="SemiBold" />
+                        <TextBox x:Name="RegisterPasswordTextBox"
+                                 Watermark="Enter your password"
+                                 PasswordChar="•"
+                                 AcceptsReturn="False" />
+                    </StackPanel>
+
+                    <TextBlock x:Name="RegisterErrorTextBlock"
+                               Foreground="Red"
+                               TextWrapping="Wrap"
+                               IsVisible="False" />
+
+                    <Button x:Name="RegisterButton"
+                            Content="Register"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Center"
+                            Margin="0,10,0,0" />
+                </StackPanel>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</Window>

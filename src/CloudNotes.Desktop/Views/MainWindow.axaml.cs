@@ -21,7 +21,7 @@ public partial class MainWindow : Window
         KeyDown += OnKeyDown;
     }
 
-    private void OnKeyDown(object? sender, KeyEventArgs e)
+    private async void OnKeyDown(object? sender, KeyEventArgs e)
     {
         // Ctrl+N — создать заметку (работает всегда)
         if (e.Key == Key.N && e.KeyModifiers.HasFlag(KeyModifiers.Control))
@@ -35,6 +35,17 @@ public partial class MainWindow : Window
         if (e.Key == Key.E && e.KeyModifiers.HasFlag(KeyModifiers.Control))
         {
             _viewModel.TogglePreviewMode();
+            e.Handled = true;
+        }
+
+        // Ctrl+L — открыть окно авторизации (временно для тестирования)
+        if (e.Key == Key.L && e.KeyModifiers.HasFlag(KeyModifiers.Control))
+        {
+            var result = await AuthWindow.ShowDialogAsync(this);
+            if (result != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"Auth result: IsLogin={result.IsLogin}, Email={result.Email}");
+            }
             e.Handled = true;
         }
     }
