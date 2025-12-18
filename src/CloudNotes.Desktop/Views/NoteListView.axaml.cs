@@ -16,14 +16,16 @@ namespace CloudNotes.Desktop.Views;
 public partial class NoteListView : UserControl
 {
     private readonly IAuthService? _authService;
+    private readonly ISyncService? _syncService;
     private string? _currentUserEmail;
 
     public NoteListView()
     {
         InitializeComponent();
 
-        // Получаем AuthService из DI
+        // Получаем сервисы из DI
         _authService = CloudNotes.App.ServiceProvider?.GetService<IAuthService>();
+        _syncService = CloudNotes.App.ServiceProvider?.GetService<ISyncService>();
 
         // Подписываемся на горячие клавиши
         KeyDown += OnKeyDown;
@@ -45,6 +47,9 @@ public partial class NoteListView : UserControl
     {
         if (_authService != null)
         {
+            // Останавливаем периодическую синхронизацию перед logout
+            _syncService?.StopPeriodicSync();
+            
             await _authService.LogoutAsync();
             _currentUserEmail = null;
             await UpdateAuthMenuAsync();
@@ -113,6 +118,10 @@ public partial class NoteListView : UserControl
                     // Успешная авторизация — сохраняем email и обновляем меню
                     _currentUserEmail = result.Email;
                     await UpdateAuthMenuAsync();
+                    
+                    // Запускаем периодическую синхронизацию после успешной авторизации
+                    _syncService?.StartPeriodicSync();
+                    
                     System.Diagnostics.Debug.WriteLine($"Auth successful: {result.Email}");
                     break;
                 }
