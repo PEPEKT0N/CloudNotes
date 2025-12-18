@@ -49,7 +49,7 @@ public partial class NoteListView : UserControl
         {
             // Останавливаем периодическую синхронизацию перед logout
             _syncService?.StopPeriodicSync();
-            
+
             await _authService.LogoutAsync();
             _currentUserEmail = null;
             await UpdateAuthMenuAsync();
@@ -118,10 +118,10 @@ public partial class NoteListView : UserControl
                     // Успешная авторизация — сохраняем email и обновляем меню
                     _currentUserEmail = result.Email;
                     await UpdateAuthMenuAsync();
-                    
+
                     // Запускаем периодическую синхронизацию после успешной авторизации
                     _syncService?.StartPeriodicSync();
-                    
+
                     System.Diagnostics.Debug.WriteLine($"Auth successful: {result.Email}");
                     break;
                 }
