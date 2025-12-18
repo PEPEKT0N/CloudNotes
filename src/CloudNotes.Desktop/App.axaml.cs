@@ -53,11 +53,19 @@ public partial class App : Application
         // Получение базового URL из конфигурации (с дефолтным значением)
         var baseUrl = configuration["Api:BaseUrl"] ?? "http://localhost:5000";
 
-        // Регистрация Refit клиента
-        services.AddRefitClient<ICloudNotesApi>()
-            .ConfigureHttpClient(c => c.BaseAddress = new Uri(baseUrl));
-
-        // Auth
+        // Auth (регистрируем первым, так как нужен для AuthHeaderHandler)
         services.AddSingleton<IAuthService, AuthService>();
+
+        // Регистрация Refit клиента с автоматическим добавлением Authorization header
+        services.AddRefitClient<ICloudNotesApi>()
+            .ConfigureHttpClient(c => c.BaseAddress = new Uri(baseUrl))
+            .AddHttpMessageHandler(serviceProvider =>
+            {
+                var authService = serviceProvider.GetRequiredService<IAuthService>();
+                return new AuthHeaderHandler(authService);
+            });
+
+        // Sync
+        services.AddScoped<ISyncService, SyncService>();
     }
 }
