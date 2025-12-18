@@ -33,15 +33,17 @@ public partial class App : Application
 
             desktop.MainWindow = new MainWindow();
 
-            // Синхронизация при запуске (если онлайн и авторизован)
+            // Синхронизация при запуске и запуск периодической синхронизации (если онлайн и авторизован)
             _ = Task.Run(async () =>
             {
                 if (ServiceProvider != null)
                 {
-                    var scopeFactory = ServiceProvider.GetRequiredService<IServiceScopeFactory>();
-                    using var scope = scopeFactory.CreateScope();
-                    var syncService = scope.ServiceProvider.GetRequiredService<ISyncService>();
-                    await syncService.SyncOnStartupAsync();
+                    var syncService = ServiceProvider.GetRequiredService<ISyncService>();
+                    var synced = await syncService.SyncOnStartupAsync();
+                    if (synced)
+                    {
+                        syncService.StartPeriodicSync();
+                    }
                 }
             });
         }
@@ -78,7 +80,7 @@ public partial class App : Application
                 return new AuthHeaderHandler(authService);
             });
 
-        // Sync
-        services.AddScoped<ISyncService, SyncService>();
+        // Sync (Singleton для периодической синхронизации)
+        services.AddSingleton<ISyncService, SyncService>();
     }
 }
