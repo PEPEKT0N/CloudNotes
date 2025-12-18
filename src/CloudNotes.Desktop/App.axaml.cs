@@ -1,4 +1,6 @@
 using System;
+using System.IO;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
@@ -8,7 +10,6 @@ using CloudNotes.Desktop.Views;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Refit;
-using System.IO;
 
 namespace CloudNotes;
 
@@ -31,6 +32,18 @@ public partial class App : Application
             ServiceProvider = services.BuildServiceProvider();
 
             desktop.MainWindow = new MainWindow();
+
+            // Синхронизация при запуске (если онлайн и авторизован)
+            _ = Task.Run(async () =>
+            {
+                if (ServiceProvider != null)
+                {
+                    var scopeFactory = ServiceProvider.GetRequiredService<IServiceScopeFactory>();
+                    using var scope = scopeFactory.CreateScope();
+                    var syncService = scope.ServiceProvider.GetRequiredService<ISyncService>();
+                    await syncService.SyncOnStartupAsync();
+                }
+            });
         }
 
         base.OnFrameworkInitializationCompleted();
