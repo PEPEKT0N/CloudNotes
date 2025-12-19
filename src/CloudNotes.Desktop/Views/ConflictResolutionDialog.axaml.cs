@@ -39,7 +39,7 @@ public partial class ConflictResolutionDialog : Window
     {
         var dialog = new ConflictResolutionDialog();
         dialog.SetConflict(conflict);
-        return dialog.ShowDialog<bool?>(owner);
+        return dialog.ShowDialog<bool?>(owner!);
     }
 }
 

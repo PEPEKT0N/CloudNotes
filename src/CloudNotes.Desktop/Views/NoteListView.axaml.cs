@@ -87,7 +87,7 @@ public partial class NoteListView : UserControl
         // Цикл для повторных попыток при ошибках
         while (true)
         {
-            var result = await authWindow.ShowDialog<AuthResult?>(owner);
+            var result = await authWindow.ShowDialog<AuthResult?>(owner!);
 
             if (result == null)
             {
