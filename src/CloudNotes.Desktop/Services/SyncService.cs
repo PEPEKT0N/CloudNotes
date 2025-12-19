@@ -85,7 +85,7 @@ public class SyncService : ISyncService
         {
             // Ищем локальную заметку по ServerId или по Id
             var localNote = localNotes.FirstOrDefault(n => n.ServerId == serverNote.Id || n.Id == serverNote.Id);
-            
+
             if (localNote != null)
             {
                 // Заметка существует локально - проверяем, нужно ли обновить
@@ -120,7 +120,7 @@ public class SyncService : ISyncService
 
         // 4. Отправляем несинхронизированные локальные изменения на сервер (очередь несинхронизированных изменений)
         var unsyncedNotes = localNotes.Where(n => !n.IsSynced).ToList();
-        
+
         foreach (var localNote in unsyncedNotes)
         {
             // Если есть ServerId, значит заметка уже существует на сервере - обновляем
@@ -166,7 +166,7 @@ public class SyncService : ISyncService
                 {
                     var createDto = NoteMapper.ToCreateDto(localNote);
                     var createdNote = await _api.CreateNoteAsync(createDto);
-                    
+
                     // Обновляем локальную заметку с ServerId и помечаем как синхронизированную
                     localNote.ServerId = createdNote.Id;
                     localNote.IsSynced = true;
