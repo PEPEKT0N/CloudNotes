@@ -80,6 +80,9 @@ public partial class App : Application
                 return new AuthHeaderHandler(authService);
             });
 
+        // Conflict Service
+        services.AddSingleton<IConflictService, ConflictService>();
+
         // Sync (Singleton для периодической синхронизации)
         services.AddSingleton<ISyncService, SyncService>();
     }

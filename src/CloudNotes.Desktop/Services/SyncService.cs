@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using CloudNotes.Desktop.Api;
@@ -18,6 +20,7 @@ public class SyncService : ISyncService
     private readonly ICloudNotesApi _api;
     private readonly IAuthService _authService;
     private readonly INoteService _noteService;
+    private readonly IConflictService? _conflictService;
     private readonly ILogger<SyncService>? _logger;
     private Timer? _periodicSyncTimer;
     private const int SyncIntervalMinutes = 5;
@@ -28,11 +31,13 @@ public class SyncService : ISyncService
         ICloudNotesApi api,
         IAuthService authService,
         INoteService noteService,
+        IConflictService? conflictService = null,
         ILogger<SyncService>? logger = null)
     {
         _api = api ?? throw new ArgumentNullException(nameof(api));
         _authService = authService ?? throw new ArgumentNullException(nameof(authService));
         _noteService = noteService ?? throw new ArgumentNullException(nameof(noteService));
+        _conflictService = conflictService;
         _logger = logger;
     }
 
@@ -149,13 +154,21 @@ public class SyncService : ISyncService
                         else if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
                         {
                             // Конфликт - серверная версия новее
-                            // TODO: Обработка конфликта (C3.1, C3.2)
+                            // Refit выбрасывает ApiException при 409, поэтому обработка будет в catch блоке
                             _logger?.LogWarning("Конфликт при обновлении заметки {NoteId}: версия на сервере новее", localNote.ServerId.Value);
                         }
                     }
                     catch (ApiException ex)
                     {
-                        _logger?.LogError(ex, "Ошибка при обновлении заметки {NoteId} на сервере", localNote.ServerId.Value);
+                        // Обработка 409 Conflict из ApiException
+                        if (ex.StatusCode == System.Net.HttpStatusCode.Conflict)
+                        {
+                            HandleConflictFromException(localNote, ex);
+                        }
+                        else
+                        {
+                            _logger?.LogError(ex, "Ошибка при обновлении заметки {NoteId} на сервере", localNote.ServerId.Value);
+                        }
                     }
                 }
             }
@@ -257,6 +270,43 @@ public class SyncService : ISyncService
         _periodicSyncTimer.Dispose();
         _periodicSyncTimer = null;
         _logger?.LogInformation("Остановлена периодическая синхронизация");
+    }
+
+    // Обработка конфликта из строки контента
+    private void HandleConflictFromContent(Note localNote, string content)
+    {
+        try
+        {
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var conflictResponse = JsonSerializer.Deserialize<ConflictResponseDto>(content, options);
+
+            if (conflictResponse?.ServerNote != null)
+            {
+                var conflict = new NoteConflict
+                {
+                    LocalNoteId = localNote.Id,
+                    LocalNote = localNote,
+                    ServerNote = conflictResponse.ServerNote,
+                    DetectedAt = DateTime.Now
+                };
+
+                _conflictService?.AddConflict(conflict);
+                _logger?.LogWarning("Обнаружен конфликт для заметки {NoteId}. Серверная версия новее", localNote.Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Ошибка при обработке конфликта для заметки {NoteId}", localNote.Id);
+        }
+    }
+
+    // Обработка конфликта из ApiException
+    private void HandleConflictFromException(Note localNote, ApiException ex)
+    {
+        if (ex.Content != null)
+        {
+            HandleConflictFromContent(localNote, ex.Content);
+        }
     }
 }
 
