@@ -47,7 +47,7 @@ namespace CloudNotes.Desktop.Views
         {
             var dlg = new RenameDialog();
             dlg.NameTextBox.Text = initialText ?? string.Empty;
-            return dlg.ShowDialog<string?>(owner);
+            return dlg.ShowDialog<string?>(owner!);
         }
     }
 }
