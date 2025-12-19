@@ -57,7 +57,10 @@ public class SyncService : ISyncService
             // 3. Синхронизация: загружаем новые/обновленные с сервера
             foreach (var serverNote in serverNotes)
             {
-                if (localNotesDict.TryGetValue(serverNote.Id, out var localNote))
+                // Ищем локальную заметку по ServerId или по Id
+                var localNote = localNotes.FirstOrDefault(n => n.ServerId == serverNote.Id || n.Id == serverNote.Id);
+                
+                if (localNote != null)
                 {
                     // Заметка существует локально - проверяем, нужно ли обновить
                     if (serverNote.UpdatedAt > localNote.UpdatedAt)
@@ -66,8 +69,18 @@ public class SyncService : ISyncService
                         localNote.Title = serverNote.Title;
                         localNote.Content = serverNote.Content ?? string.Empty;
                         localNote.UpdatedAt = serverNote.UpdatedAt;
+                        localNote.ServerId = serverNote.Id;
+                        localNote.IsSynced = true;
                         await _noteService.UpdateNoteAsync(localNote);
                         _logger?.LogInformation("Обновлена заметка {NoteId} с сервера", serverNote.Id);
+                    }
+                    else if (!localNote.IsSynced)
+                    {
+                        // Локальная заметка не синхронизирована, но серверная версия не новее - просто обновляем ServerId и IsSynced
+                        localNote.ServerId = serverNote.Id;
+                        localNote.IsSynced = true;
+                        await _noteService.UpdateNoteAsync(localNote);
+                        _logger?.LogInformation("Синхронизирована заметка {NoteId}", serverNote.Id);
                     }
                 }
                 else
@@ -79,53 +92,65 @@ public class SyncService : ISyncService
                 }
             }
 
-            // 4. Отправляем локальные изменения на сервер
-            foreach (var localNote in localNotes)
+            // 4. Отправляем несинхронизированные локальные изменения на сервер (очередь несинхронизированных изменений)
+            var unsyncedNotes = localNotes.Where(n => !n.IsSynced).ToList();
+            
+            foreach (var localNote in unsyncedNotes)
             {
-                // Проверяем, есть ли заметка на сервере
-                var serverNote = serverNotes.FirstOrDefault(sn => sn.Id == localNote.Id);
-                if (serverNote == null)
+                // Если есть ServerId, значит заметка уже существует на сервере - обновляем
+                if (localNote.ServerId.HasValue)
+                {
+                    var serverNote = serverNotes.FirstOrDefault(sn => sn.Id == localNote.ServerId.Value);
+                    if (serverNote != null)
+                    {
+                        // Локальная версия новее - обновляем на сервере
+                        try
+                        {
+                            var updateDto = NoteMapper.ToUpdateDto(localNote, localNote.UpdatedAt);
+                            var response = await _api.UpdateNoteWithResponseAsync(localNote.ServerId.Value, updateDto);
+
+                            if (response.IsSuccessStatusCode)
+                            {
+                                // Обновление успешно
+                                var updatedNote = response.Content!;
+                                localNote.Title = updatedNote.Title;
+                                localNote.Content = updatedNote.Content ?? string.Empty;
+                                localNote.UpdatedAt = updatedNote.UpdatedAt;
+                                localNote.IsSynced = true;
+                                await _noteService.UpdateNoteAsync(localNote);
+                                _logger?.LogInformation("Обновлена заметка {NoteId} на сервере", localNote.ServerId.Value);
+                            }
+                            else if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+                            {
+                                // Конфликт - серверная версия новее
+                                // TODO: Обработка конфликта (C3.1, C3.2)
+                                _logger?.LogWarning("Конфликт при обновлении заметки {NoteId}: версия на сервере новее", localNote.ServerId.Value);
+                            }
+                        }
+                        catch (ApiException ex)
+                        {
+                            _logger?.LogError(ex, "Ошибка при обновлении заметки {NoteId} на сервере", localNote.ServerId.Value);
+                        }
+                    }
+                }
+                else
                 {
                     // Локальная заметка не существует на сервере - создаем
                     try
                     {
                         var createDto = NoteMapper.ToCreateDto(localNote);
-                        await _api.CreateNoteAsync(createDto);
-                        _logger?.LogInformation("Создана заметка {NoteId} на сервере", localNote.Id);
+                        var createdNote = await _api.CreateNoteAsync(createDto);
+                        
+                        // Обновляем локальную заметку с ServerId и помечаем как синхронизированную
+                        localNote.ServerId = createdNote.Id;
+                        localNote.IsSynced = true;
+                        localNote.UpdatedAt = createdNote.UpdatedAt;
+                        await _noteService.UpdateNoteAsync(localNote);
+                        _logger?.LogInformation("Создана заметка {NoteId} на сервере", createdNote.Id);
                     }
                     catch (ApiException ex)
                     {
                         _logger?.LogError(ex, "Ошибка при создании заметки {NoteId} на сервере", localNote.Id);
-                    }
-                }
-                else if (localNote.UpdatedAt > serverNote.UpdatedAt)
-                {
-                    // Локальная версия новее - обновляем на сервере
-                    try
-                    {
-                        var updateDto = NoteMapper.ToUpdateDto(localNote, localNote.UpdatedAt);
-                        var response = await _api.UpdateNoteWithResponseAsync(localNote.Id, updateDto);
-
-                        if (response.IsSuccessStatusCode)
-                        {
-                            // Обновление успешно
-                            var updatedNote = response.Content!;
-                            localNote.Title = updatedNote.Title;
-                            localNote.Content = updatedNote.Content ?? string.Empty;
-                            localNote.UpdatedAt = updatedNote.UpdatedAt;
-                            await _noteService.UpdateNoteAsync(localNote);
-                            _logger?.LogInformation("Обновлена заметка {NoteId} на сервере", localNote.Id);
-                        }
-                        else if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
-                        {
-                            // Конфликт - серверная версия новее
-                            // TODO: Обработка конфликта (C3.1, C3.2)
-                            _logger?.LogWarning("Конфликт при обновлении заметки {NoteId}: версия на сервере новее", localNote.Id);
-                        }
-                    }
-                    catch (ApiException ex)
-                    {
-                        _logger?.LogError(ex, "Ошибка при обновлении заметки {NoteId} на сервере", localNote.Id);
                     }
                 }
             }

@@ -19,6 +19,12 @@ public class NoteService : INoteService
 
     public async Task<Note> CreateNoteAsync(Note note)
     {
+        // Новая заметка создается локально - помечаем как несинхронизированную
+        if (!note.ServerId.HasValue)
+        {
+            note.IsSynced = false;
+        }
+
         _context.Notes.Add(note);
 
         await _context.SaveChangesAsync();
@@ -44,9 +50,21 @@ public class NoteService : INoteService
             return false;
         }
 
+        var wasSynced = existingNote.IsSynced;
+
         existingNote.Title = note.Title;
         existingNote.Content = note.Content;
         existingNote.IsFavorite = note.IsFavorite;
+        existingNote.ServerId = note.ServerId;
+        existingNote.IsSynced = note.IsSynced;
+
+        // Если заметка была синхронизирована и мы обновляем её локально (не из синхронизации),
+        // то помечаем как несинхронизированную для повторной синхронизации
+        // SyncService явно устанавливает IsSynced = true, поэтому это не затронет синхронизацию
+        if (wasSynced && !note.IsSynced)
+        {
+            existingNote.IsSynced = false;
+        }
 
         // Явно помечаем сущность как измененную для гарантии обновления UpdatedAt
         _context.Entry(existingNote).State = EntityState.Modified;
