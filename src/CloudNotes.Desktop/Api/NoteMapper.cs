@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using CloudNotes.Desktop.Api.DTOs;
 using CloudNotes.Desktop.Model;
 
@@ -25,7 +27,7 @@ public static class NoteMapper
     }
 
     // Конвертирует локальную модель Note в API.NoteDto
-    public static NoteDto ToDto(Note note, DateTime? createdAt = null, DateTime? syncedAt = null)
+    public static NoteDto ToDto(Note note, DateTime? createdAt = null, DateTime? syncedAt = null, IList<string>? tags = null)
     {
         if (note == null)
             throw new ArgumentNullException(nameof(note));
@@ -37,12 +39,13 @@ public static class NoteMapper
             Content = note.Content,
             CreatedAt = createdAt ?? note.UpdatedAt,
             UpdatedAt = note.UpdatedAt,
-            SyncedAt = syncedAt
+            SyncedAt = syncedAt,
+            Tags = tags ?? new List<string>()
         };
     }
 
     // Конвертирует локальную модель Note в CreateNoteDto для создания на сервере
-    public static CreateNoteDto ToCreateDto(Note note)
+    public static CreateNoteDto ToCreateDto(Note note, IList<string>? tags = null)
     {
         if (note == null)
             throw new ArgumentNullException(nameof(note));
@@ -50,12 +53,13 @@ public static class NoteMapper
         return new CreateNoteDto
         {
             Title = note.Title,
-            Content = note.Content
+            Content = note.Content,
+            Tags = tags ?? new List<string>()
         };
     }
 
     // Конвертирует локальную модель Note в UpdateNoteDto для обновления на сервере
-    public static UpdateNoteDto ToUpdateDto(Note note, DateTime? clientUpdatedAt = null)
+    public static UpdateNoteDto ToUpdateDto(Note note, DateTime? clientUpdatedAt = null, IList<string>? tags = null)
     {
         if (note == null)
             throw new ArgumentNullException(nameof(note));
@@ -64,8 +68,15 @@ public static class NoteMapper
         {
             Title = note.Title,
             Content = note.Content,
-            ClientUpdatedAt = clientUpdatedAt ?? note.UpdatedAt
+            ClientUpdatedAt = clientUpdatedAt ?? note.UpdatedAt,
+            Tags = tags ?? new List<string>()
         };
+    }
+
+    // Извлекает названия тегов из коллекции NoteTag
+    public static IList<string> ExtractTagNames(IEnumerable<NoteTag> noteTags)
+    {
+        return noteTags?.Select(nt => nt.Tag.Name).ToList() ?? new List<string>();
     }
 }
 
