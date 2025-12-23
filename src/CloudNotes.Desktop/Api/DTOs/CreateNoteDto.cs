@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace CloudNotes.Desktop.Api.DTOs;
 
 /// <summary>
@@ -14,5 +16,10 @@ public class CreateNoteDto
     /// Содержимое заметки (Markdown).
     /// </summary>
     public string? Content { get; set; }
+
+    /// <summary>
+    /// Названия тегов заметки.
+    /// </summary>
+    public IList<string> Tags { get; set; } = new List<string>();
 }
 

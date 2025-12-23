@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace CloudNotes.Desktop.Api.DTOs;
 
@@ -21,5 +22,10 @@ public class UpdateNoteDto
     /// Время последнего обновления на клиенте (для конфликт-резолвера).
     /// </summary>
     public DateTime? ClientUpdatedAt { get; set; }
+
+    /// <summary>
+    /// Названия тегов заметки.
+    /// </summary>
+    public IList<string> Tags { get; set; } = new List<string>();
 }
 
