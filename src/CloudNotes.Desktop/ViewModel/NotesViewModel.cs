@@ -124,6 +124,25 @@ namespace CloudNotes.Desktop.ViewModel
         public ICommand RemoveFromFavoritesCommand { get; }
         public ICommand DeleteNoteCommand { get; }
 
+        // Сортировка
+        private SortOption _selectedSortOption = SortOption.TitleAsc;
+        public SortOption SelectedSortOption
+        {
+            get => _selectedSortOption;
+            set
+            {
+                if (_selectedSortOption != value)
+                {
+                    _selectedSortOption = value;
+                    OnPropertyChanged();
+                    ApplySort();
+                }
+            }
+        }
+
+        // Доступные варианты сортировки для ComboBox
+        public SortOption[] SortOptions => Enum.GetValues<SortOption>();
+
         // Сервис для работы с БД
         private readonly INoteService _noteService;
 
@@ -268,6 +287,9 @@ namespace CloudNotes.Desktop.ViewModel
 
             SelectedListItem = null;
             SelectedNote = null;
+
+            // Применяем сортировку
+            ApplySort();
         }
 
         private async Task CreateDefaultNotesInDb(bool hasWelcomeNote, bool hasSecondNote)
@@ -312,7 +334,44 @@ namespace CloudNotes.Desktop.ViewModel
 
         private NoteListItem CreateListItem(Note note)
         {
-            return new NoteListItem(note.Id, note.Title, note.UpdatedAt);
+            return new NoteListItem(note.Id, note.Title, note.CreatedAt, note.UpdatedAt);
+        }
+
+        /// <summary>
+        /// Применить текущую сортировку к списку заметок.
+        /// </summary>
+        private void ApplySort()
+        {
+            var sortedNotes = SelectedSortOption switch
+            {
+                SortOption.TitleAsc => Notes.OrderBy(n => n.Title).ToList(),
+                SortOption.TitleDesc => Notes.OrderByDescending(n => n.Title).ToList(),
+                SortOption.UpdatedAsc => Notes.OrderBy(n => n.UpdatedAt).ToList(),
+                SortOption.UpdatedDesc => Notes.OrderByDescending(n => n.UpdatedAt).ToList(),
+                _ => Notes.ToList()
+            };
+
+            Notes.Clear();
+            foreach (var item in sortedNotes)
+            {
+                Notes.Add(item);
+            }
+
+            // Применяем ту же сортировку к избранному
+            var sortedFavorites = SelectedSortOption switch
+            {
+                SortOption.TitleAsc => Favorites.OrderBy(n => n.Title).ToList(),
+                SortOption.TitleDesc => Favorites.OrderByDescending(n => n.Title).ToList(),
+                SortOption.UpdatedAsc => Favorites.OrderBy(n => n.UpdatedAt).ToList(),
+                SortOption.UpdatedDesc => Favorites.OrderByDescending(n => n.UpdatedAt).ToList(),
+                _ => Favorites.ToList()
+            };
+
+            Favorites.Clear();
+            foreach (var item in sortedFavorites)
+            {
+                Favorites.Add(item);
+            }
         }
 
 
@@ -339,12 +398,14 @@ namespace CloudNotes.Desktop.ViewModel
 
         public void CreateNote()
         {
+            var now = DateTime.Now;
             var note = new Note
             {
                 Id = Guid.NewGuid(),
                 Title = "Unnamed",
                 Content = "",
-                UpdatedAt = DateTime.Now // Для UI, в БД обновится автоматически при сохранении
+                CreatedAt = now,
+                UpdatedAt = now
             };
 
             AllNotes.Add(note);
@@ -413,7 +474,7 @@ namespace CloudNotes.Desktop.ViewModel
 
             if (!Favorites.Any(f => f.Id == note.Id))
             {
-                Favorites.Add(new NoteListItem(note.Id, note.Title, note.UpdatedAt));
+                Favorites.Add(CreateListItem(note));
             }
         }
 
