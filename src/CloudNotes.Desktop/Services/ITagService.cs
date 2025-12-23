@@ -54,4 +54,9 @@ public interface ITagService
     /// Удаляет тег из заметки.
     /// </summary>
     Task RemoveTagFromNoteAsync(Guid noteId, Guid tagId);
+
+    /// <summary>
+    /// Получает заметки с указанным тегом.
+    /// </summary>
+    Task<IEnumerable<Note>> GetNotesWithTagAsync(Guid tagId);
 }

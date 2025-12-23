@@ -12,6 +12,8 @@ public class SortOptionConverterTests
     [Theory]
     [InlineData(SortOption.TitleAsc, "A - Z")]
     [InlineData(SortOption.TitleDesc, "Z - A")]
+    [InlineData(SortOption.CreatedDesc, "Latest created")]
+    [InlineData(SortOption.CreatedAsc, "Earliest created")]
     [InlineData(SortOption.UpdatedAsc, "Update asc")]
     [InlineData(SortOption.UpdatedDesc, "Update desc")]
     public void Convert_ReturnsCorrectDisplayName(SortOption option, string expected)

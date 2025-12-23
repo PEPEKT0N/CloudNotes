@@ -498,9 +498,51 @@ namespace CloudNotes.Desktop.Tests
 
                 Assert.Contains(SortOption.TitleAsc, options);
                 Assert.Contains(SortOption.TitleDesc, options);
+                Assert.Contains(SortOption.CreatedDesc, options);
+                Assert.Contains(SortOption.CreatedAsc, options);
                 Assert.Contains(SortOption.UpdatedAsc, options);
                 Assert.Contains(SortOption.UpdatedDesc, options);
-                Assert.Equal(4, options.Length);
+                Assert.Equal(6, options.Length);
+            }
+
+            [Fact]
+            public void SortByCreatedDesc_SortsNewestFirst()
+            {
+                vm.CreateNote();
+                vm.RenameActiveNote("First");
+                System.Threading.Thread.Sleep(20);
+                vm.CreateNote();
+                vm.RenameActiveNote("Second");
+                System.Threading.Thread.Sleep(20);
+                vm.CreateNote();
+                vm.RenameActiveNote("Third");
+
+                vm.SelectedSortOption = SortOption.CreatedDesc;
+
+                // Проверяем что новые сначала
+                var timestamps = vm.Notes.Select(n => n.CreatedAt).ToList();
+                var sortedTimestamps = timestamps.OrderByDescending(t => t).ToList();
+                Assert.Equal(sortedTimestamps, timestamps);
+            }
+
+            [Fact]
+            public void SortByCreatedAsc_SortsOldestFirst()
+            {
+                vm.CreateNote();
+                vm.RenameActiveNote("First");
+                System.Threading.Thread.Sleep(20);
+                vm.CreateNote();
+                vm.RenameActiveNote("Second");
+                System.Threading.Thread.Sleep(20);
+                vm.CreateNote();
+                vm.RenameActiveNote("Third");
+
+                vm.SelectedSortOption = SortOption.CreatedAsc;
+
+                // Проверяем что старые сначала
+                var timestamps = vm.Notes.Select(n => n.CreatedAt).ToList();
+                var sortedTimestamps = timestamps.OrderBy(t => t).ToList();
+                Assert.Equal(sortedTimestamps, timestamps);
             }
         }
     }

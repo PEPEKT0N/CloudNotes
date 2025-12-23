@@ -8,11 +8,11 @@ namespace CloudNotes.Desktop.Api;
 
 public class AuthHeaderHandler : DelegatingHandler
 {
-    private readonly IAuthService _authService;
+    private readonly Func<IAuthService> _authServiceFactory;
 
-    public AuthHeaderHandler(IAuthService authService)
+    public AuthHeaderHandler(Func<IAuthService> authServiceFactory)
     {
-        _authService = authService ?? throw new ArgumentNullException(nameof(authService));
+        _authServiceFactory = authServiceFactory ?? throw new ArgumentNullException(nameof(authServiceFactory));
     }
 
     // Автоматически добавляет Authorization Bearer header в каждый HTTP запрос
@@ -20,8 +20,11 @@ public class AuthHeaderHandler : DelegatingHandler
         HttpRequestMessage request,
         CancellationToken cancellationToken)
     {
+        // Получаем AuthService лениво
+        var authService = _authServiceFactory();
+
         // Получаем access токен
-        var accessToken = await _authService.GetAccessTokenAsync();
+        var accessToken = await authService.GetAccessTokenAsync();
 
         // Добавляем Authorization header, если токен есть и его еще нет в запросе
         if (!string.IsNullOrEmpty(accessToken) && !request.Headers.Contains("Authorization"))

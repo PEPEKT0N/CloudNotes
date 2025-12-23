@@ -20,6 +20,8 @@ public class SortOptionConverter : IValueConverter
             {
                 SortOption.TitleAsc => "A - Z",
                 SortOption.TitleDesc => "Z - A",
+                SortOption.CreatedDesc => "Latest created",
+                SortOption.CreatedAsc => "Earliest created",
                 SortOption.UpdatedAsc => "Update asc",
                 SortOption.UpdatedDesc => "Update desc",
                 _ => option.ToString()
