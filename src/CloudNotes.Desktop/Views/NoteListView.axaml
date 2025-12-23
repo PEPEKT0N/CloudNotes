@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:CloudNotes.Desktop.Converters"
              x:Class="CloudNotes.Desktop.Views.NoteListView"
              Focusable="True"
              >
@@ -40,10 +41,29 @@
                         Content="Create note"
                         Command="{Binding CreateNoteCommand}" />
 
+                <!-- Сортировка (влияет на оба списка) -->
+                <StackPanel Orientation="Horizontal" Margin="0,15,0,0" HorizontalAlignment="Right">
+                    <TextBlock Text="Sort by"
+                               FontSize="12"
+                               VerticalAlignment="Center"
+                               Margin="0,0,5,0"
+                               Opacity="0.7" />
+                    <ComboBox ItemsSource="{Binding SortOptions}"
+                              SelectedItem="{Binding SelectedSortOption}"
+                              MinWidth="100"
+                              FontSize="12">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Converter={x:Static local:SortOptionConverter.Instance}}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </StackPanel>
+
                 <TextBlock Text="Favorites"
                             FontWeight="Bold"
                             FontSize="16"
-                            Margin="0,20,0,10" />
+                            Margin="0,10,0,10" />
 
                 <ListBox ItemsSource="{Binding Favorites}"
                          SelectedItem="{Binding SelectedFavoriteItem, Mode=TwoWay}"
@@ -70,7 +90,7 @@
                 <TextBlock Text="Your Notes"
                            FontWeight="Bold"
                            FontSize="16"
-                           Margin="0,30,0,10" />
+                           Margin="0,20,0,10" />
 
                 <ListBox ItemsSource="{Binding Notes}"
                          SelectedItem="{Binding SelectedListItem, Mode=TwoWay}"

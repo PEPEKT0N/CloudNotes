@@ -11,6 +11,14 @@ public class Note
 
     public string Content { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Дата создания заметки.
+    /// </summary>
+    public DateTime CreatedAt { get; set; }
+
+    /// <summary>
+    /// Дата последнего обновления.
+    /// </summary>
     public DateTime UpdatedAt { get; set; }
 
     public bool IsFavorite { get; set; } = false;

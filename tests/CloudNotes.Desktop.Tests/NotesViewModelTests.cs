@@ -365,5 +365,143 @@ namespace CloudNotes.Desktop.Tests
                 Assert.DoesNotContain(vm.AllNotes, n => n.Id == newNoteId);
             }
         }
+
+        // Тесты для сортировки
+        public class SortingTests : NotesViewModelTests
+        {
+            [Fact]
+            public void SortByTitleAsc_SortsNotesAlphabetically()
+            {
+                // Создаём заметки с разными названиями
+                vm.CreateNote();
+                vm.RenameActiveNote("Zebra");
+                vm.CreateNote();
+                vm.RenameActiveNote("Apple");
+                vm.CreateNote();
+                vm.RenameActiveNote("Mango");
+
+                // Переключаем на другую сортировку и обратно чтобы применить
+                vm.SelectedSortOption = SortOption.TitleDesc;
+                vm.SelectedSortOption = SortOption.TitleAsc;
+
+                // Проверяем порядок (A-Z)
+                var titles = vm.Notes.Select(n => n.Title).ToList();
+                var sortedTitles = titles.OrderBy(t => t).ToList();
+                Assert.Equal(sortedTitles, titles);
+            }
+
+            [Fact]
+            public void SortByTitleDesc_SortsNotesReverseAlphabetically()
+            {
+                vm.CreateNote();
+                vm.RenameActiveNote("Apple");
+                vm.CreateNote();
+                vm.RenameActiveNote("Zebra");
+                vm.CreateNote();
+                vm.RenameActiveNote("Mango");
+
+                vm.SelectedSortOption = SortOption.TitleDesc;
+
+                // Проверяем порядок (Z-A)
+                var titles = vm.Notes.Select(n => n.Title).ToList();
+                var sortedTitles = titles.OrderByDescending(t => t).ToList();
+                Assert.Equal(sortedTitles, titles);
+            }
+
+            [Fact]
+            public void SortByUpdatedAsc_SortsOldestFirst()
+            {
+                vm.CreateNote();
+                vm.RenameActiveNote("First");
+                System.Threading.Thread.Sleep(20);
+                vm.CreateNote();
+                vm.RenameActiveNote("Second");
+                System.Threading.Thread.Sleep(20);
+                vm.CreateNote();
+                vm.RenameActiveNote("Third");
+
+                vm.SelectedSortOption = SortOption.UpdatedAsc;
+
+                // Проверяем что старые сначала
+                var timestamps = vm.Notes.Select(n => n.UpdatedAt).ToList();
+                var sortedTimestamps = timestamps.OrderBy(t => t).ToList();
+                Assert.Equal(sortedTimestamps, timestamps);
+            }
+
+            [Fact]
+            public void SortByUpdatedDesc_SortsNewestFirst()
+            {
+                vm.CreateNote();
+                vm.RenameActiveNote("First");
+                System.Threading.Thread.Sleep(20);
+                vm.CreateNote();
+                vm.RenameActiveNote("Second");
+                System.Threading.Thread.Sleep(20);
+                vm.CreateNote();
+                vm.RenameActiveNote("Third");
+
+                vm.SelectedSortOption = SortOption.UpdatedDesc;
+
+                // Проверяем что новые сначала
+                var timestamps = vm.Notes.Select(n => n.UpdatedAt).ToList();
+                var sortedTimestamps = timestamps.OrderByDescending(t => t).ToList();
+                Assert.Equal(sortedTimestamps, timestamps);
+            }
+
+            [Fact]
+            public void SortingAlsoAppliesToFavorites()
+            {
+                vm.CreateNote();
+                vm.RenameActiveNote("Zebra");
+                vm.AddToFavoritesCommand.Execute(null);
+
+                vm.CreateNote();
+                vm.RenameActiveNote("Apple");
+                vm.AddToFavoritesCommand.Execute(null);
+
+                // Переключаем на другую сортировку и обратно
+                vm.SelectedSortOption = SortOption.TitleDesc;
+                vm.SelectedSortOption = SortOption.TitleAsc;
+
+                var favoriteTitles = vm.Favorites.Select(f => f.Title).ToList();
+                var sortedTitles = favoriteTitles.OrderBy(t => t).ToList();
+                Assert.Equal(sortedTitles, favoriteTitles);
+            }
+
+            [Fact]
+            public void ChangingSortOption_ResortsImmediately()
+            {
+                vm.CreateNote();
+                vm.RenameActiveNote("Zebra");
+                vm.CreateNote();
+                vm.RenameActiveNote("Apple");
+
+                // Сначала Z-A
+                vm.SelectedSortOption = SortOption.TitleDesc;
+                Assert.Equal("Zebra", vm.Notes.First().Title);
+
+                // Потом A-Z
+                vm.SelectedSortOption = SortOption.TitleAsc;
+                Assert.Equal("Apple", vm.Notes.First().Title);
+            }
+
+            [Fact]
+            public void DefaultSortOption_IsTitleAsc()
+            {
+                Assert.Equal(SortOption.TitleAsc, vm.SelectedSortOption);
+            }
+
+            [Fact]
+            public void SortOptions_ContainsAllOptions()
+            {
+                var options = vm.SortOptions;
+
+                Assert.Contains(SortOption.TitleAsc, options);
+                Assert.Contains(SortOption.TitleDesc, options);
+                Assert.Contains(SortOption.UpdatedAsc, options);
+                Assert.Contains(SortOption.UpdatedDesc, options);
+                Assert.Equal(4, options.Length);
+            }
+        }
     }
 }
