@@ -37,11 +37,14 @@ public class NotesController : ControllerBase
 
         var notes = await _context.Notes
             .Where(n => n.UserId == userId && !n.IsDeleted)
+            .Include(n => n.NoteTags)
+                .ThenInclude(nt => nt.Tag)
             .OrderByDescending(n => n.UpdatedAt)
-            .Select(n => MapToDto(n))
             .ToListAsync();
 
-        return Ok(notes);
+        var noteDtos = notes.Select(n => MapToDto(n)).ToList();
+
+        return Ok(noteDtos);
     }
 
     /// <summary>
@@ -57,6 +60,8 @@ public class NotesController : ControllerBase
         var userId = HttpContext.GetRequiredUserId();
 
         var note = await _context.Notes
+            .Include(n => n.NoteTags)
+                .ThenInclude(nt => nt.Tag)
             .FirstOrDefaultAsync(n => n.Id == id && n.UserId == userId && !n.IsDeleted);
 
         if (note == null)
@@ -81,11 +86,14 @@ public class NotesController : ControllerBase
         var notes = await _context.Notes
             .Where(n => n.UserId == userId && !n.IsDeleted &&
                         n.NoteTags.Any(nt => EF.Functions.ILike(nt.Tag.Name, tag)))
+            .Include(n => n.NoteTags)
+                .ThenInclude(nt => nt.Tag)
             .OrderByDescending(n => n.UpdatedAt)
-            .Select(n => MapToDto(n))
             .ToListAsync();
 
-        return Ok(notes);
+        var noteDtos = notes.Select(n => MapToDto(n)).ToList();
+
+        return Ok(noteDtos);
     }
 
     /// <summary>
@@ -102,11 +110,14 @@ public class NotesController : ControllerBase
         var notes = await _context.Notes
             .Where(n => n.UserId == userId && !n.IsDeleted &&
                         EF.Functions.ILike(n.Title, $"%{title}%"))
+            .Include(n => n.NoteTags)
+                .ThenInclude(nt => nt.Tag)
             .OrderByDescending(n => n.UpdatedAt)
-            .Select(n => MapToDto(n))
             .ToListAsync();
 
-        return Ok(notes);
+        var noteDtos = notes.Select(n => MapToDto(n)).ToList();
+
+        return Ok(noteDtos);
     }
 
     /// <summary>
@@ -134,6 +145,16 @@ public class NotesController : ControllerBase
 
         _context.Notes.Add(note);
         await _context.SaveChangesAsync();
+
+        // Обработка тегов
+        await SyncNoteTagsAsync(note.Id, dto.Tags);
+
+        // Перезагружаем заметку с тегами для возврата
+        await _context.Entry(note)
+            .Collection(n => n.NoteTags)
+            .Query()
+            .Include(nt => nt.Tag)
+            .LoadAsync();
 
         _logger.LogInformation("Пользователь {UserId} создал заметку {NoteId}", userId, note.Id);
 
@@ -179,6 +200,16 @@ public class NotesController : ControllerBase
         note.SyncedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
+
+        // Обработка тегов
+        await SyncNoteTagsAsync(note.Id, dto.Tags);
+
+        // Перезагружаем заметку с тегами для возврата
+        await _context.Entry(note)
+            .Collection(n => n.NoteTags)
+            .Query()
+            .Include(nt => nt.Tag)
+            .LoadAsync();
 
         _logger.LogInformation("Пользователь {UserId} обновил заметку {NoteId}", userId, note.Id);
 
@@ -226,8 +257,91 @@ public class NotesController : ControllerBase
             Content = note.Content,
             CreatedAt = note.CreatedAt,
             UpdatedAt = note.UpdatedAt,
-            SyncedAt = note.SyncedAt
+            SyncedAt = note.SyncedAt,
+            Tags = note.NoteTags?.Select(nt => nt.Tag.Name).ToList() ?? new List<string>()
         };
+    }
+
+    /// <summary>
+    /// Синхронизирует теги заметки с переданным списком названий тегов.
+    /// </summary>
+    /// <param name="noteId">ID заметки.</param>
+    /// <param name="tagNames">Список названий тегов.</param>
+    private async Task SyncNoteTagsAsync(Guid noteId, IList<string> tagNames)
+    {
+        // Получаем текущие связи заметки с тегами
+        var existingNoteTags = await _context.NoteTags
+            .Where(nt => nt.NoteId == noteId)
+            .Include(nt => nt.Tag)
+            .ToListAsync();
+
+        var existingTagNames = existingNoteTags.Select(nt => nt.Tag.Name.ToLowerInvariant()).ToHashSet();
+
+        // Создаем словарь для сохранения оригинальных имен (с правильным регистром)
+        var originalNamesMap = new Dictionary<string, string>();
+        var requestedTagNames = new HashSet<string>();
+
+        if (tagNames != null)
+        {
+            foreach (var tagName in tagNames)
+            {
+                if (string.IsNullOrWhiteSpace(tagName))
+                {
+                    continue;
+                }
+
+                var trimmedName = tagName.Trim();
+                var lowerName = trimmedName.ToLowerInvariant();
+
+                if (!originalNamesMap.ContainsKey(lowerName))
+                {
+                    originalNamesMap[lowerName] = trimmedName;
+                    requestedTagNames.Add(lowerName);
+                }
+            }
+        }
+
+        // Удаляем теги, которых больше нет в запросе
+        var tagsToRemove = existingNoteTags
+            .Where(nt => !requestedTagNames.Contains(nt.Tag.Name.ToLowerInvariant()))
+            .ToList();
+
+        foreach (var noteTag in tagsToRemove)
+        {
+            _context.NoteTags.Remove(noteTag);
+        }
+
+        // Добавляем новые теги
+        var tagsToAdd = requestedTagNames.Where(tn => !existingTagNames.Contains(tn)).ToList();
+        foreach (var tagNameLower in tagsToAdd)
+        {
+            // Ищем существующий тег по имени (case-insensitive)
+            var tag = await _context.Tags
+                .FirstOrDefaultAsync(t => t.Name.ToLowerInvariant() == tagNameLower);
+
+            // Если тег не существует, создаем новый
+            if (tag == null)
+            {
+                var originalName = originalNamesMap[tagNameLower];
+                tag = new Tag
+                {
+                    Id = Guid.NewGuid(),
+                    Name = originalName
+                };
+                _context.Tags.Add(tag);
+                await _context.SaveChangesAsync();
+            }
+
+            // Создаем связь между заметкой и тегом
+            var noteTag = new NoteTag
+            {
+                NoteId = noteId,
+                TagId = tag.Id
+            };
+            _context.NoteTags.Add(noteTag);
+        }
+
+        await _context.SaveChangesAsync();
     }
 }
 
