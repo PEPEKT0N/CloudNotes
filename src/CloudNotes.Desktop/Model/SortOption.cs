@@ -16,6 +16,16 @@ public enum SortOption
     TitleDesc,
 
     /// <summary>
+    /// По дате создания (новые сначала).
+    /// </summary>
+    CreatedDesc,
+
+    /// <summary>
+    /// По дате создания (старые сначала).
+    /// </summary>
+    CreatedAsc,
+
+    /// <summary>
     /// По дате изменения (старые сначала).
     /// </summary>
     UpdatedAsc,
