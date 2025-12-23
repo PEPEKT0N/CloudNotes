@@ -72,13 +72,20 @@ public partial class App : Application
         services.AddSingleton<IAuthService, AuthService>();
 
         // Регистрация Refit клиента с автоматическим добавлением Authorization header
+        // Используем Func<IAuthService> для ленивого разрешения и избежания циклической зависимости
         services.AddRefitClient<ICloudNotesApi>()
             .ConfigureHttpClient(c => c.BaseAddress = new Uri(baseUrl))
             .AddHttpMessageHandler(serviceProvider =>
             {
-                var authService = serviceProvider.GetRequiredService<IAuthService>();
-                return new AuthHeaderHandler(authService);
+                return new AuthHeaderHandler(() => serviceProvider.GetRequiredService<IAuthService>());
             });
+
+        // Note Service (требуется для SyncService)
+        services.AddSingleton<INoteService>(_ =>
+        {
+            var context = CloudNotes.Services.DbContextProvider.GetContext();
+            return new NoteService(context);
+        });
 
         // Conflict Service
         services.AddSingleton<IConflictService, ConflictService>();
