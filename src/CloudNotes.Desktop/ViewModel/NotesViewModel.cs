@@ -346,6 +346,8 @@ namespace CloudNotes.Desktop.ViewModel
             {
                 SortOption.TitleAsc => Notes.OrderBy(n => n.Title).ToList(),
                 SortOption.TitleDesc => Notes.OrderByDescending(n => n.Title).ToList(),
+                SortOption.CreatedDesc => Notes.OrderByDescending(n => n.CreatedAt).ToList(),
+                SortOption.CreatedAsc => Notes.OrderBy(n => n.CreatedAt).ToList(),
                 SortOption.UpdatedAsc => Notes.OrderBy(n => n.UpdatedAt).ToList(),
                 SortOption.UpdatedDesc => Notes.OrderByDescending(n => n.UpdatedAt).ToList(),
                 _ => Notes.ToList()
@@ -362,6 +364,8 @@ namespace CloudNotes.Desktop.ViewModel
             {
                 SortOption.TitleAsc => Favorites.OrderBy(n => n.Title).ToList(),
                 SortOption.TitleDesc => Favorites.OrderByDescending(n => n.Title).ToList(),
+                SortOption.CreatedDesc => Favorites.OrderByDescending(n => n.CreatedAt).ToList(),
+                SortOption.CreatedAsc => Favorites.OrderBy(n => n.CreatedAt).ToList(),
                 SortOption.UpdatedAsc => Favorites.OrderBy(n => n.UpdatedAt).ToList(),
                 SortOption.UpdatedDesc => Favorites.OrderByDescending(n => n.UpdatedAt).ToList(),
                 _ => Favorites.ToList()
