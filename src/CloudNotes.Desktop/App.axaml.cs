@@ -1,4 +1,6 @@
 using System;
+using System.IO;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
@@ -8,7 +10,6 @@ using CloudNotes.Desktop.Views;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Refit;
-using System.IO;
 
 namespace CloudNotes;
 
@@ -31,6 +32,20 @@ public partial class App : Application
             ServiceProvider = services.BuildServiceProvider();
 
             desktop.MainWindow = new MainWindow();
+
+            // Синхронизация при запуске и запуск периодической синхронизации (если онлайн и авторизован)
+            _ = Task.Run(async () =>
+            {
+                if (ServiceProvider != null)
+                {
+                    var syncService = ServiceProvider.GetRequiredService<ISyncService>();
+                    var synced = await syncService.SyncOnStartupAsync();
+                    if (synced)
+                    {
+                        syncService.StartPeriodicSync();
+                    }
+                }
+            });
         }
 
         base.OnFrameworkInitializationCompleted();
@@ -53,11 +68,22 @@ public partial class App : Application
         // Получение базового URL из конфигурации (с дефолтным значением)
         var baseUrl = configuration["Api:BaseUrl"] ?? "http://localhost:5000";
 
-        // Регистрация Refit клиента
-        services.AddRefitClient<ICloudNotesApi>()
-            .ConfigureHttpClient(c => c.BaseAddress = new Uri(baseUrl));
-
-        // Auth
+        // Auth (регистрируем первым, так как нужен для AuthHeaderHandler)
         services.AddSingleton<IAuthService, AuthService>();
+
+        // Регистрация Refit клиента с автоматическим добавлением Authorization header
+        services.AddRefitClient<ICloudNotesApi>()
+            .ConfigureHttpClient(c => c.BaseAddress = new Uri(baseUrl))
+            .AddHttpMessageHandler(serviceProvider =>
+            {
+                var authService = serviceProvider.GetRequiredService<IAuthService>();
+                return new AuthHeaderHandler(authService);
+            });
+
+        // Conflict Service
+        services.AddSingleton<IConflictService, ConflictService>();
+
+        // Sync (Singleton для периодической синхронизации)
+        services.AddSingleton<ISyncService, SyncService>();
     }
 }

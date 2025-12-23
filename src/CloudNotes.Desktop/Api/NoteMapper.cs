@@ -4,16 +4,9 @@ using CloudNotes.Desktop.Model;
 
 namespace CloudNotes.Desktop.Api;
 
-/// <summary>
-/// Маппер для конвертации между локальной моделью Note и API DTOs.
-/// </summary>
 public static class NoteMapper
 {
-    /// <summary>
-    /// Конвертирует API.NoteDto в локальную модель Note.
-    /// </summary>
-    /// <param name="dto">DTO от сервера.</param>
-    /// <returns>Локальная модель Note.</returns>
+    // Конвертирует API.NoteDto в локальную модель Note (с сервера)
     public static Note ToLocal(NoteDto dto)
     {
         if (dto == null)
@@ -25,17 +18,13 @@ public static class NoteMapper
             Title = dto.Title,
             Content = dto.Content ?? string.Empty,
             UpdatedAt = dto.UpdatedAt,
-            IsFavorite = false // IsFavorite не синхронизируется с сервером (локальное поле)
+            IsFavorite = false, // IsFavorite не синхронизируется с сервером (локальное поле)
+            ServerId = dto.Id, // ServerId = Id заметки на сервере
+            IsSynced = true // Заметка синхронизирована, так как получена с сервера
         };
     }
 
-    /// <summary>
-    /// Конвертирует локальную модель Note в API.NoteDto.
-    /// </summary>
-    /// <param name="note">Локальная модель Note.</param>
-    /// <param name="createdAt">Дата создания (если известна).</param>
-    /// <param name="syncedAt">Дата последней синхронизации (если известна).</param>
-    /// <returns>DTO для отправки на сервер.</returns>
+    // Конвертирует локальную модель Note в API.NoteDto
     public static NoteDto ToDto(Note note, DateTime? createdAt = null, DateTime? syncedAt = null)
     {
         if (note == null)
@@ -52,11 +41,7 @@ public static class NoteMapper
         };
     }
 
-    /// <summary>
-    /// Конвертирует локальную модель Note в CreateNoteDto для создания на сервере.
-    /// </summary>
-    /// <param name="note">Локальная модель Note.</param>
-    /// <returns>DTO для создания заметки.</returns>
+    // Конвертирует локальную модель Note в CreateNoteDto для создания на сервере
     public static CreateNoteDto ToCreateDto(Note note)
     {
         if (note == null)
@@ -69,12 +54,7 @@ public static class NoteMapper
         };
     }
 
-    /// <summary>
-    /// Конвертирует локальную модель Note в UpdateNoteDto для обновления на сервере.
-    /// </summary>
-    /// <param name="note">Локальная модель Note.</param>
-    /// <param name="clientUpdatedAt">Время последнего обновления на клиенте (для конфликт-резолвера).</param>
-    /// <returns>DTO для обновления заметки.</returns>
+    // Конвертирует локальную модель Note в UpdateNoteDto для обновления на сервере
     public static UpdateNoteDto ToUpdateDto(Note note, DateTime? clientUpdatedAt = null)
     {
         if (note == null)

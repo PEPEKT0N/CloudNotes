@@ -240,7 +240,7 @@ namespace CloudNotes.Desktop.Views
         public static Task<AuthResult?> ShowDialogAsync(Window? owner)
         {
             var dialog = new AuthWindow();
-            return dialog.ShowDialog<AuthResult?>(owner);
+            return dialog.ShowDialog<AuthResult?>(owner!);
         }
     }
 
