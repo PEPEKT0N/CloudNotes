@@ -162,6 +162,33 @@ namespace CloudNotes.Desktop.ViewModel
         public ICommand AddTagCommand { get; }
         public ICommand RemoveTagCommand { get; }
 
+        // Команды для фильтрации по тегам
+        public ICommand FilterByTagCommand { get; }
+        public ICommand ClearTagFilterCommand { get; }
+
+        // Текущий фильтр по тегу
+        private Tag? _filterTag;
+        public Tag? FilterTag
+        {
+            get => _filterTag;
+            set
+            {
+                if (_filterTag != value)
+                {
+                    _filterTag = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(IsFilteredByTag));
+                    ApplyTagFilter();
+                }
+            }
+        }
+
+        // Флаг: активен ли фильтр
+        public bool IsFilteredByTag => FilterTag != null;
+
+        // Полный список заметок (без фильтрации) для UI
+        private List<NoteListItem> _allNoteItems = new();
+
         // Режим превью (true = просмотр HTML, false = редактирование Markdown)
         private bool isPreviewMode;
         public bool IsPreviewMode
@@ -219,6 +246,8 @@ namespace CloudNotes.Desktop.ViewModel
             TogglePreviewModeCommand = new RelayCommand(_ => TogglePreviewMode());
             AddTagCommand = new RelayCommand(param => AddTagToCurrentNote(param as string), _ => SelectedNote != null);
             RemoveTagCommand = new RelayCommand(param => RemoveTagFromCurrentNote(param as Tag), _ => SelectedNote != null);
+            FilterByTagCommand = new RelayCommand(param => FilterByTag(param as Tag));
+            ClearTagFilterCommand = new RelayCommand(_ => ClearTagFilter());
 
             // Загружаем заметки из БД синхронно для совместимости с тестами
             LoadNotesFromDbAsync().GetAwaiter().GetResult();
@@ -239,6 +268,8 @@ namespace CloudNotes.Desktop.ViewModel
             TogglePreviewModeCommand = new RelayCommand(_ => TogglePreviewMode());
             AddTagCommand = new RelayCommand(param => AddTagToCurrentNote(param as string), _ => SelectedNote != null);
             RemoveTagCommand = new RelayCommand(param => RemoveTagFromCurrentNote(param as Tag), _ => SelectedNote != null);
+            FilterByTagCommand = new RelayCommand(param => FilterByTag(param as Tag));
+            ClearTagFilterCommand = new RelayCommand(_ => ClearTagFilter());
 
             // Загружаем заметки из БД синхронно для совместимости с тестами
             LoadNotesFromDbAsync().GetAwaiter().GetResult();
@@ -276,7 +307,9 @@ namespace CloudNotes.Desktop.ViewModel
             foreach (var note in notesFromDb)
             {
                 AllNotes.Add(note);
-                Notes.Add(CreateListItem(note));
+                var listItem = CreateListItem(note);
+                Notes.Add(listItem);
+                _allNoteItems.Add(listItem);
 
                 // Добавляем в избранное, если нужно
                 if (note.IsFavorite)
@@ -329,7 +362,9 @@ namespace CloudNotes.Desktop.ViewModel
         private void AddNote(Note note)
         {
             AllNotes.Add(note);
-            Notes.Add(CreateListItem(note));
+            var listItem = CreateListItem(note);
+            Notes.Add(listItem);
+            _allNoteItems.Add(listItem);
         }
 
         private NoteListItem CreateListItem(Note note)
@@ -342,10 +377,15 @@ namespace CloudNotes.Desktop.ViewModel
         /// </summary>
         private void ApplySort()
         {
+            // Сохраняем текущее выделение
+            var selectedId = SelectedListItem?.Id ?? SelectedFavoriteItem?.Id;
+
             var sortedNotes = SelectedSortOption switch
             {
                 SortOption.TitleAsc => Notes.OrderBy(n => n.Title).ToList(),
                 SortOption.TitleDesc => Notes.OrderByDescending(n => n.Title).ToList(),
+                SortOption.CreatedDesc => Notes.OrderByDescending(n => n.CreatedAt).ToList(),
+                SortOption.CreatedAsc => Notes.OrderBy(n => n.CreatedAt).ToList(),
                 SortOption.UpdatedAsc => Notes.OrderBy(n => n.UpdatedAt).ToList(),
                 SortOption.UpdatedDesc => Notes.OrderByDescending(n => n.UpdatedAt).ToList(),
                 _ => Notes.ToList()
@@ -362,6 +402,8 @@ namespace CloudNotes.Desktop.ViewModel
             {
                 SortOption.TitleAsc => Favorites.OrderBy(n => n.Title).ToList(),
                 SortOption.TitleDesc => Favorites.OrderByDescending(n => n.Title).ToList(),
+                SortOption.CreatedDesc => Favorites.OrderByDescending(n => n.CreatedAt).ToList(),
+                SortOption.CreatedAsc => Favorites.OrderBy(n => n.CreatedAt).ToList(),
                 SortOption.UpdatedAsc => Favorites.OrderBy(n => n.UpdatedAt).ToList(),
                 SortOption.UpdatedDesc => Favorites.OrderByDescending(n => n.UpdatedAt).ToList(),
                 _ => Favorites.ToList()
@@ -372,8 +414,25 @@ namespace CloudNotes.Desktop.ViewModel
             {
                 Favorites.Add(item);
             }
-        }
 
+            // Восстанавливаем выделение
+            if (selectedId.HasValue)
+            {
+                var selectedInNotes = Notes.FirstOrDefault(n => n.Id == selectedId.Value);
+                if (selectedInNotes != null)
+                {
+                    SelectedListItem = selectedInNotes;
+                }
+                else
+                {
+                    var selectedInFavorites = Favorites.FirstOrDefault(f => f.Id == selectedId.Value);
+                    if (selectedInFavorites != null)
+                    {
+                        SelectedFavoriteItem = selectedInFavorites;
+                    }
+                }
+            }
+        }
 
         private void UpdateSelectedNote(NoteListItem? listItem)
         {
@@ -412,10 +471,14 @@ namespace CloudNotes.Desktop.ViewModel
 
             var listItem = CreateListItem(note);
             Notes.Add(listItem);
+            _allNoteItems.Add(listItem);
 
             SelectedListItem = listItem;
             SelectedNote = note;
             ActiveListItem = listItem;
+
+            // Применяем сортировку
+            ApplySort();
 
             // Сохраняем в БД асинхронно (UpdatedAt обновится автоматически в SaveChangesAsync)
             Task.Run(async () => await _noteService.CreateNoteAsync(note));
@@ -456,6 +519,17 @@ namespace CloudNotes.Desktop.ViewModel
                 favoriteItem.Title = newName;
                 favoriteItem.UpdatedAt = note.UpdatedAt;
             }
+
+            // Обновляем в _allNoteItems
+            var allItem = _allNoteItems.FirstOrDefault(n => n.Id == listItem.Id);
+            if (allItem != null && note != null)
+            {
+                allItem.Title = newName;
+                allItem.UpdatedAt = note.UpdatedAt;
+            }
+
+            // Применяем сортировку
+            ApplySort();
         }
 
         private void AddToFavorites()
@@ -499,6 +573,7 @@ namespace CloudNotes.Desktop.ViewModel
             {
                 AllNotes.Remove(note);
             }
+            _allNoteItems.RemoveAll(item => item.Id == listItem.Id);
 
             // Удаляем из БД
             Task.Run(async () => await _noteService.DeleteNoteAsync(noteId));
@@ -542,6 +617,7 @@ namespace CloudNotes.Desktop.ViewModel
             {
                 AllNotes.Remove(note);
             }
+            _allNoteItems.RemoveAll(item => item.Id == listItem.Id);
 
             // Удаляем из БД
             Task.Run(async () => await _noteService.DeleteNoteAsync(noteId));
@@ -689,6 +765,54 @@ namespace CloudNotes.Desktop.ViewModel
                     {
                         CurrentNoteTags.Remove(tagToRemove);
                     }
+                });
+            });
+        }
+
+        // -------------------------------------------------------
+        // Фильтрация по тегам
+        // -------------------------------------------------------
+
+        private void FilterByTag(Tag? tag)
+        {
+            if (tag == null) return;
+            FilterTag = tag;
+        }
+
+        private void ClearTagFilter()
+        {
+            FilterTag = null;
+        }
+
+        private void ApplyTagFilter()
+        {
+            if (_tagService == null) return;
+
+            Task.Run(async () =>
+            {
+                IEnumerable<NoteListItem> filteredItems;
+
+                if (FilterTag == null)
+                {
+                    // Показываем все заметки
+                    filteredItems = _allNoteItems;
+                }
+                else
+                {
+                    // Получаем ID заметок с этим тегом
+                    var notesWithTag = await _tagService.GetNotesWithTagAsync(FilterTag.Id);
+                    var noteIds = notesWithTag.Select(n => n.Id).ToHashSet();
+                    filteredItems = _allNoteItems.Where(item => noteIds.Contains(item.Id));
+                }
+
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    Notes.Clear();
+                    foreach (var item in filteredItems)
+                    {
+                        Notes.Add(item);
+                    }
+                    ApplySort();
                 });
             });
         }

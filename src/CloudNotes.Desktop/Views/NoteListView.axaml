@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:CloudNotes.Desktop.Converters"
+             xmlns:vm="clr-namespace:CloudNotes.Desktop.ViewModel"
              x:Class="CloudNotes.Desktop.Views.NoteListView"
              Focusable="True"
              >
@@ -113,6 +114,40 @@
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
+
+                <!-- Tags section -->
+                <TextBlock Text="Tags"
+                           FontWeight="Bold"
+                           FontSize="16"
+                           Margin="0,20,0,10" />
+
+                <ItemsControl ItemsSource="{Binding AllTags}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Content="{Binding Name}"
+                                    Command="{Binding $parent[UserControl].((vm:NotesViewModel)DataContext).FilterByTagCommand}"
+                                    CommandParameter="{Binding}"
+                                    Margin="0,0,5,5"
+                                    Padding="8,4"
+                                    FontSize="12"
+                                    Background="#E0E0E0"
+                                    CornerRadius="10" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- Clear filter button -->
+                <Button Content="Show all notes"
+                        Command="{Binding ClearTagFilterCommand}"
+                        IsVisible="{Binding IsFilteredByTag}"
+                        Margin="0,5,0,0"
+                        FontSize="12"
+                        HorizontalAlignment="Left" />
             </StackPanel>
         </Border>
 
