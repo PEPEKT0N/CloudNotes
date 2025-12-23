@@ -129,4 +129,14 @@ public class TagService : ITagService
         _context.NoteTags.Remove(noteTag);
         await _context.SaveChangesAsync();
     }
+
+    /// <inheritdoc />
+    public async Task<IEnumerable<Note>> GetNotesWithTagAsync(Guid tagId)
+    {
+        return await _context.NoteTags
+            .Where(nt => nt.TagId == tagId)
+            .Include(nt => nt.Note)
+            .Select(nt => nt.Note)
+            .ToListAsync();
+    }
 }
