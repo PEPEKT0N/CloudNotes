@@ -3,24 +3,12 @@ using System.Collections.Generic;
 
 namespace CloudNotes.Desktop.Model;
 
-/// <summary>
-/// Заметка пользователя.
-/// </summary>
 public class Note
 {
-    /// <summary>
-    /// Уникальный идентификатор заметки.
-    /// </summary>
     public Guid Id { get; set; }
 
-    /// <summary>
-    /// Заголовок заметки.
-    /// </summary>
     public string Title { get; set; } = string.Empty;
 
-    /// <summary>
-    /// Содержимое заметки (Markdown).
-    /// </summary>
     public string Content { get; set; } = string.Empty;
 
     /// <summary>
@@ -33,13 +21,13 @@ public class Note
     /// </summary>
     public DateTime UpdatedAt { get; set; }
 
-    /// <summary>
-    /// Флаг избранного.
-    /// </summary>
     public bool IsFavorite { get; set; } = false;
 
-    /// <summary>
-    /// Теги заметки (Many-to-Many через NoteTag).
-    /// </summary>
+    // ID заметки на сервере (null если еще не синхронизирована)
+    public Guid? ServerId { get; set; }
+
+    // Флаг синхронизации с сервером
+    public bool IsSynced { get; set; } = false;
+
     public ICollection<NoteTag> NoteTags { get; set; } = new List<NoteTag>();
 }

@@ -1,12 +1,18 @@
+using System;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Threading;
+using CloudNotes.Desktop.Model;
+using CloudNotes.Desktop.Services;
 using CloudNotes.Desktop.ViewModel;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CloudNotes.Desktop.Views;
 
 public partial class MainWindow : Window
 {
     private NotesViewModel _viewModel;
+    private IConflictService? _conflictService;
 
     public MainWindow()
     {
@@ -17,8 +23,31 @@ public partial class MainWindow : Window
 
         NoteListViewControl.DataContext = _viewModel;
 
+        // Получаем ConflictService из DI
+        _conflictService = App.ServiceProvider?.GetService<IConflictService>();
+        if (_conflictService != null)
+        {
+            _conflictService.ConflictDetected += OnConflictDetected;
+        }
+
         // Глобальные горячие клавиши
         KeyDown += OnKeyDown;
+    }
+
+    private async void OnConflictDetected(NoteConflict conflict)
+    {
+        // Показываем диалог разрешения конфликта в UI потоке
+        await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(async () =>
+        {
+            var owner = this;
+            var result = await ConflictResolutionDialog.ShowDialogAsync(owner, conflict);
+
+            if (result.HasValue && _conflictService != null)
+            {
+                // true = использовать локальную версию, false = использовать серверную версию
+                await _conflictService.ResolveConflictAsync(conflict.LocalNoteId, !result.Value);
+            }
+        });
     }
 
     private void OnKeyDown(object? sender, KeyEventArgs e)
