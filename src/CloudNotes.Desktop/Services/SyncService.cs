@@ -8,8 +8,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using CloudNotes.Desktop.Api;
 using CloudNotes.Desktop.Api.DTOs;
+using CloudNotes.Desktop.Data;
 using CloudNotes.Desktop.Model;
 using CloudNotes.Services;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Refit;
 
@@ -20,6 +22,7 @@ public class SyncService : ISyncService
     private readonly ICloudNotesApi _api;
     private readonly IAuthService _authService;
     private readonly INoteService _noteService;
+    private readonly ITagService _tagService;
     private readonly IConflictService? _conflictService;
     private readonly ILogger<SyncService>? _logger;
     private Timer? _periodicSyncTimer;
@@ -31,12 +34,14 @@ public class SyncService : ISyncService
         ICloudNotesApi api,
         IAuthService authService,
         INoteService noteService,
+        ITagService? tagService = null,
         IConflictService? conflictService = null,
         ILogger<SyncService>? logger = null)
     {
         _api = api ?? throw new ArgumentNullException(nameof(api));
         _authService = authService ?? throw new ArgumentNullException(nameof(authService));
         _noteService = noteService ?? throw new ArgumentNullException(nameof(noteService));
+        _tagService = tagService ?? new TagService(DbContextProvider.GetContext());
         _conflictService = conflictService;
         _logger = logger;
     }
@@ -103,6 +108,10 @@ public class SyncService : ISyncService
                     localNote.ServerId = serverNote.Id;
                     localNote.IsSynced = true;
                     await _noteService.UpdateNoteAsync(localNote);
+
+                    // Синхронизируем теги с сервера
+                    await SyncTagsFromServerAsync(localNote.Id, serverNote.Tags);
+
                     _logger?.LogInformation("Обновлена заметка {NoteId} с сервера", serverNote.Id);
                 }
                 else if (!localNote.IsSynced)
@@ -119,6 +128,10 @@ public class SyncService : ISyncService
                 // Новая заметка с сервера - создаем локально
                 var newNote = NoteMapper.ToLocal(serverNote);
                 await _noteService.CreateNoteAsync(newNote);
+
+                // Синхронизируем теги с сервера
+                await SyncTagsFromServerAsync(newNote.Id, serverNote.Tags);
+
                 _logger?.LogInformation("Создана заметка {NoteId} с сервера", serverNote.Id);
             }
         }
@@ -137,7 +150,11 @@ public class SyncService : ISyncService
                     // Локальная версия новее - обновляем на сервере
                     try
                     {
-                        var updateDto = NoteMapper.ToUpdateDto(localNote, localNote.UpdatedAt);
+                        // Получаем теги локальной заметки
+                        var localTags = await _tagService.GetTagsForNoteAsync(localNote.Id);
+                        var tagNames = localTags.Select(t => t.Name).ToList();
+
+                        var updateDto = NoteMapper.ToUpdateDto(localNote, localNote.UpdatedAt, tagNames);
                         var response = await _api.UpdateNoteWithResponseAsync(localNote.ServerId.Value, updateDto);
 
                         if (response.IsSuccessStatusCode)
@@ -149,6 +166,10 @@ public class SyncService : ISyncService
                             localNote.UpdatedAt = updatedNote.UpdatedAt;
                             localNote.IsSynced = true;
                             await _noteService.UpdateNoteAsync(localNote);
+
+                            // Синхронизируем теги с сервера (на случай, если сервер изменил их)
+                            await SyncTagsFromServerAsync(localNote.Id, updatedNote.Tags);
+
                             _logger?.LogInformation("Обновлена заметка {NoteId} на сервере", localNote.ServerId.Value);
                         }
                         else if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
@@ -177,7 +198,11 @@ public class SyncService : ISyncService
                 // Локальная заметка не существует на сервере - создаем
                 try
                 {
-                    var createDto = NoteMapper.ToCreateDto(localNote);
+                    // Получаем теги локальной заметки
+                    var localTags = await _tagService.GetTagsForNoteAsync(localNote.Id);
+                    var tagNames = localTags.Select(t => t.Name).ToList();
+
+                    var createDto = NoteMapper.ToCreateDto(localNote, tagNames);
                     var createdNote = await _api.CreateNoteAsync(createDto);
 
                     // Обновляем локальную заметку с ServerId и помечаем как синхронизированную
@@ -185,6 +210,10 @@ public class SyncService : ISyncService
                     localNote.IsSynced = true;
                     localNote.UpdatedAt = createdNote.UpdatedAt;
                     await _noteService.UpdateNoteAsync(localNote);
+
+                    // Синхронизируем теги с сервера (на случай, если сервер создал новые теги)
+                    await SyncTagsFromServerAsync(localNote.Id, createdNote.Tags);
+
                     _logger?.LogInformation("Создана заметка {NoteId} на сервере", createdNote.Id);
                 }
                 catch (ApiException ex)
@@ -307,6 +336,47 @@ public class SyncService : ISyncService
         {
             HandleConflictFromContent(localNote, ex.Content);
         }
+    }
+
+    /// <summary>
+    /// Синхронизирует теги заметки с сервера: создает локальные теги и связи, если их нет.
+    /// </summary>
+    /// <param name="noteId">ID локальной заметки.</param>
+    /// <param name="serverTagNames">Список названий тегов с сервера.</param>
+    private async Task SyncTagsFromServerAsync(Guid noteId, IList<string> serverTagNames)
+    {
+        // Получаем текущие теги заметки
+        var existingTags = await _tagService.GetTagsForNoteAsync(noteId);
+
+        if (serverTagNames == null || serverTagNames.Count == 0)
+        {
+            // Если на сервере нет тегов, удаляем все локальные связи с тегами
+            foreach (var tag in existingTags)
+            {
+                await _tagService.RemoveTagFromNoteAsync(noteId, tag.Id);
+            }
+            return;
+        }
+        var existingTagNames = existingTags.Select(t => t.Name.ToLowerInvariant()).ToHashSet();
+        var serverTagNamesLower = serverTagNames.Select(t => t.ToLowerInvariant()).ToHashSet();
+
+        // Удаляем теги, которых больше нет на сервере
+        var tagsToRemove = existingTags.Where(t => !serverTagNamesLower.Contains(t.Name.ToLowerInvariant())).ToList();
+        foreach (var tag in tagsToRemove)
+        {
+            await _tagService.RemoveTagFromNoteAsync(noteId, tag.Id);
+        }
+
+        // Добавляем новые теги с сервера
+        var tagsToAdd = serverTagNames.Where(tn => !existingTagNames.Contains(tn.ToLowerInvariant())).ToList();
+        foreach (var tagName in tagsToAdd)
+        {
+            // Получаем или создаем тег локально
+            var tag = await _tagService.GetOrCreateTagAsync(tagName);
+            await _tagService.AddTagToNoteAsync(noteId, tag.Id);
+        }
+
+        _logger?.LogInformation("Синхронизированы теги для заметки {NoteId}", noteId);
     }
 }
 

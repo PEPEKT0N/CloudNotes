@@ -34,5 +34,10 @@ public class NoteDto
     /// Дата последней синхронизации с сервером.
     /// </summary>
     public DateTime? SyncedAt { get; set; }
+
+    /// <summary>
+    /// Названия тегов заметки.
+    /// </summary>
+    public IList<string> Tags { get; set; } = new List<string>();
 }
 
