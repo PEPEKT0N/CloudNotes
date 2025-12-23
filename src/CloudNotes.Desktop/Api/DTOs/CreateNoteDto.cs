@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace CloudNotes.Desktop.Api.DTOs;
 
 /// <summary>
