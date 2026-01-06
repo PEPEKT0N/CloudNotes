@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -35,7 +36,17 @@ public partial class NoteListView : UserControl
         LogoutMenuItem.Click += OnLogoutMenuItemClick;
 
         // Проверяем состояние авторизации при загрузке
-        this.Loaded += async (_, _) => await UpdateAuthMenuAsync();
+        this.Loaded += async (_, _) =>
+        {
+            await UpdateAuthMenuAsync();
+            
+            // Обновляем список заметок в зависимости от статуса авторизации
+            if (DataContext is NotesViewModel vm)
+            {
+                var isLoggedIn = _authService != null && await _authService.IsLoggedInAsync();
+                await vm.RefreshNotesAsync(isLoggedIn: isLoggedIn);
+            }
+        };
     }
 
     private async void OnSignInMenuItemClick(object? sender, RoutedEventArgs e)
@@ -53,6 +64,12 @@ public partial class NoteListView : UserControl
             await _authService.LogoutAsync();
             _currentUserEmail = null;
             await UpdateAuthMenuAsync();
+
+            // Обновляем список заметок - показываем только дефолтные
+            if (DataContext is NotesViewModel vm)
+            {
+                await vm.RefreshNotesAsync(isLoggedIn: false);
+            }
         }
     }
 
@@ -119,8 +136,20 @@ public partial class NoteListView : UserControl
                     _currentUserEmail = result.Email;
                     await UpdateAuthMenuAsync();
 
-                    // Запускаем периодическую синхронизацию после успешной авторизации
-                    _syncService?.StartPeriodicSync();
+                    // Запускаем синхронизацию после успешной авторизации
+                    if (_syncService != null)
+                    {
+                        // Выполняем синхронизацию один раз для загрузки заметок с сервера
+                        await _syncService.SyncOnStartupAsync();
+                        // Запускаем периодическую синхронизацию
+                        _syncService.StartPeriodicSync();
+                    }
+
+                    // Обновляем список заметок после синхронизации
+                    if (DataContext is NotesViewModel vm)
+                    {
+                        await vm.RefreshNotesAsync(isLoggedIn: true);
+                    }
 
                     System.Diagnostics.Debug.WriteLine($"Auth successful: {result.Email}");
                     break;
@@ -190,6 +219,34 @@ public partial class NoteListView : UserControl
     /// </summary>
     private static string ParseApiError(ApiException apiEx)
     {
+        // Пытаемся извлечь сообщение об ошибке из ответа API
+        string? errorMessage = null;
+        try
+        {
+            if (!string.IsNullOrEmpty(apiEx.Content))
+            {
+                var errorObj = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(apiEx.Content);
+                if (errorObj.TryGetProperty("error", out var errorProp))
+                {
+                    errorMessage = errorProp.GetString();
+                }
+                else if (errorObj.TryGetProperty("errors", out var errorsProp))
+                {
+                    var errors = errorsProp.EnumerateArray().ToList();
+                    errorMessage = string.Join(", ", errors.Select(e => e.GetString()));
+                }
+            }
+        }
+        catch
+        {
+            // Игнорируем ошибки парсинга
+        }
+
+        if (!string.IsNullOrEmpty(errorMessage))
+        {
+            return errorMessage;
+        }
+
         return apiEx.StatusCode switch
         {
             HttpStatusCode.BadRequest => "Invalid request. Please check your input.",
