@@ -10,6 +10,7 @@ using CloudNotes.Desktop.Model;
 using CloudNotes.Desktop.Services;
 using CloudNotes.Services;
 using Avalonia.Threading;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CloudNotes.Desktop.ViewModel
 {
@@ -288,6 +289,29 @@ namespace CloudNotes.Desktop.ViewModel
 
         private async Task LoadNotesFromDbAsync()
         {
+            await LoadNotesFromDbAsyncInternal(null);
+        }
+
+        /// <summary>
+        /// Перезагрузить заметки из БД с учетом статуса авторизации.
+        /// </summary>
+        /// <param name="isLoggedIn">true если пользователь авторизован, false если нет, null для автопроверки</param>
+        public async Task RefreshNotesAsync(bool? isLoggedIn = null)
+        {
+            await LoadNotesFromDbAsyncInternal(isLoggedIn);
+        }
+
+        private async Task LoadNotesFromDbAsyncInternal(bool? isLoggedIn)
+        {
+            // Очищаем коллекции перед загрузкой
+            AllNotes.Clear();
+            Notes.Clear();
+            Favorites.Clear();
+            _allNoteItems.Clear();
+            SelectedListItem = null;
+            SelectedNote = null;
+            ActiveListItem = null;
+
             // Загружаем заметки из БД
             var notesFromDb = await _noteService.GetAllNoteAsync();
 
@@ -303,7 +327,28 @@ namespace CloudNotes.Desktop.ViewModel
                 notesFromDb = await _noteService.GetAllNoteAsync();
             }
 
-            // Загружаем все заметки из БД в коллекцию
+            // Определяем статус авторизации
+            // Если не передан явно, пытаемся определить через сервис
+            if (isLoggedIn == null)
+            {
+                try
+                {
+                    var authService = App.ServiceProvider?.GetService<IAuthService>();
+                    isLoggedIn = authService != null && await authService.IsLoggedInAsync();
+                }
+                catch
+                {
+                    isLoggedIn = false;
+                }
+            }
+
+            // Если пользователь не авторизован - показываем только дефолтные заметки
+            if (isLoggedIn == false)
+            {
+                notesFromDb = notesFromDb.Where(n => n.Title == "Welcome note" || n.Title == "Second note").ToList();
+            }
+
+            // Загружаем заметки в коллекцию
             foreach (var note in notesFromDb)
             {
                 AllNotes.Add(note);
@@ -317,9 +362,6 @@ namespace CloudNotes.Desktop.ViewModel
                     Favorites.Add(CreateListItem(note));
                 }
             }
-
-            SelectedListItem = null;
-            SelectedNote = null;
 
             // Применяем сортировку
             ApplySort();
