@@ -163,14 +163,14 @@ try
         {
             var context = services.GetRequiredService<ApiDbContext>();
             Log.Information("Применение миграций базы данных...");
-            
+
             // Проверяем, может ли приложение подключиться к базе
             if (!context.Database.CanConnect())
             {
                 Log.Warning("Не удается подключиться к базе данных. Создание базы данных...");
                 context.Database.EnsureCreated();
             }
-            
+
             // Применяем миграции
             context.Database.Migrate();
             Log.Information("Миграции базы данных успешно применены");
