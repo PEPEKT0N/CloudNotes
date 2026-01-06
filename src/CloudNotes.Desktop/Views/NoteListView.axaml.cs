@@ -39,7 +39,7 @@ public partial class NoteListView : UserControl
         this.Loaded += async (_, _) =>
         {
             await UpdateAuthMenuAsync();
-            
+
             // Обновляем список заметок в зависимости от статуса авторизации
             if (DataContext is NotesViewModel vm)
             {
