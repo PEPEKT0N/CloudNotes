@@ -20,31 +20,47 @@ public class AuthService : IAuthService
 
     public async Task<bool> RegisterAsync(string userName, string email, string password)
     {
-        var dto = new RegisterDto
+        try
         {
-            UserName = userName,
-            Email = email,
-            Password = password
-        };
+            var dto = new RegisterDto
+            {
+                UserName = userName,
+                Email = email,
+                Password = password
+            };
 
-        var tokenResponse = await _api.RegisterAsync(dto);
-        await SaveTokensAsync(tokenResponse);
+            var tokenResponse = await _api.RegisterAsync(dto);
+            await SaveTokensAsync(tokenResponse);
 
-        return true;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Register error: {ex}");
+            throw; // Пробрасываем исключение дальше для обработки в UI
+        }
     }
 
     public async Task<bool> LoginAsync(string email, string password)
     {
-        var dto = new LoginDto
+        try
         {
-            Email = email,
-            Password = password
-        };
+            var dto = new LoginDto
+            {
+                Email = email,
+                Password = password
+            };
 
-        var tokenResponse = await _api.LoginAsync(dto);
-        await SaveTokensAsync(tokenResponse);
+            var tokenResponse = await _api.LoginAsync(dto);
+            await SaveTokensAsync(tokenResponse);
 
-        return true;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Login error: {ex}");
+            throw; // Пробрасываем исключение дальше для обработки в UI
+        }
     }
 
     public async Task LogoutAsync()
