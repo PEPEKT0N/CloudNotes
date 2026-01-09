@@ -155,6 +155,42 @@ try
 
     var app = builder.Build();
 
+    // ===== Database Migrations =====
+    using (var scope = app.Services.CreateScope())
+    {
+        var services = scope.ServiceProvider;
+        try
+        {
+            var context = services.GetRequiredService<ApiDbContext>();
+            Log.Information("Применение миграций базы данных...");
+
+            // Проверяем, может ли приложение подключиться к базе
+            if (!context.Database.CanConnect())
+            {
+                Log.Warning("Не удается подключиться к базе данных. Создание базы данных...");
+                context.Database.EnsureCreated();
+            }
+
+            // Применяем миграции
+            context.Database.Migrate();
+            Log.Information("Миграции базы данных успешно применены");
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Ошибка при применении миграций базы данных: {Message}", ex.Message);
+            // Не прерываем запуск приложения, если это ошибка миграций
+            // (например, таблица миграций еще не создана)
+            if (ex.Message.Contains("__EFMigrationsHistory") || ex.Message.Contains("does not exist"))
+            {
+                Log.Warning("Это может быть нормальная ситуация при первом запуске. Продолжаем запуск...");
+            }
+            else
+            {
+                throw;
+            }
+        }
+    }
+
     // ===== Middleware Pipeline =====
 
     // Exception Handling (должен быть первым)
