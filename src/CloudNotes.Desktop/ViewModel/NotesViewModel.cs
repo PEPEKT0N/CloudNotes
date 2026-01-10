@@ -327,21 +327,6 @@ namespace CloudNotes.Desktop.ViewModel
                 notesFromDb = await _noteService.GetAllNoteAsync();
             }
 
-            // Определяем статус авторизации
-            // Если не передан явно, пытаемся определить через сервис
-            if (isLoggedIn == null)
-            {
-                try
-                {
-                    var authService = App.ServiceProvider?.GetService<IAuthService>();
-                    isLoggedIn = authService != null && await authService.IsLoggedInAsync();
-                }
-                catch
-                {
-                    isLoggedIn = false;
-                }
-            }
-
             // Если пользователь не авторизован - показываем только дефолтные заметки
             if (isLoggedIn == false)
             {
