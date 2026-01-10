@@ -96,7 +96,7 @@ public partial class NoteListView : UserControl
     private async Task UpdateAuthMenuAsync()
     {
         bool isLoggedIn = false;
-        
+
         // Безопасная проверка авторизации с обработкой ошибок
         if (_authService != null)
         {
@@ -130,7 +130,8 @@ public partial class NoteListView : UserControl
             // Sign out — активна только когда авторизован
             LogoutMenuItem.IsEnabled = isLoggedIn;
 
-            System.Diagnostics.Debug.WriteLine($"UpdateAuthMenuAsync: SignInMenuItem.IsEnabled = {!isLoggedIn}, LogoutMenuItem.IsEnabled = {isLoggedIn}");
+            System.Diagnostics.Debug.WriteLine(
+                $"UpdateAuthMenuAsync: SignInMenuItem.IsEnabled = {!isLoggedIn}, LogoutMenuItem.IsEnabled = {isLoggedIn}");
 
             if (isLoggedIn && !string.IsNullOrEmpty(_currentUserEmail))
             {
