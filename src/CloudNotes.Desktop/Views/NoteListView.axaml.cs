@@ -36,17 +36,7 @@ public partial class NoteListView : UserControl
         LogoutMenuItem.Click += OnLogoutMenuItemClick;
 
         // Проверяем состояние авторизации при загрузке
-        this.Loaded += async (_, _) =>
-        {
-            await UpdateAuthMenuAsync();
-
-            // Обновляем список заметок в зависимости от статуса авторизации
-            if (DataContext is NotesViewModel vm)
-            {
-                var isLoggedIn = _authService != null && await _authService.IsLoggedInAsync();
-                await vm.RefreshNotesAsync(isLoggedIn: isLoggedIn);
-            }
-        };
+        this.Loaded += async (_, _) => await UpdateAuthMenuAsync();
     }
 
     private async void OnSignInMenuItemClick(object? sender, RoutedEventArgs e)
