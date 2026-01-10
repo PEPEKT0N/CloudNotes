@@ -303,6 +303,14 @@ namespace CloudNotes.Desktop.ViewModel
 
         private async Task LoadNotesFromDbAsyncInternal(bool? isLoggedIn)
         {
+            // Если статус не передан, определяем безопасно (без обращения к App.ServiceProvider в конструкторе)
+            if (isLoggedIn == null)
+            {
+                // По умолчанию считаем неавторизованным при запуске
+                // Это безопасно и предотвращает проблемы при инициализации
+                isLoggedIn = false;
+            }
+
             // Очищаем коллекции перед загрузкой
             AllNotes.Clear();
             Notes.Clear();
