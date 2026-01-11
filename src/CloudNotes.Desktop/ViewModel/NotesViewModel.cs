@@ -303,6 +303,14 @@ namespace CloudNotes.Desktop.ViewModel
 
         private async Task LoadNotesFromDbAsyncInternal(bool? isLoggedIn)
         {
+            // Если статус не передан, определяем безопасно (без обращения к App.ServiceProvider в конструкторе)
+            if (isLoggedIn == null)
+            {
+                // По умолчанию считаем неавторизованным при запуске
+                // Это безопасно и предотвращает проблемы при инициализации
+                isLoggedIn = false;
+            }
+
             // Очищаем коллекции перед загрузкой
             AllNotes.Clear();
             Notes.Clear();
@@ -325,21 +333,6 @@ namespace CloudNotes.Desktop.ViewModel
                 await CreateDefaultNotesInDb(hasWelcomeNote, hasSecondNote);
                 // После создания загружаем их из БД
                 notesFromDb = await _noteService.GetAllNoteAsync();
-            }
-
-            // Определяем статус авторизации
-            // Если не передан явно, пытаемся определить через сервис
-            if (isLoggedIn == null)
-            {
-                try
-                {
-                    var authService = App.ServiceProvider?.GetService<IAuthService>();
-                    isLoggedIn = authService != null && await authService.IsLoggedInAsync();
-                }
-                catch
-                {
-                    isLoggedIn = false;
-                }
             }
 
             // Если пользователь не авторизован - показываем только дефолтные заметки

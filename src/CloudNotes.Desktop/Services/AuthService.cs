@@ -92,9 +92,23 @@ public class AuthService : IAuthService
             return false;
         }
 
-        // Считаем пользователя авторизованным, если есть refresh токен.
-        // Дополнительная проверка срока действия выполняется при получении access токена.
-        return !string.IsNullOrWhiteSpace(tokens.RefreshToken);
+        // Проверяем наличие refresh токена
+        if (string.IsNullOrWhiteSpace(tokens.RefreshToken))
+        {
+            return false;
+        }
+
+        // Проверяем срок действия токена (ExpiresAt - это время истечения access token)
+        // Если токен истек давно (более 1 дня назад), считаем неавторизованным
+        var now = DateTime.UtcNow;
+        if (tokens.ExpiresAt < now.AddDays(-1))
+        {
+            // Токен истек, удаляем файл с токенами
+            DeleteTokensFile();
+            return false;
+        }
+
+        return true;
     }
 
     public async Task<string?> GetAccessTokenAsync()

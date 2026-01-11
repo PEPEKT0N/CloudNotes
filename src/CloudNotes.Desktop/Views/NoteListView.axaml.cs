@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Threading;
 using CloudNotes.Desktop.Services;
 using CloudNotes.Desktop.ViewModel;
 using CloudNotes.Desktop.Model;
@@ -35,16 +36,19 @@ public partial class NoteListView : UserControl
         SignInMenuItem.Click += OnSignInMenuItemClick;
         LogoutMenuItem.Click += OnLogoutMenuItemClick;
 
-        // Проверяем состояние авторизации при загрузке
+        // Инициализируем меню авторизации сразу (синхронно) чтобы избежать некорректного состояния
+        InitializeAuthMenu();
+
+        // Проверяем состояние авторизации при загрузке и обновляем список заметок
         this.Loaded += async (_, _) =>
         {
             await UpdateAuthMenuAsync();
 
             // Обновляем список заметок в зависимости от статуса авторизации
-            if (DataContext is NotesViewModel vm)
+            if (DataContext is NotesViewModel viewModel)
             {
                 var isLoggedIn = _authService != null && await _authService.IsLoggedInAsync();
-                await vm.RefreshNotesAsync(isLoggedIn: isLoggedIn);
+                await viewModel.RefreshNotesAsync(isLoggedIn: isLoggedIn);
             }
         };
     }
@@ -66,11 +70,24 @@ public partial class NoteListView : UserControl
             await UpdateAuthMenuAsync();
 
             // Обновляем список заметок - показываем только дефолтные
-            if (DataContext is NotesViewModel vm)
+            if (DataContext is NotesViewModel viewModel)
             {
-                await vm.RefreshNotesAsync(isLoggedIn: false);
+                await viewModel.RefreshNotesAsync(isLoggedIn: false);
             }
         }
+    }
+
+    /// <summary>
+    /// Инициализировать меню авторизации с правильными значениями по умолчанию.
+    /// </summary>
+    private void InitializeAuthMenu()
+    {
+        // По умолчанию считаем пользователя неавторизованным
+        // Sign in должна быть активна, Sign out неактивна
+        SignInMenuItem.IsEnabled = true;
+        LogoutMenuItem.IsEnabled = false;
+        UserEmailMenuItem.IsVisible = false;
+        EmailSeparator.IsVisible = false;
     }
 
     /// <summary>
@@ -78,22 +95,49 @@ public partial class NoteListView : UserControl
     /// </summary>
     private async Task UpdateAuthMenuAsync()
     {
-        var isLoggedIn = _authService != null && await _authService.IsLoggedInAsync();
+        bool isLoggedIn = false;
 
-        // Email и разделитель — только когда авторизован
-        UserEmailMenuItem.IsVisible = isLoggedIn;
-        EmailSeparator.IsVisible = isLoggedIn;
-
-        // Sign in — disabled когда авторизован
-        SignInMenuItem.IsEnabled = !isLoggedIn;
-
-        // Sign out — всегда видна, но enabled только когда авторизован
-        LogoutMenuItem.IsEnabled = isLoggedIn;
-
-        if (isLoggedIn && !string.IsNullOrEmpty(_currentUserEmail))
+        // Безопасная проверка авторизации с обработкой ошибок
+        if (_authService != null)
         {
-            UserEmailMenuItem.Header = $"📧 {_currentUserEmail}";
+            try
+            {
+                isLoggedIn = await _authService.IsLoggedInAsync();
+                System.Diagnostics.Debug.WriteLine($"UpdateAuthMenuAsync: isLoggedIn = {isLoggedIn}, _authService != null: {_authService != null}");
+            }
+            catch (Exception ex)
+            {
+                // При ошибке считаем неавторизованным
+                isLoggedIn = false;
+                System.Diagnostics.Debug.WriteLine($"UpdateAuthMenuAsync: Error checking auth status: {ex.Message}");
+            }
         }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine("UpdateAuthMenuAsync: _authService is null");
+        }
+
+        // Обновляем UI в UI потоке для безопасности
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            // Email и разделитель — только когда авторизован
+            UserEmailMenuItem.IsVisible = isLoggedIn;
+            EmailSeparator.IsVisible = isLoggedIn;
+
+            // Sign in — активна когда НЕ авторизован
+            SignInMenuItem.IsEnabled = !isLoggedIn;
+
+            // Sign out — активна только когда авторизован
+            LogoutMenuItem.IsEnabled = isLoggedIn;
+
+            System.Diagnostics.Debug.WriteLine(
+                $"UpdateAuthMenuAsync: SignInMenuItem.IsEnabled = {!isLoggedIn}, LogoutMenuItem.IsEnabled = {isLoggedIn}");
+
+            if (isLoggedIn && !string.IsNullOrEmpty(_currentUserEmail))
+            {
+                UserEmailMenuItem.Header = $"📧 {_currentUserEmail}";
+            }
+        });
     }
 
     private async Task OpenAuthWindowAsync()
