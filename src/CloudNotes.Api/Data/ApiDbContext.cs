@@ -23,6 +23,16 @@ public class ApiDbContext : IdentityDbContext<User>
     {
         base.OnModelCreating(modelBuilder);
 
+        // User - убираем уникальный индекс на NormalizedUserName
+        // UserName НЕ должен быть уникальным, только Email
+        modelBuilder.Entity<User>(entity =>
+        {
+            // Удаляем стандартный уникальный индекс на NormalizedUserName
+            entity.HasIndex(u => u.NormalizedUserName)
+                  .HasDatabaseName("UserNameIndex")
+                  .IsUnique(false);
+        });
+
         // Note
         modelBuilder.Entity<Note>(entity =>
         {

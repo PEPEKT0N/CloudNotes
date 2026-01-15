@@ -36,7 +36,7 @@ try
     builder.Services.AddDbContext<ApiDbContext>(options =>
         options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-    // Identity
+    // Identity с кастомным UserManager (UserName НЕ уникальный, только Email)
     builder.Services.AddIdentity<User, IdentityRole>(options =>
         {
             options.Password.RequireDigit = true;
@@ -48,11 +48,26 @@ try
             options.User.RequireUniqueEmail = true;
         })
         .AddEntityFrameworkStores<ApiDbContext>()
-        .AddDefaultTokenProviders();
+        .AddDefaultTokenProviders()
+        .AddUserManager<CustomUserManager>();
+
+    // Удаляем стандартные UserValidator, т.к. CustomUserManager имеет свою валидацию
+    var userValidators = builder.Services
+        .Where(d => d.ServiceType == typeof(IUserValidator<User>))
+        .ToList();
+    foreach (var validator in userValidators)
+    {
+        builder.Services.Remove(validator);
+    }
 
     // JWT Authentication
-    var jwtSecret = builder.Configuration["Jwt:Secret"]
-        ?? throw new InvalidOperationException("JWT Secret не настроен в конфигурации");
+    var jwtSecret = builder.Configuration["Jwt:Secret"];
+    if (string.IsNullOrWhiteSpace(jwtSecret))
+    {
+        throw new InvalidOperationException(
+            "JWT Secret не настроен в конфигурации. " +
+            "Установите переменную окружения Jwt__Secret или добавьте Jwt:Secret в appsettings.json");
+    }
     var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "CloudNotes.Api";
     var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "CloudNotes.Client";
 
