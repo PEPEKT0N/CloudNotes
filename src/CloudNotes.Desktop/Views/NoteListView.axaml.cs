@@ -19,6 +19,7 @@ public partial class NoteListView : UserControl
 {
     private readonly IAuthService? _authService;
     private readonly ISyncService? _syncService;
+    private readonly INoteServiceFactory? _noteServiceFactory;
     private string? _currentUserEmail;
 
     public NoteListView()
@@ -28,6 +29,7 @@ public partial class NoteListView : UserControl
         // Получаем сервисы из DI
         _authService = CloudNotes.App.ServiceProvider?.GetService<IAuthService>();
         _syncService = CloudNotes.App.ServiceProvider?.GetService<ISyncService>();
+        _noteServiceFactory = CloudNotes.App.ServiceProvider?.GetService<INoteServiceFactory>();
 
         // Подписываемся на горячие клавиши
         KeyDown += OnKeyDown;
@@ -48,6 +50,22 @@ public partial class NoteListView : UserControl
             if (DataContext is NotesViewModel viewModel)
             {
                 var isLoggedIn = _authService != null && await _authService.IsLoggedInAsync();
+                
+                if (isLoggedIn)
+                {
+                    System.Diagnostics.Debug.WriteLine($"App started with existing session for: {_currentUserEmail}");
+                    
+                    // Если пользователь уже был авторизован, запускаем синхронизацию
+                    if (_syncService != null)
+                    {
+                        var synced = await _syncService.SyncOnStartupAsync();
+                        if (synced)
+                        {
+                            _syncService.StartPeriodicSync();
+                        }
+                    }
+                }
+                
                 await viewModel.RefreshNotesAsync(isLoggedIn: isLoggedIn);
             }
         };
@@ -62,18 +80,42 @@ public partial class NoteListView : UserControl
     {
         if (_authService != null)
         {
-            // Останавливаем периодическую синхронизацию перед logout
+            Console.WriteLine("[Logout] Starting logout process...");
+            
+            // Синхронизируем все локальные изменения на сервер ПЕРЕД выходом
+            // чтобы не потерять данные пользователя
+            if (_syncService != null)
+            {
+                Console.WriteLine("[Logout] Syncing local changes before logout...");
+                try
+                {
+                    var synced = await _syncService.SyncAsync();
+                    Console.WriteLine($"[Logout] Sync completed: {(synced ? "SUCCESS" : "SKIPPED/FAILED")}");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[Logout] Sync FAILED: {ex.Message}");
+                    // Продолжаем logout даже если синхронизация не удалась
+                }
+            }
+
+            // Останавливаем периодическую синхронизацию
             _syncService?.StopPeriodicSync();
 
             await _authService.LogoutAsync();
             _currentUserEmail = null;
             await UpdateAuthMenuAsync();
 
-            // Обновляем список заметок - показываем только дефолтные
+            // Переключаемся в гостевой режим
+            _noteServiceFactory?.SwitchToGuestMode();
+
+            // Обновляем список заметок - показываем гостевые заметки
             if (DataContext is NotesViewModel viewModel)
             {
                 await viewModel.RefreshNotesAsync(isLoggedIn: false);
             }
+            
+            Console.WriteLine("[Logout] Logout completed");
         }
     }
 
@@ -103,7 +145,15 @@ public partial class NoteListView : UserControl
             try
             {
                 isLoggedIn = await _authService.IsLoggedInAsync();
-                System.Diagnostics.Debug.WriteLine($"UpdateAuthMenuAsync: isLoggedIn = {isLoggedIn}, _authService != null: {_authService != null}");
+                
+                // Загружаем email из сохранённых токенов, если пользователь авторизован
+                if (isLoggedIn && string.IsNullOrEmpty(_currentUserEmail))
+                {
+                    _currentUserEmail = await _authService.GetCurrentUserEmailAsync();
+                    System.Diagnostics.Debug.WriteLine($"UpdateAuthMenuAsync: Loaded email from tokens: {_currentUserEmail}");
+                }
+                
+                System.Diagnostics.Debug.WriteLine($"UpdateAuthMenuAsync: isLoggedIn = {isLoggedIn}, email = {_currentUserEmail}");
             }
             catch (Exception ex)
             {
@@ -133,9 +183,10 @@ public partial class NoteListView : UserControl
             System.Diagnostics.Debug.WriteLine(
                 $"UpdateAuthMenuAsync: SignInMenuItem.IsEnabled = {!isLoggedIn}, LogoutMenuItem.IsEnabled = {isLoggedIn}");
 
-            if (isLoggedIn && !string.IsNullOrEmpty(_currentUserEmail))
+            if (isLoggedIn)
             {
-                UserEmailMenuItem.Header = $"📧 {_currentUserEmail}";
+                var displayEmail = !string.IsNullOrEmpty(_currentUserEmail) ? _currentUserEmail : "Unknown user";
+                UserEmailMenuItem.Header = $"📧 {displayEmail}";
             }
         });
     }
@@ -176,9 +227,53 @@ public partial class NoteListView : UserControl
 
                 if (success)
                 {
+                    // Проверяем, это тот же пользователь или другой
+                    // Используем GetLastLoggedInEmail() - он сохраняется даже после logout
+                    var previousEmail = _authService.GetLastLoggedInEmail();
+                    var isSameUser = !string.IsNullOrEmpty(previousEmail) && 
+                                     string.Equals(previousEmail, result.Email, StringComparison.OrdinalIgnoreCase);
+                    
+                    Console.WriteLine($"[Auth] Last user: {previousEmail ?? "null"}, New user: {result.Email}, IsSameUser: {isSameUser}");
+                    
                     // Успешная авторизация — сохраняем email и обновляем меню
                     _currentUserEmail = result.Email;
                     await UpdateAuthMenuAsync();
+
+                    // Очищаем локальную БД только если это ДРУГОЙ пользователь
+                    // Если тот же пользователь - сохраняем его локальные данные
+                    if (_noteServiceFactory != null && !isSameUser)
+                    {
+                        // Если был предыдущий пользователь, сначала синхронизируем его изменения
+                        // (на случай если он не вышел нормально)
+                        if (!string.IsNullOrEmpty(previousEmail) && _syncService != null)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Syncing previous user ({previousEmail}) changes before clearing...");
+                            try
+                            {
+                                // Примечание: эта синхронизация может не сработать если токены 
+                                // предыдущего пользователя уже недействительны
+                                await _syncService.SyncAsync();
+                            }
+                            catch (Exception ex)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"Could not sync previous user's changes: {ex.Message}");
+                            }
+                        }
+
+                        try
+                        {
+                            await _noteServiceFactory.ClearLocalDatabaseAsync();
+                            System.Diagnostics.Debug.WriteLine($"Local database cleared (different user: {previousEmail ?? "guest"} -> {result.Email})");
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Error clearing local database: {ex.Message}");
+                        }
+                    }
+                    else if (isSameUser)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Same user ({result.Email}) - keeping local data");
+                    }
 
                     // Запускаем синхронизацию после успешной авторизации
                     if (_syncService != null)
