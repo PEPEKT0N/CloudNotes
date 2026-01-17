@@ -22,4 +22,19 @@ public interface IAuthService
     /// Получить актуальный access токен (с попыткой refresh при необходимости).
     /// </summary>
     Task<string?> GetAccessTokenAsync();
+
+    /// <summary>
+    /// Получить email текущего авторизованного пользователя.
+    /// </summary>
+    Task<string?> GetCurrentUserEmailAsync();
+
+    /// <summary>
+    /// Получить имя текущего авторизованного пользователя.
+    /// </summary>
+    Task<string?> GetCurrentUserNameAsync();
+
+    /// <summary>
+    /// Получить email последнего авторизованного пользователя (сохраняется даже после logout).
+    /// </summary>
+    string? GetLastLoggedInEmail();
 }

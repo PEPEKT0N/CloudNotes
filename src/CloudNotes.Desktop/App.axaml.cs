@@ -80,11 +80,18 @@ public partial class App : Application
                 return new AuthHeaderHandler(() => serviceProvider.GetRequiredService<IAuthService>());
             });
 
-        // Note Service (требуется для SyncService)
-        services.AddSingleton<INoteService>(_ =>
+        // Note Service Factory (переключение между гостевым и авторизованным режимами)
+        services.AddSingleton<INoteServiceFactory>(sp =>
         {
             var context = CloudNotes.Services.DbContextProvider.GetContext();
-            return new NoteService(context);
+            return new NoteServiceFactory(context);
+        });
+
+        // Note Service (для обратной совместимости и SyncService - всегда авторизованный сервис)
+        services.AddSingleton<INoteService>(sp =>
+        {
+            var factory = sp.GetRequiredService<INoteServiceFactory>();
+            return factory.AuthenticatedNoteService;
         });
 
         // Conflict Service

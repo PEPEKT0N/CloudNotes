@@ -37,6 +37,24 @@ namespace CloudNotes.Desktop.ViewModel
             {
                 if (selectedFavoriteItem != value)
                 {
+                    // Автосохранение: сохраняем текущую заметку перед переключением
+                    if (selectedNote != null && _noteServiceFactory != null && !_noteServiceFactory.IsGuestMode)
+                    {
+                        var noteToSave = selectedNote;
+                        Task.Run(async () => 
+                        {
+                            try
+                            {
+                                await _noteService.UpdateNoteAsync(noteToSave);
+                                System.Diagnostics.Debug.WriteLine($"Auto-saved note (from favorites): {noteToSave.Title}");
+                            }
+                            catch (Exception ex)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"Auto-save failed: {ex.Message}");
+                            }
+                        });
+                    }
+
                     selectedFavoriteItem = value;
                     OnPropertyChanged();
                     (RemoveFromFavoritesCommand as RelayCommand)?.RaiseCanExecuteChanged();
@@ -69,6 +87,25 @@ namespace CloudNotes.Desktop.ViewModel
             {
                 if (selectedListItem != value)
                 {
+                    // Автосохранение: сохраняем текущую заметку перед переключением
+                    if (selectedNote != null && _noteServiceFactory != null && !_noteServiceFactory.IsGuestMode)
+                    {
+                        // Сохраняем асинхронно, не блокируя UI
+                        var noteToSave = selectedNote;
+                        Task.Run(async () => 
+                        {
+                            try
+                            {
+                                await _noteService.UpdateNoteAsync(noteToSave);
+                                System.Diagnostics.Debug.WriteLine($"Auto-saved note: {noteToSave.Title}");
+                            }
+                            catch (Exception ex)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"Auto-save failed: {ex.Message}");
+                            }
+                        });
+                    }
+
                     selectedListItem = value;
                     OnPropertyChanged();
 
@@ -144,11 +181,14 @@ namespace CloudNotes.Desktop.ViewModel
         // Доступные варианты сортировки для ComboBox
         public SortOption[] SortOptions => Enum.GetValues<SortOption>();
 
-        // Сервис для работы с БД
-        private readonly INoteService _noteService;
+        // Фабрика сервисов для переключения между гостевым и авторизованным режимами
+        private readonly INoteServiceFactory? _noteServiceFactory;
 
-        // Сервис для работы с тегами
-        private readonly ITagService? _tagService;
+        // Сервис для работы с БД (используется через фабрику или напрямую для тестов)
+        private INoteService _noteService;
+
+        // Сервис для работы с тегами (используется через фабрику или напрямую для тестов)
+        private ITagService? _tagService;
 
         // Сервис для конвертации Markdown в HTML
         private readonly IMarkdownConverter _markdownConverter;
@@ -236,8 +276,23 @@ namespace CloudNotes.Desktop.ViewModel
         public NotesViewModel()
         {
             var context = DbContextProvider.GetContext();
-            _noteService = new NoteService(context);
-            _tagService = new TagService(context);
+
+            // Пытаемся получить фабрику из DI, если доступна
+            _noteServiceFactory = App.ServiceProvider?.GetService(typeof(INoteServiceFactory)) as INoteServiceFactory;
+
+            if (_noteServiceFactory != null)
+            {
+                // Используем фабрику - по умолчанию гостевой режим
+                _noteService = _noteServiceFactory.CurrentNoteService;
+                _tagService = _noteServiceFactory.CurrentTagService;
+            }
+            else
+            {
+                // Fallback для случаев без DI (тесты и т.д.)
+                _noteService = new NoteService(context);
+                _tagService = new TagService(context);
+            }
+
             _markdownConverter = new MarkdownConverter();
 
             CreateNoteCommand = new RelayCommand(_ => CreateNote());
@@ -250,7 +305,8 @@ namespace CloudNotes.Desktop.ViewModel
             FilterByTagCommand = new RelayCommand(param => FilterByTag(param as Tag));
             ClearTagFilterCommand = new RelayCommand(_ => ClearTagFilter());
 
-            // Загружаем заметки из БД синхронно для совместимости с тестами
+            // Загружаем заметки синхронно для совместимости с тестами
+            // По умолчанию считаем гостевой режим
             LoadNotesFromDbAsync().GetAwaiter().GetResult();
             LoadAllTagsAsync().GetAwaiter().GetResult();
         }
@@ -303,12 +359,26 @@ namespace CloudNotes.Desktop.ViewModel
 
         private async Task LoadNotesFromDbAsyncInternal(bool? isLoggedIn)
         {
-            // Если статус не передан, определяем безопасно (без обращения к App.ServiceProvider в конструкторе)
+            // Если статус не передан, определяем безопасно
             if (isLoggedIn == null)
             {
                 // По умолчанию считаем неавторизованным при запуске
-                // Это безопасно и предотвращает проблемы при инициализации
                 isLoggedIn = false;
+            }
+
+            // Переключаем режим работы фабрики и обновляем текущие сервисы
+            if (_noteServiceFactory != null)
+            {
+                if (isLoggedIn == true)
+                {
+                    _noteServiceFactory.SwitchToAuthenticatedMode();
+                }
+                else
+                {
+                    _noteServiceFactory.SwitchToGuestMode();
+                }
+                _noteService = _noteServiceFactory.CurrentNoteService;
+                _tagService = _noteServiceFactory.CurrentTagService;
             }
 
             // Очищаем коллекции перед загрузкой
@@ -320,25 +390,20 @@ namespace CloudNotes.Desktop.ViewModel
             SelectedNote = null;
             ActiveListItem = null;
 
-            // Загружаем заметки из БД
+            // Загружаем заметки из текущего сервиса
             var notesFromDb = await _noteService.GetAllNoteAsync();
 
-            // Проверяем наличие дефолтных заметок
-            var hasWelcomeNote = notesFromDb.Any(n => n.Title == "Welcome note");
-            var hasSecondNote = notesFromDb.Any(n => n.Title == "Second note");
-
-            if (!hasWelcomeNote || !hasSecondNote)
+            // Для авторизованного режима создаем дефолтные заметки в БД, если их нет
+            if (isLoggedIn == true && _noteServiceFactory != null && !_noteServiceFactory.IsGuestMode)
             {
-                // Если дефолтных заметок нет, создаем их в БД
-                await CreateDefaultNotesInDb(hasWelcomeNote, hasSecondNote);
-                // После создания загружаем их из БД
-                notesFromDb = await _noteService.GetAllNoteAsync();
-            }
+                var hasWelcomeNote = notesFromDb.Any(n => n.Title == "Welcome note");
+                var hasSecondNote = notesFromDb.Any(n => n.Title == "Second note");
 
-            // Если пользователь не авторизован - показываем только дефолтные заметки
-            if (isLoggedIn == false)
-            {
-                notesFromDb = notesFromDb.Where(n => n.Title == "Welcome note" || n.Title == "Second note").ToList();
+                if (!hasWelcomeNote || !hasSecondNote)
+                {
+                    await CreateDefaultNotesInDb(hasWelcomeNote, hasSecondNote);
+                    notesFromDb = await _noteService.GetAllNoteAsync();
+                }
             }
 
             // Загружаем заметки в коллекцию
