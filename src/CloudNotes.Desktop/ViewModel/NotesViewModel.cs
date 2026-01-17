@@ -41,7 +41,7 @@ namespace CloudNotes.Desktop.ViewModel
                     if (selectedNote != null && _noteServiceFactory != null && !_noteServiceFactory.IsGuestMode)
                     {
                         var noteToSave = selectedNote;
-                        Task.Run(async () => 
+                        Task.Run(async () =>
                         {
                             try
                             {
@@ -92,7 +92,7 @@ namespace CloudNotes.Desktop.ViewModel
                     {
                         // Сохраняем асинхронно, не блокируя UI
                         var noteToSave = selectedNote;
-                        Task.Run(async () => 
+                        Task.Run(async () =>
                         {
                             try
                             {

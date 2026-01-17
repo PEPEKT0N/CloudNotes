@@ -50,11 +50,11 @@ public partial class NoteListView : UserControl
             if (DataContext is NotesViewModel viewModel)
             {
                 var isLoggedIn = _authService != null && await _authService.IsLoggedInAsync();
-                
+
                 if (isLoggedIn)
                 {
                     System.Diagnostics.Debug.WriteLine($"App started with existing session for: {_currentUserEmail}");
-                    
+
                     // Если пользователь уже был авторизован, запускаем синхронизацию
                     if (_syncService != null)
                     {
@@ -65,7 +65,7 @@ public partial class NoteListView : UserControl
                         }
                     }
                 }
-                
+
                 await viewModel.RefreshNotesAsync(isLoggedIn: isLoggedIn);
             }
         };
@@ -81,7 +81,7 @@ public partial class NoteListView : UserControl
         if (_authService != null)
         {
             Console.WriteLine("[Logout] Starting logout process...");
-            
+
             // Синхронизируем все локальные изменения на сервер ПЕРЕД выходом
             // чтобы не потерять данные пользователя
             if (_syncService != null)
@@ -114,7 +114,7 @@ public partial class NoteListView : UserControl
             {
                 await viewModel.RefreshNotesAsync(isLoggedIn: false);
             }
-            
+
             Console.WriteLine("[Logout] Logout completed");
         }
     }
@@ -145,14 +145,14 @@ public partial class NoteListView : UserControl
             try
             {
                 isLoggedIn = await _authService.IsLoggedInAsync();
-                
+
                 // Загружаем email из сохранённых токенов, если пользователь авторизован
                 if (isLoggedIn && string.IsNullOrEmpty(_currentUserEmail))
                 {
                     _currentUserEmail = await _authService.GetCurrentUserEmailAsync();
                     System.Diagnostics.Debug.WriteLine($"UpdateAuthMenuAsync: Loaded email from tokens: {_currentUserEmail}");
                 }
-                
+
                 System.Diagnostics.Debug.WriteLine($"UpdateAuthMenuAsync: isLoggedIn = {isLoggedIn}, email = {_currentUserEmail}");
             }
             catch (Exception ex)
@@ -230,11 +230,11 @@ public partial class NoteListView : UserControl
                     // Проверяем, это тот же пользователь или другой
                     // Используем GetLastLoggedInEmail() - он сохраняется даже после logout
                     var previousEmail = _authService.GetLastLoggedInEmail();
-                    var isSameUser = !string.IsNullOrEmpty(previousEmail) && 
+                    var isSameUser = !string.IsNullOrEmpty(previousEmail) &&
                                      string.Equals(previousEmail, result.Email, StringComparison.OrdinalIgnoreCase);
-                    
+
                     Console.WriteLine($"[Auth] Last user: {previousEmail ?? "null"}, New user: {result.Email}, IsSameUser: {isSameUser}");
-                    
+
                     // Успешная авторизация — сохраняем email и обновляем меню
                     _currentUserEmail = result.Email;
                     await UpdateAuthMenuAsync();

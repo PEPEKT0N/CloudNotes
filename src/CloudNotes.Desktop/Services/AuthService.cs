@@ -13,7 +13,7 @@ public class AuthService : IAuthService
     private const string LastUserFileName = "last_user.txt";
 
     private readonly ICloudNotesApi _api;
-    
+
     // Кэш токенов в памяти для избежания race condition при чтении из файла
     private static AuthTokens? _cachedTokens;
     private static readonly object _cacheLock = new();
@@ -232,7 +232,7 @@ public class AuthService : IAuthService
         // Если кэш пуст, загружаем из файла
         var path = GetTokensFilePath();
         Console.WriteLine($"[AuthService] LoadTokens: Cache empty, reading file: {path}");
-        
+
         if (!File.Exists(path))
         {
             Console.WriteLine("[AuthService] LoadTokens: File does not exist");
@@ -243,7 +243,7 @@ public class AuthService : IAuthService
         {
             await using var stream = File.OpenRead(path);
             var tokens = await JsonSerializer.DeserializeAsync<AuthTokens>(stream);
-            
+
             // Сохраняем в кэш
             if (tokens != null)
             {
@@ -253,7 +253,7 @@ public class AuthService : IAuthService
                 }
                 Console.WriteLine($"[AuthService] LoadTokens: Loaded from file and cached. Email={tokens.Email}");
             }
-            
+
             return tokens;
         }
         catch (Exception ex)
@@ -266,7 +266,7 @@ public class AuthService : IAuthService
     private async Task SaveTokensAsync(TokenResponseDto dto, string email, string? userName = null)
     {
         Console.WriteLine($"[AuthService] SaveTokens: Email={email}, ExpiresAt={dto.ExpiresAt:O}");
-        
+
         var tokens = new AuthTokens
         {
             AccessToken = dto.AccessToken,
@@ -295,10 +295,10 @@ public class AuthService : IAuthService
 
         await using var stream = File.Create(path);
         await JsonSerializer.SerializeAsync(stream, tokens, options);
-        
+
         // Ensure the file is flushed to disk
         await stream.FlushAsync();
-        
+
         Console.WriteLine("[AuthService] SaveTokens: Written to file");
     }
 
@@ -310,7 +310,7 @@ public class AuthService : IAuthService
             _cachedTokens = null;
         }
         System.Diagnostics.Debug.WriteLine("DeleteTokensFile: Cache cleared");
-        
+
         var path = GetTokensFilePath();
         if (File.Exists(path))
         {

@@ -58,9 +58,9 @@ public class GuestTagService : ITagService
     {
         lock (_lock)
         {
-            var tag = _tags.FirstOrDefault(t => 
+            var tag = _tags.FirstOrDefault(t =>
                 t.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
-            
+
             if (tag == null) return Task.FromResult<Tag?>(null);
 
             return Task.FromResult<Tag?>(new Tag

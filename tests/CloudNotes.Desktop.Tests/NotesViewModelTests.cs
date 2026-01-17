@@ -27,6 +27,28 @@ namespace CloudNotes.Desktop.Tests
             _context = new AppDbContext(options);
             _context.Database.EnsureCreated();
 
+            // Добавляем тестовые заметки в БД
+            var now = DateTime.Now;
+            _context.Notes.AddRange(
+                new Note
+                {
+                    Id = Guid.NewGuid(),
+                    Title = "Welcome note",
+                    Content = "This is a sample note.",
+                    CreatedAt = now,
+                    UpdatedAt = now
+                },
+                new Note
+                {
+                    Id = Guid.NewGuid(),
+                    Title = "Second note",
+                    Content = "Another sample note.",
+                    CreatedAt = now,
+                    UpdatedAt = now
+                }
+            );
+            _context.SaveChanges();
+
             // Создаем сервис с нашим контекстом
             _noteService = new NoteService(_context);
 
