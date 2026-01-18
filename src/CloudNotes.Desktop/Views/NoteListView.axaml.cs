@@ -196,7 +196,7 @@ public partial class NoteListView : UserControl
             if (isLoggedIn)
             {
                 // Отображаем имя пользователя вместо email
-                var displayName = !string.IsNullOrEmpty(_currentUserName) ? _currentUserName : 
+                var displayName = !string.IsNullOrEmpty(_currentUserName) ? _currentUserName :
                                  (!string.IsNullOrEmpty(_currentUserEmail) ? _currentUserEmail : "Unknown user");
                 UserEmailMenuItem.Header = $"👤 {displayName}";
             }
