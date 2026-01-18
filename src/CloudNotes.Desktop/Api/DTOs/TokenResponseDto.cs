@@ -21,5 +21,9 @@ public class TokenResponseDto
     /// Время истечения access токена (UTC).
     /// </summary>
     public DateTime ExpiresAt { get; set; }
-}
 
+    /// <summary>
+    /// Имя пользователя (UserName).
+    /// </summary>
+    public string UserName { get; set; } = null!;
+}
