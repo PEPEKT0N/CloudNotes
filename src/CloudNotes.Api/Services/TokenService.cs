@@ -41,7 +41,8 @@ public class TokenService : ITokenService
         {
             AccessToken = accessToken,
             RefreshToken = refreshToken.Token,
-            ExpiresAt = DateTime.UtcNow.AddMinutes(GetAccessTokenExpirationMinutes())
+            ExpiresAt = DateTime.UtcNow.AddMinutes(GetAccessTokenExpirationMinutes()),
+            UserName = user.UserName ?? string.Empty
         };
     }
 
@@ -83,7 +84,8 @@ public class TokenService : ITokenService
         {
             AccessToken = accessToken,
             RefreshToken = newRefreshToken.Token,
-            ExpiresAt = DateTime.UtcNow.AddMinutes(GetAccessTokenExpirationMinutes())
+            ExpiresAt = DateTime.UtcNow.AddMinutes(GetAccessTokenExpirationMinutes()),
+            UserName = storedToken.User.UserName ?? string.Empty
         };
     }
 

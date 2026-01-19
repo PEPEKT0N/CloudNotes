@@ -94,7 +94,7 @@ public class AuthService : IAuthService
             };
 
             var tokenResponse = await _api.LoginAsync(dto);
-            await SaveTokensAsync(tokenResponse, email);
+            await SaveTokensAsync(tokenResponse, email, tokenResponse.UserName);
 
             return true;
         }

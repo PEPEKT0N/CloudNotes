@@ -21,6 +21,7 @@ public partial class NoteListView : UserControl
     private readonly ISyncService? _syncService;
     private readonly INoteServiceFactory? _noteServiceFactory;
     private string? _currentUserEmail;
+    private string? _currentUserName;
 
     public NoteListView()
     {
@@ -104,6 +105,7 @@ public partial class NoteListView : UserControl
 
             await _authService.LogoutAsync();
             _currentUserEmail = null;
+            _currentUserName = null;
             await UpdateAuthMenuAsync();
 
             // Переключаемся в гостевой режим
@@ -146,14 +148,22 @@ public partial class NoteListView : UserControl
             {
                 isLoggedIn = await _authService.IsLoggedInAsync();
 
-                // Загружаем email из сохранённых токенов, если пользователь авторизован
-                if (isLoggedIn && string.IsNullOrEmpty(_currentUserEmail))
+                // Загружаем email и имя пользователя из сохранённых токенов, если пользователь авторизован
+                if (isLoggedIn)
                 {
-                    _currentUserEmail = await _authService.GetCurrentUserEmailAsync();
-                    System.Diagnostics.Debug.WriteLine($"UpdateAuthMenuAsync: Loaded email from tokens: {_currentUserEmail}");
+                    if (string.IsNullOrEmpty(_currentUserEmail))
+                    {
+                        _currentUserEmail = await _authService.GetCurrentUserEmailAsync();
+                        System.Diagnostics.Debug.WriteLine($"UpdateAuthMenuAsync: Loaded email from tokens: {_currentUserEmail}");
+                    }
+                    if (string.IsNullOrEmpty(_currentUserName))
+                    {
+                        _currentUserName = await _authService.GetCurrentUserNameAsync();
+                        System.Diagnostics.Debug.WriteLine($"UpdateAuthMenuAsync: Loaded username from tokens: {_currentUserName}");
+                    }
                 }
 
-                System.Diagnostics.Debug.WriteLine($"UpdateAuthMenuAsync: isLoggedIn = {isLoggedIn}, email = {_currentUserEmail}");
+                System.Diagnostics.Debug.WriteLine($"UpdateAuthMenuAsync: isLoggedIn = {isLoggedIn}, email = {_currentUserEmail}, username = {_currentUserName}");
             }
             catch (Exception ex)
             {
@@ -185,8 +195,10 @@ public partial class NoteListView : UserControl
 
             if (isLoggedIn)
             {
-                var displayEmail = !string.IsNullOrEmpty(_currentUserEmail) ? _currentUserEmail : "Unknown user";
-                UserEmailMenuItem.Header = $"📧 {displayEmail}";
+                // Отображаем имя пользователя вместо email
+                var displayName = !string.IsNullOrEmpty(_currentUserName) ? _currentUserName :
+                                 (!string.IsNullOrEmpty(_currentUserEmail) ? _currentUserEmail : "Unknown user");
+                UserEmailMenuItem.Header = $"👤 {displayName}";
             }
         });
     }
@@ -235,8 +247,9 @@ public partial class NoteListView : UserControl
 
                     Console.WriteLine($"[Auth] Last user: {previousEmail ?? "null"}, New user: {result.Email}, IsSameUser: {isSameUser}");
 
-                    // Успешная авторизация — сохраняем email и обновляем меню
+                    // Успешная авторизация — сохраняем email и имя пользователя, обновляем меню
                     _currentUserEmail = result.Email;
+                    _currentUserName = await _authService.GetCurrentUserNameAsync();
                     await UpdateAuthMenuAsync();
 
                     // Очищаем локальную БД только если это ДРУГОЙ пользователь
