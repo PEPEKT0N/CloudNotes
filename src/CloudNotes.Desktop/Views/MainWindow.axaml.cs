@@ -175,7 +175,7 @@ public partial class MainWindow : Window
 
             var newText = currentText.Insert(caretIndex, prefix + suffix);
             textBox.Text = newText;
-            
+
             // Ставим курсор между маркерами
             textBox.CaretIndex = caretIndex + prefix.Length;
         }
@@ -184,10 +184,10 @@ public partial class MainWindow : Window
             // Есть выделение — оборачиваем выделенный текст
             var beforeSelection = currentText.Substring(0, selectionStart);
             var afterSelection = currentText.Substring(selectionStart + selectionLength);
-            
+
             var newText = beforeSelection + prefix + selectedText + suffix + afterSelection;
             textBox.Text = newText;
-            
+
             // Выделяем обёрнутый текст (вместе с маркерами)
             textBox.SelectionStart = selectionStart;
             textBox.SelectionEnd = selectionStart + prefix.Length + selectionLength + suffix.Length;
