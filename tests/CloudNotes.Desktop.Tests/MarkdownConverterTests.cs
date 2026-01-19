@@ -202,6 +202,111 @@ namespace CloudNotes.Desktop.Tests
             }
         }
 
+        // Тесты для Spoiler
+        public class SpoilerTests : MarkdownConverterTests
+        {
+            [Fact]
+            public void ConvertToHtml_SimpleSpoiler_ReturnsSpoilerSpan()
+            {
+                var markdown = "Это ||секрет|| текст";
+
+                var result = _converter.ConvertToHtml(markdown);
+
+                Assert.Contains("class=\"spoiler\"", result);
+                Assert.Contains("секрет", result);
+            }
+
+            [Fact]
+            public void ConvertToHtml_SpoilerContainsText()
+            {
+                var markdown = "||test||";
+
+                var result = _converter.ConvertToHtml(markdown);
+
+                Assert.Contains("<span class=\"spoiler\">test</span>", result);
+            }
+
+            [Fact]
+            public void ConvertToHtml_MultipleSpoilers_ReturnsAllSpoilers()
+            {
+                var markdown = "||first|| и ||second||";
+
+                var result = _converter.ConvertToHtml(markdown);
+
+                // Два разных spoiler блока
+                var spoilerCount = result.Split("class=\"spoiler\"").Length - 1;
+                Assert.Equal(2, spoilerCount);
+                Assert.Contains("first", result);
+                Assert.Contains("second", result);
+            }
+
+            [Fact]
+            public void ConvertToHtml_SpoilerInHeader_WorksCorrectly()
+            {
+                var markdown = "# Заголовок с ||секретом||";
+
+                var result = _converter.ConvertToHtml(markdown);
+
+                Assert.Contains("<h1>", result);
+                Assert.Contains("class=\"spoiler\"", result);
+                Assert.Contains("секретом", result);
+            }
+
+            [Fact]
+            public void ConvertToHtml_SpoilerInList_WorksCorrectly()
+            {
+                var markdown = "- Элемент с ||секретом||\n- Обычный элемент";
+
+                var result = _converter.ConvertToHtml(markdown);
+
+                Assert.Contains("<ul>", result);
+                Assert.Contains("class=\"spoiler\"", result);
+            }
+
+            [Fact]
+            public void ConvertToHtml_EmptySpoiler_HandlesGracefully()
+            {
+                var markdown = "||  ||";
+
+                var result = _converter.ConvertToHtml(markdown);
+
+                // Пустой или пробельный spoiler тоже должен работать
+                Assert.Contains("class=\"spoiler\"", result);
+            }
+
+            [Fact]
+            public void ConvertToHtml_WithSpoiler_IncludesStyles()
+            {
+                var markdown = "||секрет||";
+
+                var result = _converter.ConvertToHtml(markdown);
+
+                Assert.Contains("<style>", result);
+                Assert.Contains(".spoiler", result);
+            }
+
+            [Fact]
+            public void ConvertToHtml_WithoutSpoiler_NoStyles()
+            {
+                var markdown = "Обычный текст без споилера";
+
+                var result = _converter.ConvertToHtml(markdown);
+
+                Assert.DoesNotContain("<style>", result);
+            }
+
+            [Fact]
+            public void ConvertToHtml_SpoilerWithBoldInside_WorksCorrectly()
+            {
+                var markdown = "||**жирный секрет**||";
+
+                var result = _converter.ConvertToHtml(markdown);
+
+                Assert.Contains("class=\"spoiler\"", result);
+                Assert.Contains("<strong>", result);
+            }
+        }
+
         // Тесты для Edge Cases
         public class EdgeCaseTests : MarkdownConverterTests
         {
