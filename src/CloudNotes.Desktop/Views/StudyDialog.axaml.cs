@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
@@ -9,6 +10,7 @@ namespace CloudNotes.Desktop.Views
     {
         private readonly List<Flashcard> _flashcards;
         private int _currentIndex;
+        private static readonly Random _random = new();
 
         public StudyDialog()
         {
@@ -18,9 +20,22 @@ namespace CloudNotes.Desktop.Views
 
         public StudyDialog(List<Flashcard> flashcards) : this()
         {
-            _flashcards = flashcards;
+            _flashcards = new List<Flashcard>(flashcards); // Копируем список
+            ShuffleFlashcards(); // Перемешиваем
             _currentIndex = 0;
             ShowCurrentCard();
+        }
+
+        /// <summary>
+        /// Перемешивает карточки в случайном порядке (Fisher-Yates shuffle).
+        /// </summary>
+        private void ShuffleFlashcards()
+        {
+            for (int i = _flashcards.Count - 1; i > 0; i--)
+            {
+                int j = _random.Next(i + 1);
+                (_flashcards[i], _flashcards[j]) = (_flashcards[j], _flashcards[i]);
+            }
         }
 
         /// <summary>
@@ -54,15 +69,11 @@ namespace CloudNotes.Desktop.Views
             QuestionText.Text = card.Question;
             AnswerText.Text = card.Answer;
 
-            // Скрываем ответ
+            // Скрываем ответ и панель оценки
             AnswerPanel.IsVisible = false;
             Separator.IsVisible = false;
             ShowAnswerButton.IsVisible = true;
-            NavigationPanel.IsVisible = false;
-
-            // Настраиваем кнопку Next/Finish
-            NextButton.IsVisible = _currentIndex < _flashcards.Count - 1;
-            FinishButton.IsVisible = true;
+            RatingPanel.IsVisible = false;
         }
 
         private void OnShowAnswerClick(object? sender, RoutedEventArgs e)
@@ -70,18 +81,28 @@ namespace CloudNotes.Desktop.Views
             AnswerPanel.IsVisible = true;
             Separator.IsVisible = true;
             ShowAnswerButton.IsVisible = false;
-            NavigationPanel.IsVisible = true;
+            RatingPanel.IsVisible = true;
         }
 
-        private void OnNextClick(object? sender, RoutedEventArgs e)
+        private void OnRatingClick(object? sender, RoutedEventArgs e)
         {
-            _currentIndex++;
-            ShowCurrentCard();
-        }
+            if (sender is Button button && button.Tag is string ratingStr)
+            {
+                var rating = int.Parse(ratingStr);
+                // TODO: В будущем здесь будет логика SM-2 алгоритма
+                System.Diagnostics.Debug.WriteLine($"Card rated: {rating}");
 
-        private void OnFinishClick(object? sender, RoutedEventArgs e)
-        {
-            Close();
+                // Переходим к следующей карточке или закрываем
+                _currentIndex++;
+                if (_currentIndex >= _flashcards.Count)
+                {
+                    Close();
+                }
+                else
+                {
+                    ShowCurrentCard();
+                }
+            }
         }
     }
 }

@@ -77,8 +77,17 @@
                                 Background="#FFFFFF"
                                 Padding="8,0"
                                 Height="32"
-                                ToolTip.Tip="Study flashcards (??question::answer??)"
+                                ToolTip.Tip="Study flashcards from current note"
                                 Click="OnStudyButtonClick" />
+                        <Button x:Name="StudyAllButton"
+                                Content="📚 Study All"
+                                Foreground="#888888"
+                                Background="#F0F0F0"
+                                Padding="8,0"
+                                Height="32"
+                                ToolTip.Tip="Study all flashcards from folder (coming soon)"
+                                Click="OnStudyAllButtonClick"
+                                IsEnabled="False" />
                     </StackPanel>
                 </Border>
 

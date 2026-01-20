@@ -195,6 +195,12 @@ public partial class MainWindow : Window
         await StudyDialog.ShowDialogAsync(this, flashcards);
     }
 
+    private void OnStudyAllButtonClick(object? sender, RoutedEventArgs e)
+    {
+        // TODO: Реализовать после добавления папок/каталогов
+        // Будет собирать все карточки из всех заметок в папке
+    }
+
     // -------------------------------------------------------
     // Методы форматирования текста
     // -------------------------------------------------------
