@@ -41,14 +41,19 @@ public class AppDbContext : DbContext
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        // Автоматически устанавливаем/обновляем UpdatedAt для всех заметок
+        // Автоматически устанавливаем/обновляем CreatedAt и UpdatedAt для всех заметок в UTC
         var entries = ChangeTracker.Entries<Note>();
 
         foreach (var entry in entries)
         {
             if (entry.State == EntityState.Added || entry.State == EntityState.Modified)
             {
-                entry.Entity.UpdatedAt = DateTime.Now;
+                entry.Entity.UpdatedAt = DateTime.UtcNow;
+
+                if (entry.State == EntityState.Added && entry.Entity.CreatedAt == default)
+                {
+                    entry.Entity.CreatedAt = DateTime.UtcNow;
+                }
             }
         }
 
