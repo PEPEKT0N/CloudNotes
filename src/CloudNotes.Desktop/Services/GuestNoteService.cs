@@ -32,7 +32,7 @@ public class GuestNoteService : INoteService
         {
             if (_initialized) return;
 
-            var now = DateTime.Now;
+            var now = DateTime.UtcNow;
 
             _notes.Add(new Note
             {
@@ -70,8 +70,8 @@ public class GuestNoteService : INoteService
                 Id = note.Id == Guid.Empty ? Guid.NewGuid() : note.Id,
                 Title = note.Title,
                 Content = note.Content,
-                CreatedAt = note.CreatedAt == default ? DateTime.Now : note.CreatedAt,
-                UpdatedAt = DateTime.Now,
+                CreatedAt = note.CreatedAt == default ? DateTime.UtcNow : note.CreatedAt,
+                UpdatedAt = DateTime.UtcNow,
                 IsFavorite = note.IsFavorite,
                 IsSynced = false, // Гостевые заметки никогда не синхронизируются
                 ServerId = null
@@ -138,7 +138,7 @@ public class GuestNoteService : INoteService
             existingNote.Title = note.Title;
             existingNote.Content = note.Content;
             existingNote.IsFavorite = note.IsFavorite;
-            existingNote.UpdatedAt = DateTime.Now;
+            existingNote.UpdatedAt = DateTime.UtcNow;
             // Гостевые заметки никогда не синхронизируются
             existingNote.IsSynced = false;
             existingNote.ServerId = null;

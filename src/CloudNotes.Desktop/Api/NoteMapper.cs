@@ -19,6 +19,7 @@ public static class NoteMapper
             Id = dto.Id,
             Title = dto.Title,
             Content = dto.Content ?? string.Empty,
+            CreatedAt = dto.CreatedAt,
             UpdatedAt = dto.UpdatedAt,
             IsFavorite = false, // IsFavorite не синхронизируется с сервером (локальное поле)
             ServerId = dto.Id, // ServerId = Id заметки на сервере
