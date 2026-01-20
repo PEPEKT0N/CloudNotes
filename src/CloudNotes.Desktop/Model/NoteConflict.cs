@@ -12,6 +12,6 @@ public class NoteConflict
 
     public NoteDto ServerNote { get; set; } = null!;
 
-    public DateTime DetectedAt { get; set; } = DateTime.Now;
+    public DateTime DetectedAt { get; set; } = DateTime.UtcNow;
 }
 

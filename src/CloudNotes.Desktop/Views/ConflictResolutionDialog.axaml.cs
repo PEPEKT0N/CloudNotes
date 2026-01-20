@@ -25,12 +25,20 @@ public partial class ConflictResolutionDialog : Window
         // Local version
         LocalTitleTextBlock.Text = conflict.LocalNote.Title;
         LocalContentTextBox.Text = conflict.LocalNote.Content ?? string.Empty;
-        LocalUpdatedTextBlock.Text = conflict.LocalNote.UpdatedAt.ToString("g");
+        // Convert UTC to local time for display
+        var localUpdatedAt = conflict.LocalNote.UpdatedAt.Kind == DateTimeKind.Utc
+            ? conflict.LocalNote.UpdatedAt.ToLocalTime()
+            : conflict.LocalNote.UpdatedAt;
+        LocalUpdatedTextBlock.Text = localUpdatedAt.ToString("g");
 
         // Server version
         ServerTitleTextBlock.Text = conflict.ServerNote.Title;
         ServerContentTextBox.Text = conflict.ServerNote.Content ?? string.Empty;
-        ServerUpdatedTextBlock.Text = conflict.ServerNote.UpdatedAt.ToString("g");
+        // Convert UTC to local time for display
+        var serverUpdatedAt = conflict.ServerNote.UpdatedAt.Kind == DateTimeKind.Utc
+            ? conflict.ServerNote.UpdatedAt.ToLocalTime()
+            : conflict.ServerNote.UpdatedAt;
+        ServerUpdatedTextBlock.Text = serverUpdatedAt.ToString("g");
     }
 
     // Показать диалог разрешения конфликта

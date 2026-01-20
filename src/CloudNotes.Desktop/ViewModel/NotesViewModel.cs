@@ -557,7 +557,7 @@ namespace CloudNotes.Desktop.ViewModel
 
         public void CreateNote()
         {
-            var now = DateTime.Now;
+            var now = DateTime.UtcNow;
             var note = new Note
             {
                 Id = Guid.NewGuid(),
@@ -597,7 +597,7 @@ namespace CloudNotes.Desktop.ViewModel
             if (note != null)
             {
                 note.Title = newName;
-                note.UpdatedAt = DateTime.Now; // Для UI, в БД обновится автоматически при сохранении
+                note.UpdatedAt = DateTime.UtcNow; // В БД обновится автоматически при сохранении, но устанавливаем UTC для консистентности
                 listItem.UpdatedAt = note.UpdatedAt;
 
                 // Сохраняем изменения в БД (UpdatedAt обновится автоматически в SaveChangesAsync)

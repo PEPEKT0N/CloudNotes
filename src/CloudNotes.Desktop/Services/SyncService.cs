@@ -316,7 +316,7 @@ public class SyncService : ISyncService
                     LocalNoteId = localNote.Id,
                     LocalNote = localNote,
                     ServerNote = conflictResponse.ServerNote,
-                    DetectedAt = DateTime.Now
+                    DetectedAt = DateTime.UtcNow
                 };
 
                 _conflictService?.AddConflict(conflict);
