@@ -74,24 +74,59 @@
                 FontSize="16"
                 Click="OnShowAnswerClick" />
 
-        <!-- Кнопки навигации (видны после показа ответа) -->
-        <StackPanel x:Name="NavigationPanel"
+        <!-- Панель оценки (видна после показа ответа) -->
+        <StackPanel x:Name="RatingPanel"
                     Grid.Row="3"
-                    Orientation="Horizontal"
                     HorizontalAlignment="Center"
-                    Spacing="15"
                     Margin="0,15,0,0"
                     IsVisible="False">
-            <Button x:Name="NextButton"
-                    Content="Next Card"
-                    Padding="25,10"
-                    FontSize="14"
-                    Click="OnNextClick" />
-            <Button x:Name="FinishButton"
-                    Content="Finish"
-                    Padding="25,10"
-                    FontSize="14"
-                    Click="OnFinishClick" />
+            <TextBlock Text="How well did you answer?"
+                       FontSize="13"
+                       Foreground="#666666"
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,10" />
+            <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
+                <Button Content="1"
+                        Width="40" Height="40"
+                        FontSize="16"
+                        FontWeight="Bold"
+                        Foreground="White"
+                        Background="#E53935"
+                        Click="OnRatingClick"
+                        Tag="1" />
+                <Button Content="2"
+                        Width="40" Height="40"
+                        FontSize="16"
+                        FontWeight="Bold"
+                        Foreground="White"
+                        Background="#FF9800"
+                        Click="OnRatingClick"
+                        Tag="2" />
+                <Button Content="3"
+                        Width="40" Height="40"
+                        FontSize="16"
+                        FontWeight="Bold"
+                        Foreground="Black"
+                        Background="#FFEB3B"
+                        Click="OnRatingClick"
+                        Tag="3" />
+                <Button Content="4"
+                        Width="40" Height="40"
+                        FontSize="16"
+                        FontWeight="Bold"
+                        Foreground="White"
+                        Background="#4CAF50"
+                        Click="OnRatingClick"
+                        Tag="4" />
+                <Button Content="5"
+                        Width="40" Height="40"
+                        FontSize="16"
+                        FontWeight="Bold"
+                        Foreground="White"
+                        Background="#9C27B0"
+                        Click="OnRatingClick"
+                        Tag="5" />
+            </StackPanel>
         </StackPanel>
     </Grid>
 </Window>
