@@ -172,6 +172,29 @@ public partial class MainWindow : Window
         ApplySpoilerFormatting();
     }
 
+    private void OnFlashcardButtonClick(object? sender, RoutedEventArgs e)
+    {
+        InsertFlashcardTemplate();
+    }
+
+    private async void OnStudyButtonClick(object? sender, RoutedEventArgs e)
+    {
+        if (_viewModel.SelectedNote == null)
+            return;
+
+        var content = _viewModel.SelectedNote.Content;
+        var flashcards = FlashcardParser.Parse(content);
+
+        if (flashcards.Count == 0)
+        {
+            // Показываем сообщение что карточек нет
+            // Можно использовать простой диалог
+            return;
+        }
+
+        await StudyDialog.ShowDialogAsync(this, flashcards);
+    }
+
     // -------------------------------------------------------
     // Методы форматирования текста
     // -------------------------------------------------------
@@ -227,6 +250,47 @@ public partial class MainWindow : Window
         textBox.CaretIndex = caretIndex + dateTimeString.Length;
 
         // Возвращаем фокус на TextBox
+        textBox.Focus();
+    }
+
+    /// <summary>
+    /// Вставляет шаблон карточки ??question::answer?? в текст.
+    /// </summary>
+    private void InsertFlashcardTemplate()
+    {
+        if (_viewModel.SelectedNote == null || _viewModel.IsPreviewMode)
+            return;
+
+        var textBox = NoteContentTextBox;
+        if (textBox == null)
+            return;
+
+        var currentText = textBox.Text ?? string.Empty;
+        var selectedText = textBox.SelectedText ?? string.Empty;
+        var caretIndex = textBox.CaretIndex;
+
+        if (caretIndex < 0) caretIndex = 0;
+        if (caretIndex > currentText.Length) caretIndex = currentText.Length;
+
+        string template;
+        int cursorOffset;
+
+        if (!string.IsNullOrEmpty(selectedText))
+        {
+            // Если есть выделение — используем его как вопрос
+            template = $"??{selectedText}::answer??";
+            cursorOffset = selectedText.Length + 4; // позиция после "::" для ввода ответа
+        }
+        else
+        {
+            // Вставляем пустой шаблон
+            template = "??question::answer??";
+            cursorOffset = 2; // позиция после "??" для ввода вопроса
+        }
+
+        var newText = currentText.Insert(caretIndex, template);
+        textBox.Text = newText;
+        textBox.CaretIndex = caretIndex + cursorOffset;
         textBox.Focus();
     }
 

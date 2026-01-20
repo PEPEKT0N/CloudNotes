@@ -1,0 +1,97 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="CloudNotes.Desktop.Views.StudyDialog"
+        Title="Study Mode"
+        Width="500"
+        Height="400"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False">
+
+    <Grid Margin="20" RowDefinitions="Auto, *, Auto, Auto">
+        <!-- Прогресс -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,15">
+            <TextBlock x:Name="ProgressText"
+                       Text="Card 1 of 5"
+                       FontSize="14"
+                       Foreground="#666666" />
+        </StackPanel>
+
+        <!-- Область карточки -->
+        <Border Grid.Row="1"
+                Background="#F8F8F8"
+                CornerRadius="10"
+                Padding="20">
+            <Grid RowDefinitions="*, Auto, *">
+                <!-- Вопрос -->
+                <StackPanel Grid.Row="0" VerticalAlignment="Center">
+                    <TextBlock Text="Question:"
+                               FontSize="12"
+                               Foreground="#888888"
+                               Margin="0,0,0,5" />
+                    <TextBlock x:Name="QuestionText"
+                               Text="What is the capital of France?"
+                               FontSize="18"
+                               Foreground="#333333"
+                               TextWrapping="Wrap"
+                               TextAlignment="Center" />
+                </StackPanel>
+
+                <!-- Разделитель (виден только когда показан ответ) -->
+                <Rectangle x:Name="Separator"
+                           Grid.Row="1"
+                           Height="1"
+                           Fill="#DDDDDD"
+                           Margin="0,15"
+                           IsVisible="False" />
+
+                <!-- Ответ (скрыт по умолчанию) -->
+                <StackPanel x:Name="AnswerPanel"
+                            Grid.Row="2"
+                            VerticalAlignment="Center"
+                            IsVisible="False">
+                    <TextBlock Text="Answer:"
+                               FontSize="12"
+                               Foreground="#888888"
+                               Margin="0,0,0,5" />
+                    <TextBlock x:Name="AnswerText"
+                               Text="Paris"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               Foreground="#2E7D32"
+                               TextWrapping="Wrap"
+                               TextAlignment="Center" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Кнопка Show Answer -->
+        <Button x:Name="ShowAnswerButton"
+                Grid.Row="2"
+                Content="Show Answer"
+                HorizontalAlignment="Center"
+                Padding="30,10"
+                Margin="0,15,0,0"
+                FontSize="16"
+                Click="OnShowAnswerClick" />
+
+        <!-- Кнопки навигации (видны после показа ответа) -->
+        <StackPanel x:Name="NavigationPanel"
+                    Grid.Row="3"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Center"
+                    Spacing="15"
+                    Margin="0,15,0,0"
+                    IsVisible="False">
+            <Button x:Name="NextButton"
+                    Content="Next Card"
+                    Padding="25,10"
+                    FontSize="14"
+                    Click="OnNextClick" />
+            <Button x:Name="FinishButton"
+                    Content="Finish"
+                    Padding="25,10"
+                    FontSize="14"
+                    Click="OnFinishClick" />
+        </StackPanel>
+    </Grid>
+</Window>
