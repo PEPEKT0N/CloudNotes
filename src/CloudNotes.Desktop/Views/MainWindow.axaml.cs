@@ -91,6 +91,10 @@ public partial class MainWindow : Window
                 ApplyItalicFormatting();
                 e.Handled = true;
                 break;
+            case Key.T:
+                InsertCurrentDateTime();
+                e.Handled = true;
+                break;
         }
     }
 
@@ -139,6 +143,36 @@ public partial class MainWindow : Window
     private void ApplyItalicFormatting()
     {
         WrapSelectedText("*", "*");
+    }
+
+    /// <summary>
+    /// Вставляет текущую дату и время в формате Windows Notepad (dd.MM.yyyy HH:mm:ss).
+    /// </summary>
+    private void InsertCurrentDateTime()
+    {
+        if (_viewModel.SelectedNote == null || _viewModel.IsPreviewMode)
+            return;
+
+        var textBox = NoteContentTextBox;
+        if (textBox == null)
+            return;
+
+        // Формат как в Windows Notepad: dd.MM.yyyy HH:mm:ss
+        var dateTimeString = DateTime.Now.ToString("dd.MM.yyyy HH:mm:ss");
+
+        var currentText = textBox.Text ?? string.Empty;
+        var caretIndex = Math.Min(textBox.CaretIndex, currentText.Length);
+        if (caretIndex < 0) caretIndex = 0;
+
+        // Вставляем дату/время в позицию курсора
+        var newText = currentText.Insert(caretIndex, dateTimeString);
+        textBox.Text = newText;
+
+        // Перемещаем курсор после вставленного текста
+        textBox.CaretIndex = caretIndex + dateTimeString.Length;
+
+        // Возвращаем фокус на TextBox
+        textBox.Focus();
     }
 
     /// <summary>
