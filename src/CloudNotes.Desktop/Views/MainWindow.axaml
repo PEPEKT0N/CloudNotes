@@ -17,7 +17,7 @@
         <views:NoteListView x:Name="NoteListViewControl" Grid.Column="0" />
 
         <Border Padding="5" Grid.Column="1">
-            <Grid RowDefinitions="Auto, Auto, Auto, *">
+            <Grid RowDefinitions="Auto, Auto, Auto, *, Auto">
                 <!-- Заголовок заметки -->
                 <TextBlock Grid.Row="0"
                            Text="{Binding ActiveListItem.Title, FallbackValue='Select a note'}"
@@ -122,21 +122,76 @@
                 </Border>
 
                 <!-- Режим редактирования (Markdown) -->
-                <TextBox x:Name="NoteContentTextBox"
-                         Grid.Row="3"
-                         AcceptsReturn="True"
-                         TextWrapping="Wrap"
-                         IsVisible="{Binding IsEditMode}"
-                         IsEnabled="{Binding SelectedNote, Converter={x:Static ObjectConverters.IsNotNull}}"
-                         Text="{Binding SelectedNote.Content, Mode=TwoWay}"
-                         Watermark="Select a note"
-                         KeyDown="OnNoteContentKeyDown" />
+                <Grid Grid.Row="3" IsVisible="{Binding IsEditMode}">
+                    <TextBox x:Name="NoteContentTextBox"
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             IsEnabled="{Binding SelectedNote, Converter={x:Static ObjectConverters.IsNotNull}}"
+                             Text="{Binding SelectedNote.Content, Mode=TwoWay}"
+                             Watermark="Select a note"
+                             KeyDown="OnNoteContentKeyDown" />
+                    <!-- Canvas для подсветки найденных слов -->
+                    <Canvas x:Name="SearchHighlightCanvas"
+                            IsHitTestVisible="False"
+                            ZIndex="1" />
+                </Grid>
                 
                 <!-- Режим превью (HTML) -->
                 <html:HtmlPanel Grid.Row="3"
                                 IsVisible="{Binding IsPreviewMode}"
                                 Text="{Binding HtmlContent}" 
                                 Background="White" />
+                
+                <!-- Панель поиска -->
+                <Border x:Name="SearchPanel"
+                        Grid.Row="4"
+                        Background="#F0F0F0"
+                        BorderBrush="#CCCCCC"
+                        BorderThickness="0,1,0,0"
+                        Padding="10,5"
+                        IsVisible="False">
+                    <Grid ColumnDefinitions="Auto, *, Auto, Auto, Auto, Auto">
+                        <TextBlock Grid.Column="0"
+                                   Text="Find:"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,10,0" />
+                        <TextBox x:Name="SearchTextBox"
+                                 Grid.Column="1"
+                                 Watermark="Enter search text..."
+                                 Margin="0,0,10,0"
+                                 KeyDown="OnSearchTextBoxKeyDown"
+                                 TextChanged="OnSearchTextBoxTextChanged" />
+                        <Button x:Name="PreviousButton"
+                                Grid.Column="2"
+                                Content="↑"
+                                Width="30"
+                                Height="30"
+                                Margin="0,0,5,0"
+                                ToolTip.Tip="Previous (Shift+F3)"
+                                Click="OnPreviousMatchClick" />
+                        <Button x:Name="NextButton"
+                                Grid.Column="3"
+                                Content="↓"
+                                Width="30"
+                                Height="30"
+                                Margin="0,0,10,0"
+                                ToolTip.Tip="Next (F3)"
+                                Click="OnNextMatchClick" />
+                        <TextBlock x:Name="SearchResultsText"
+                                   Grid.Column="4"
+                                   Text=""
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,10,0"
+                                   Foreground="#666666" />
+                        <Button x:Name="CloseSearchButton"
+                                Grid.Column="5"
+                                Content="✕"
+                                Width="30"
+                                Height="30"
+                                ToolTip.Tip="Close (Esc)"
+                                Click="OnCloseSearchClick" />
+                    </Grid>
+                </Border>
             </Grid>
         </Border>
     </Grid>
