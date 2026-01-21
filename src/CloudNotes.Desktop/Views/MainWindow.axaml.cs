@@ -293,7 +293,7 @@ public partial class MainWindow : Window
 
         SearchPanel.IsVisible = true;
         SearchTextBox.Focus();
-        
+
         // Если есть выделенный текст, используем его как поисковый запрос
         var textBox = NoteContentTextBox;
         if (textBox != null && !string.IsNullOrEmpty(textBox.SelectedText))
@@ -374,7 +374,7 @@ public partial class MainWindow : Window
 
         var textBox = NoteContentTextBox;
         var text = textBox.Text ?? string.Empty;
-        
+
         _searchMatches.Clear();
         _lastSearchText = searchText;
 
@@ -392,10 +392,10 @@ public partial class MainWindow : Window
 
         _currentMatchIndex = _searchMatches.Count > 0 ? 0 : -1;
         UpdateSearchResultsText();
-        
+
         // Обновляем подсветку всех совпадений
         UpdateSearchHighlights();
-        
+
         if (_currentMatchIndex >= 0)
         {
             HighlightMatch(_currentMatchIndex);
@@ -459,7 +459,7 @@ public partial class MainWindow : Window
 
         // Возвращаем фокус и прокручиваем к выделенному тексту
         textBox.Focus();
-        
+
         // Используем отложенное выполнение для прокрутки к выделенному тексту
         Dispatcher.UIThread.Post(() =>
         {
@@ -541,7 +541,7 @@ public partial class MainWindow : Window
 
         // Используем TextLayout для точных координат с учетом реальных параметров TextBox
         var typeface = new Typeface(textBox.FontFamily, textBox.FontStyle, textBox.FontWeight);
-        
+
         // Получаем реальную ширину TextBox
         var textBoxWidth = textBox.Bounds.Width;
         if (textBoxWidth <= 0 || double.IsInfinity(textBoxWidth) || double.IsNaN(textBoxWidth))
@@ -556,7 +556,7 @@ public partial class MainWindow : Window
         textBox.SelectionStart = calibrationStart;
         textBox.SelectionEnd = calibrationStart + 1;
         textBox.UpdateLayout();
-        
+
         // Получаем координаты через TextLayout с правильной шириной
         // В Avalonia TextBox обычно имеет padding около 2-3 пикселей
         var textPadding = 4.2;
@@ -605,8 +605,8 @@ public partial class MainWindow : Window
             // Создаем прямоугольник подсветки
             var rect = new Rectangle
             {
-                Fill = new SolidColorBrush(matchIndex == _searchMatches[_currentMatchIndex] 
-                    ? currentHighlightColor 
+                Fill = new SolidColorBrush(matchIndex == _searchMatches[_currentMatchIndex]
+                    ? currentHighlightColor
                     : highlightColor),
                 Width = width,
                 Height = height,
