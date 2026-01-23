@@ -68,7 +68,7 @@ public partial class NoteListView : UserControl
                 }
 
                 await viewModel.RefreshNotesAsync(isLoggedIn: isLoggedIn);
-                
+
                 // Обновляем видимость кнопки "Show All"
                 ShowAllButton.IsVisible = viewModel.SelectedFolder != null;
             }
@@ -486,7 +486,7 @@ public partial class NoteListView : UserControl
             {
                 vm.SelectedFolder = selectedItem;
             }
-            
+
             // Обновляем видимость кнопки "Show All"
             ShowAllButton.IsVisible = vm.SelectedFolder != null;
         }
