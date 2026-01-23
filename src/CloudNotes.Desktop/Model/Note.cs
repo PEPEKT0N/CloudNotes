@@ -29,5 +29,10 @@ public class Note
     // Флаг синхронизации с сервером
     public bool IsSynced { get; set; } = false;
 
+    /// <summary>
+    /// Идентификатор папки, в которой находится заметка (null если заметка не в папке).
+    /// </summary>
+    public Guid? FolderId { get; set; }
+
     public ICollection<NoteTag> NoteTags { get; set; } = new List<NoteTag>();
 }

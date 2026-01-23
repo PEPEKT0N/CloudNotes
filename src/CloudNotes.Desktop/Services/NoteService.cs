@@ -57,6 +57,7 @@ public class NoteService : INoteService
         existingNote.IsFavorite = note.IsFavorite;
         existingNote.ServerId = note.ServerId;
         existingNote.IsSynced = note.IsSynced;
+        existingNote.FolderId = note.FolderId;
 
         // Если заметка была синхронизирована и мы обновляем её локально (не из синхронизации),
         // то помечаем как несинхронизированную для повторной синхронизации

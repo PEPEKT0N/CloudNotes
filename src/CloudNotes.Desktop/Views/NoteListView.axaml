@@ -88,6 +88,44 @@
                 </ListBox>
 
 
+                <!-- Folders section -->
+                <TextBlock Text="Folders"
+                           FontWeight="Bold"
+                           FontSize="16"
+                           Margin="0,20,0,10" />
+
+                <StackPanel Orientation="Horizontal" Spacing="5" Margin="0,0,0,5">
+                    <Button Content="📁 New Folder"
+                            Command="{Binding CreateFolderCommand}"
+                            FontSize="12" />
+                    <Button x:Name="ShowAllButton"
+                            Content="📂 Show All"
+                            Command="{Binding ClearFolderSelectionCommand}"
+                            FontSize="12" />
+                </StackPanel>
+
+                <TreeView x:Name="FolderTreeView"
+                         ItemsSource="{Binding Folders}"
+                         SelectedItem="{Binding SelectedFolder, Mode=TwoWay}"
+                         MaxHeight="200"
+                         SelectionChanged="OnFolderSelectionChanged">
+                    <TreeView.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="New Folder"
+                                        Command="{Binding CreateFolderCommand}" />
+                            <MenuItem Header="Rename"
+                                        Command="{Binding RenameFolderCommand}" />
+                            <MenuItem Header="Delete"
+                                        Command="{Binding DeleteFolderCommand}" />
+                        </ContextMenu>
+                    </TreeView.ContextMenu>
+                    <TreeView.ItemTemplate>
+                        <TreeDataTemplate ItemsSource="{Binding Children}">
+                            <TextBlock Text="{Binding Name}" />
+                        </TreeDataTemplate>
+                    </TreeView.ItemTemplate>
+                </TreeView>
+
                 <TextBlock Text="Your Notes"
                            FontWeight="Bold"
                            FontSize="16"
@@ -103,6 +141,9 @@
                             <MenuItem Header="Add to favorites"
                                         Command="{Binding AddToFavoritesCommand}" />
                             <MenuItem Header="Rename" Click="OnRenameMenuClick" />
+                            <MenuItem Header="Move to folder..."
+                                        Command="{Binding MoveNoteToFolderCommand}" />
+                            <Separator />
                             <MenuItem Header="Delete"
                                         Command="{Binding DeleteNoteCommand}" />
                         </ContextMenu>

@@ -8,6 +8,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using CloudNotes.Desktop.Model;
 using CloudNotes.Desktop.Services;
+using CloudNotes.Desktop.Api;
 using CloudNotes.Services;
 using Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,6 +22,9 @@ namespace CloudNotes.Desktop.ViewModel
         // UI коллекции — NoteListItem (с INotifyPropertyChanged)
         public ObservableCollection<NoteListItem> Notes { get; } = new();
         public ObservableCollection<NoteListItem> Favorites { get; } = new();
+
+        // Папки для отображения в дереве
+        public ObservableCollection<FolderTreeItem> Folders { get; } = new();
 
         // Данные — Note (чистая сущность)
         public List<Note> AllNotes { get; } = new();
@@ -162,6 +166,13 @@ namespace CloudNotes.Desktop.ViewModel
         public ICommand RemoveFromFavoritesCommand { get; }
         public ICommand DeleteNoteCommand { get; }
 
+        // Команды для папок
+        public ICommand CreateFolderCommand { get; }
+        public ICommand RenameFolderCommand { get; }
+        public ICommand DeleteFolderCommand { get; }
+        public ICommand ClearFolderSelectionCommand { get; }
+        public ICommand MoveNoteToFolderCommand { get; }
+
         // Сортировка
         private SortOption _selectedSortOption = SortOption.TitleAsc;
         public SortOption SelectedSortOption
@@ -189,6 +200,9 @@ namespace CloudNotes.Desktop.ViewModel
 
         // Сервис для работы с тегами (используется через фабрику или напрямую для тестов)
         private ITagService? _tagService;
+
+        // Сервис для работы с папками
+        private FolderService? _folderService;
 
         // Сервис для конвертации Markdown в HTML
         private readonly IMarkdownConverter _markdownConverter;
@@ -226,6 +240,27 @@ namespace CloudNotes.Desktop.ViewModel
 
         // Флаг: активен ли фильтр
         public bool IsFilteredByTag => FilterTag != null;
+
+        // Выбранная папка для фильтрации заметок
+        private FolderTreeItem? _selectedFolder;
+        public FolderTreeItem? SelectedFolder
+        {
+            get => _selectedFolder;
+            set
+            {
+                if (_selectedFolder != value)
+                {
+                    _selectedFolder = value;
+                    OnPropertyChanged();
+                    ApplyFolderFilter();
+                    
+                    // Уведомляем команды об изменении доступности
+                    (ClearFolderSelectionCommand as RelayCommand)?.RaiseCanExecuteChanged();
+                    (RenameFolderCommand as RelayCommand)?.RaiseCanExecuteChanged();
+                    (DeleteFolderCommand as RelayCommand)?.RaiseCanExecuteChanged();
+                }
+            }
+        }
 
         // Полный список заметок (без фильтрации) для UI
         private List<NoteListItem> _allNoteItems = new();
@@ -305,10 +340,29 @@ namespace CloudNotes.Desktop.ViewModel
             FilterByTagCommand = new RelayCommand(param => FilterByTag(param as Tag));
             ClearTagFilterCommand = new RelayCommand(_ => ClearTagFilter());
 
+            // Команды для папок
+            CreateFolderCommand = new RelayCommand(_ => CreateFolder());
+            RenameFolderCommand = new RelayCommand(_ => RenameFolder(), _ => SelectedFolder != null);
+            DeleteFolderCommand = new RelayCommand(_ => DeleteFolder(), _ => SelectedFolder != null);
+            ClearFolderSelectionCommand = new RelayCommand(_ => ClearFolderSelection(), _ => SelectedFolder != null);
+            MoveNoteToFolderCommand = new RelayCommand(_ => MoveNoteToFolder(), _ => SelectedNote != null);
+
+            // Инициализируем FolderService
+            var folderContext = DbContextProvider.GetContext();
+            var api = App.ServiceProvider?.GetService(typeof(ICloudNotesApi)) as ICloudNotesApi;
+            var authService = App.ServiceProvider?.GetService(typeof(IAuthService)) as IAuthService;
+            _folderService = new FolderService(folderContext, api, authService);
+
             // Загружаем заметки синхронно для совместимости с тестами
             // По умолчанию считаем гостевой режим
             LoadNotesFromDbAsync().GetAwaiter().GetResult();
             LoadAllTagsAsync().GetAwaiter().GetResult();
+            // Загружаем папки асинхронно после инициализации UI (избегаем deadlock с Dispatcher)
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(100); // Даем время UI потоку инициализироваться
+                await LoadFoldersAsync();
+            });
         }
 
         // Конструктор для тестов с переданным сервисом
@@ -327,6 +381,11 @@ namespace CloudNotes.Desktop.ViewModel
             RemoveTagCommand = new RelayCommand(param => RemoveTagFromCurrentNote(param as Tag), _ => SelectedNote != null);
             FilterByTagCommand = new RelayCommand(param => FilterByTag(param as Tag));
             ClearTagFilterCommand = new RelayCommand(_ => ClearTagFilter());
+
+            // Команды для папок (для тестов - заглушки)
+            CreateFolderCommand = new RelayCommand(_ => { });
+            RenameFolderCommand = new RelayCommand(_ => { }, _ => false);
+            DeleteFolderCommand = new RelayCommand(_ => { }, _ => false);
 
             // Загружаем заметки из БД синхронно для совместимости с тестами
             LoadNotesFromDbAsync().GetAwaiter().GetResult();
@@ -355,6 +414,7 @@ namespace CloudNotes.Desktop.ViewModel
         public async Task RefreshNotesAsync(bool? isLoggedIn = null)
         {
             await LoadNotesFromDbAsyncInternal(isLoggedIn);
+            await LoadFoldersAsync();
         }
 
         private async Task LoadNotesFromDbAsyncInternal(bool? isLoggedIn)
@@ -564,21 +624,35 @@ namespace CloudNotes.Desktop.ViewModel
                 Title = "Unnamed",
                 Content = "",
                 CreatedAt = now,
-                UpdatedAt = now
+                UpdatedAt = now,
+                FolderId = SelectedFolder?.Id
             };
 
             AllNotes.Add(note);
 
             var listItem = CreateListItem(note);
-            Notes.Add(listItem);
             _allNoteItems.Add(listItem);
 
-            SelectedListItem = listItem;
-            SelectedNote = note;
-            ActiveListItem = listItem;
-
-            // Применяем сортировку
-            ApplySort();
+            // Если активен фильтр по папке и заметка в этой папке, добавляем в список
+            if (SelectedFolder != null && note.FolderId == SelectedFolder.Id)
+            {
+                // Заметка в выбранной папке - добавляем в список
+                Notes.Add(listItem);
+                ApplySort();
+                SelectedListItem = listItem;
+                SelectedNote = note;
+                ActiveListItem = listItem;
+            }
+            else if (SelectedFolder == null)
+            {
+                // Если фильтр не активен, добавляем напрямую
+                Notes.Add(listItem);
+                SelectedListItem = listItem;
+                SelectedNote = note;
+                ActiveListItem = listItem;
+                ApplySort();
+            }
+            // Если заметка не в выбранной папке, она не должна отображаться
 
             // Сохраняем в БД асинхронно (UpdatedAt обновится автоматически в SaveChangesAsync)
             Task.Run(async () => await _noteService.CreateNoteAsync(note));
@@ -905,6 +979,18 @@ namespace CloudNotes.Desktop.ViewModel
                     filteredItems = _allNoteItems.Where(item => noteIds.Contains(item.Id));
                 }
 
+                // Применяем фильтр по папке
+                if (SelectedFolder != null)
+                {
+                    var folderId = SelectedFolder.Id;
+                    filteredItems = filteredItems.Where(item => 
+                    {
+                        var note = AllNotes.FirstOrDefault(n => n.Id == item.Id);
+                        return note?.FolderId == folderId;
+                    });
+                }
+                // Если папка не выбрана, показываем все заметки (и с папками, и без)
+
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     Notes.Clear();
@@ -915,6 +1001,222 @@ namespace CloudNotes.Desktop.ViewModel
                     ApplySort();
                 });
             });
+        }
+
+        // -------------------------------------------------------
+        // Работа с папками
+        // -------------------------------------------------------
+
+        private async Task LoadFoldersAsync()
+        {
+            if (_folderService == null) return;
+
+            // Если мы уже в UI потоке, не нужно использовать InvokeAsync
+            if (Dispatcher.UIThread.CheckAccess())
+            {
+                await LoadFoldersAsyncInternal();
+            }
+            else
+            {
+                await Dispatcher.UIThread.InvokeAsync(async () => await LoadFoldersAsyncInternal());
+            }
+        }
+
+        private async Task LoadFoldersAsyncInternal()
+        {
+            Folders.Clear();
+            var folders = await _folderService.GetAllFoldersAsync();
+            var folderList = folders.ToList();
+
+            // Создаем словарь для быстрого поиска
+            var folderDict = folderList.ToDictionary(f => f.Id, f => new FolderTreeItem(f));
+
+            // Строим дерево папок
+            var rootFolders = new List<FolderTreeItem>();
+
+            foreach (var folder in folderList)
+            {
+                var treeItem = folderDict[folder.Id];
+                if (folder.ParentFolderId.HasValue && folderDict.TryGetValue(folder.ParentFolderId.Value, out var parent))
+                {
+                    parent.Children.Add(treeItem);
+                }
+                else
+                {
+                    rootFolders.Add(treeItem);
+                }
+            }
+
+            foreach (var root in rootFolders.OrderBy(f => f.Name))
+            {
+                Folders.Add(root);
+            }
+        }
+
+        private void ApplyFolderFilter()
+        {
+            // Применяем фильтр по папке вместе с фильтром по тегу
+            if (FilterTag != null)
+            {
+                ApplyTagFilter();
+            }
+            else
+            {
+                Task.Run(async () =>
+                {
+                    IEnumerable<NoteListItem> filteredItems = _allNoteItems;
+
+                    if (SelectedFolder != null)
+                    {
+                        var folderId = SelectedFolder.Id;
+                        filteredItems = filteredItems.Where(item =>
+                        {
+                            var note = AllNotes.FirstOrDefault(n => n.Id == item.Id);
+                            return note?.FolderId == folderId;
+                        });
+                    }
+                    else
+                    {
+                        // Если папка не выбрана, показываем все заметки (и с папками, и без)
+                        // Не применяем фильтр по папке
+                    }
+
+                    await Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        Notes.Clear();
+                        foreach (var item in filteredItems)
+                        {
+                            Notes.Add(item);
+                        }
+                        ApplySort();
+                    });
+                });
+            }
+        }
+
+        private async void CreateFolder()
+        {
+            if (_folderService == null) return;
+
+            // Открываем диалог для ввода имени папки
+            var owner = Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
+                ? desktop.MainWindow
+                : null;
+
+            var folderName = await Views.RenameDialog.ShowDialogAsync(owner, string.Empty);
+            if (string.IsNullOrWhiteSpace(folderName))
+                return;
+
+            var parentFolderId = SelectedFolder?.Id;
+
+            var folder = new Folder
+            {
+                Id = Guid.NewGuid(),
+                Name = folderName.Trim(),
+                ParentFolderId = parentFolderId,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            await _folderService.CreateFolderAsync(folder);
+            await LoadFoldersAsync();
+        }
+
+        private async void RenameFolder()
+        {
+            if (_folderService == null || SelectedFolder == null) return;
+
+            // Открываем диалог для ввода нового имени папки
+            var owner = Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
+                ? desktop.MainWindow
+                : null;
+
+            var newName = await Views.RenameDialog.ShowDialogAsync(owner, SelectedFolder.Name);
+            if (string.IsNullOrWhiteSpace(newName))
+                return;
+
+            var folder = SelectedFolder.Folder;
+            folder.Name = newName.Trim();
+            folder.UpdatedAt = DateTime.UtcNow;
+
+            await _folderService.UpdateFolderAsync(folder);
+            await LoadFoldersAsync();
+        }
+
+        private async void DeleteFolder()
+        {
+            if (_folderService == null || SelectedFolder == null) return;
+
+            // TODO: Показать подтверждение удаления
+            await _folderService.DeleteFolderAsync(SelectedFolder.Id);
+            SelectedFolder = null;
+            await LoadFoldersAsync();
+            ApplyFolderFilter();
+        }
+
+        private void ClearFolderSelection()
+        {
+            // Явно сбрасываем выбор папки
+            _selectedFolder = null;
+            OnPropertyChanged(nameof(SelectedFolder));
+            ApplyFolderFilter();
+            
+            // Уведомляем команды об изменении доступности
+            (ClearFolderSelectionCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (RenameFolderCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (DeleteFolderCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        }
+
+        private async void MoveNoteToFolder()
+        {
+            if (SelectedNote == null) return;
+
+            // Получаем список всех папок для выбора (включая вложенные)
+            // Создаем специальную папку для "(No folder)"
+            var noFolder = new CloudNotes.Desktop.Model.Folder { Id = Guid.Empty, Name = "(No folder)" };
+            var folders = new List<FolderTreeItem> { new FolderTreeItem(noFolder) };
+            
+            // Рекурсивно собираем все папки
+            void CollectFolders(ObservableCollection<FolderTreeItem> folderCollection)
+            {
+                foreach (var folder in folderCollection)
+                {
+                    folders.Add(folder);
+                    if (folder.Children.Count > 0)
+                    {
+                        CollectFolders(folder.Children);
+                    }
+                }
+            }
+            CollectFolders(Folders);
+
+            // Открываем диалог для выбора папки
+            var owner = Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
+                ? desktop.MainWindow
+                : null;
+
+            var selectedFolder = await Views.FolderSelectionDialog.ShowDialogAsync(owner, folders, SelectedNote.FolderId);
+            
+            if (selectedFolder == null) return; // Пользователь отменил
+
+            // Обновляем FolderId заметки
+            var note = SelectedNote;
+            var newFolderId = selectedFolder.Id == Guid.Empty ? (Guid?)null : selectedFolder.Id;
+            
+            // Проверяем, изменилась ли папка
+            if (note.FolderId == newFolderId) return; // Папка не изменилась
+            
+            note.FolderId = newFolderId;
+            note.UpdatedAt = DateTime.UtcNow;
+
+            // Сохраняем изменения
+            await SaveNoteAsync(note);
+
+            // Обновляем фильтр, если заметка была перемещена из текущей папки
+            if (SelectedFolder != null && note.FolderId != SelectedFolder.Id)
+            {
+                ApplyFolderFilter();
+            }
         }
     }
 }

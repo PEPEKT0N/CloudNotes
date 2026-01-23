@@ -18,6 +18,11 @@ public class User : IdentityUser
     public ICollection<Note> Notes { get; set; } = new List<Note>();
 
     /// <summary>
+    /// Коллекция папок пользователя.
+    /// </summary>
+    public ICollection<Folder> Folders { get; set; } = new List<Folder>();
+
+    /// <summary>
     /// Коллекция refresh-токенов пользователя.
     /// </summary>
     public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();

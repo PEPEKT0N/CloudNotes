@@ -68,6 +68,9 @@ public partial class NoteListView : UserControl
                 }
 
                 await viewModel.RefreshNotesAsync(isLoggedIn: isLoggedIn);
+                
+                // Обновляем видимость кнопки "Show All"
+                ShowAllButton.IsVisible = viewModel.SelectedFolder != null;
             }
         };
     }
@@ -469,6 +472,23 @@ public partial class NoteListView : UserControl
         if (sender is ListBox listBox)
         {
             vm.SelectedListItem = listBox.SelectedItem as NoteListItem;
+        }
+    }
+
+    private void OnFolderSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        // Фильтрация заметок по выбранной папке обрабатывается в ViewModel через SelectedFolder property
+        if (DataContext is NotesViewModel vm)
+        {
+            // Явно синхронизируем SelectedFolder с выбором в TreeView
+            var selectedItem = FolderTreeView.SelectedItem as FolderTreeItem;
+            if (vm.SelectedFolder != selectedItem)
+            {
+                vm.SelectedFolder = selectedItem;
+            }
+            
+            // Обновляем видимость кнопки "Show All"
+            ShowAllButton.IsVisible = vm.SelectedFolder != null;
         }
     }
 

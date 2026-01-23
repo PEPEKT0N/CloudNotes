@@ -121,5 +121,53 @@ public interface ICloudNotesApi
     Task DeleteNoteAsync(Guid id);
 
     #endregion
+
+    #region Folders
+
+    /// <summary>
+    /// Получить все папки текущего пользователя.
+    /// </summary>
+    /// <returns>Список папок.</returns>
+    [Get("/api/folders")]
+    [Headers("Authorization: Bearer")]
+    Task<IReadOnlyList<FolderDto>> GetFoldersAsync();
+
+    /// <summary>
+    /// Получить папку по ID.
+    /// </summary>
+    /// <param name="id">ID папки.</param>
+    /// <returns>Папка.</returns>
+    [Get("/api/folders/{id}")]
+    [Headers("Authorization: Bearer")]
+    Task<FolderDto> GetFolderByIdAsync(Guid id);
+
+    /// <summary>
+    /// Создать новую папку.
+    /// </summary>
+    /// <param name="dto">Данные папки.</param>
+    /// <returns>Созданная папка.</returns>
+    [Post("/api/folders")]
+    [Headers("Authorization: Bearer")]
+    Task<FolderDto> CreateFolderAsync([Body] CreateFolderDto dto);
+
+    /// <summary>
+    /// Обновить папку.
+    /// </summary>
+    /// <param name="id">ID папки.</param>
+    /// <param name="dto">Новые данные папки.</param>
+    /// <returns>Обновлённая папка.</returns>
+    [Put("/api/folders/{id}")]
+    [Headers("Authorization: Bearer")]
+    Task<FolderDto> UpdateFolderAsync(Guid id, [Body] UpdateFolderDto dto);
+
+    /// <summary>
+    /// Удалить папку.
+    /// </summary>
+    /// <param name="id">ID папки.</param>
+    [Delete("/api/folders/{id}")]
+    [Headers("Authorization: Bearer")]
+    Task DeleteFolderAsync(Guid id);
+
+    #endregion
 }
 
