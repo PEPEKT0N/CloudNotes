@@ -253,7 +253,7 @@ namespace CloudNotes.Desktop.ViewModel
                     _selectedFolder = value;
                     OnPropertyChanged();
                     ApplyFolderFilter();
-                    
+
                     // Уведомляем команды об изменении доступности
                     (ClearFolderSelectionCommand as RelayCommand)?.RaiseCanExecuteChanged();
                     (RenameFolderCommand as RelayCommand)?.RaiseCanExecuteChanged();
@@ -983,7 +983,7 @@ namespace CloudNotes.Desktop.ViewModel
                 if (SelectedFolder != null)
                 {
                     var folderId = SelectedFolder.Id;
-                    filteredItems = filteredItems.Where(item => 
+                    filteredItems = filteredItems.Where(item =>
                     {
                         var note = AllNotes.FirstOrDefault(n => n.Id == item.Id);
                         return note?.FolderId == folderId;
@@ -1160,7 +1160,7 @@ namespace CloudNotes.Desktop.ViewModel
             _selectedFolder = null;
             OnPropertyChanged(nameof(SelectedFolder));
             ApplyFolderFilter();
-            
+
             // Уведомляем команды об изменении доступности
             (ClearFolderSelectionCommand as RelayCommand)?.RaiseCanExecuteChanged();
             (RenameFolderCommand as RelayCommand)?.RaiseCanExecuteChanged();
@@ -1175,7 +1175,7 @@ namespace CloudNotes.Desktop.ViewModel
             // Создаем специальную папку для "(No folder)"
             var noFolder = new CloudNotes.Desktop.Model.Folder { Id = Guid.Empty, Name = "(No folder)" };
             var folders = new List<FolderTreeItem> { new FolderTreeItem(noFolder) };
-            
+
             // Рекурсивно собираем все папки
             void CollectFolders(ObservableCollection<FolderTreeItem> folderCollection)
             {
@@ -1196,16 +1196,16 @@ namespace CloudNotes.Desktop.ViewModel
                 : null;
 
             var selectedFolder = await Views.FolderSelectionDialog.ShowDialogAsync(owner, folders, SelectedNote.FolderId);
-            
+
             if (selectedFolder == null) return; // Пользователь отменил
 
             // Обновляем FolderId заметки
             var note = SelectedNote;
             var newFolderId = selectedFolder.Id == Guid.Empty ? (Guid?)null : selectedFolder.Id;
-            
+
             // Проверяем, изменилась ли папка
             if (note.FolderId == newFolderId) return; // Папка не изменилась
-            
+
             note.FolderId = newFolderId;
             note.UpdatedAt = DateTime.UtcNow;
 
