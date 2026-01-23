@@ -39,6 +39,11 @@ public class NoteDto
     public DateTime? SyncedAt { get; set; }
 
     /// <summary>
+    /// Идентификатор папки, в которой находится заметка (null если заметка не в папке).
+    /// </summary>
+    public Guid? FolderId { get; set; }
+
+    /// <summary>
     /// Названия тегов заметки.
     /// </summary>
     public IList<string> Tags { get; set; } = new List<string>();

@@ -23,7 +23,8 @@ public static class NoteMapper
             UpdatedAt = dto.UpdatedAt,
             IsFavorite = false, // IsFavorite не синхронизируется с сервером (локальное поле)
             ServerId = dto.Id, // ServerId = Id заметки на сервере
-            IsSynced = true // Заметка синхронизирована, так как получена с сервера
+            IsSynced = true, // Заметка синхронизирована, так как получена с сервера
+            FolderId = dto.FolderId
         };
     }
 
@@ -41,6 +42,7 @@ public static class NoteMapper
             CreatedAt = createdAt ?? note.UpdatedAt,
             UpdatedAt = note.UpdatedAt,
             SyncedAt = syncedAt,
+            FolderId = note.FolderId,
             Tags = tags ?? new List<string>()
         };
     }
@@ -55,6 +57,7 @@ public static class NoteMapper
         {
             Title = note.Title,
             Content = note.Content,
+            FolderId = note.FolderId,
             Tags = tags ?? new List<string>()
         };
     }
@@ -70,6 +73,7 @@ public static class NoteMapper
             Title = note.Title,
             Content = note.Content,
             ClientUpdatedAt = clientUpdatedAt ?? note.UpdatedAt,
+            FolderId = note.FolderId,
             Tags = tags ?? new List<string>()
         };
     }
