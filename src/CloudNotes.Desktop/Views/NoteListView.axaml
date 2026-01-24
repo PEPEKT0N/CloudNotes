@@ -6,7 +6,7 @@
              Focusable="True"
              >
 
-        <Border Padding="20">
+        <Border Padding="10">
             <StackPanel>
                 <!-- Header с hamburger menu -->
                 <Grid ColumnDefinitions="Auto, *" Margin="0,0,0,10">
@@ -32,44 +32,66 @@
                     
                     <TextBlock Grid.Column="1"
                                Text="CloudNotes"
-                               FontSize="20"
+                               FontSize="16"
                                FontWeight="Bold"
                                VerticalAlignment="Center"
                                Margin="10,0,0,0" />
                 </Grid>
 
-                <Button Margin="0.5"
-                        Content="Create note"
-                        Command="{Binding CreateNoteCommand}" />
-
-                <!-- Сортировка (влияет на оба списка) -->
-                <StackPanel Orientation="Horizontal" Margin="0,15,0,0" HorizontalAlignment="Right">
-                    <TextBlock Text="Sort by"
-                               FontSize="12"
-                               VerticalAlignment="Center"
-                               Margin="0,0,5,0"
-                               Opacity="0.7" />
-                    <ComboBox ItemsSource="{Binding SortOptions}"
-                              SelectedItem="{Binding SelectedSortOption}"
-                              MinWidth="100"
-                              FontSize="12">
-                        <ComboBox.ItemTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding Converter={x:Static local:SortOptionConverter.Instance}}" />
-                            </DataTemplate>
-                        </ComboBox.ItemTemplate>
-                    </ComboBox>
+                <!-- Кнопки создания заметки и папки -->
+                <StackPanel Orientation="Vertical" Spacing="3" Margin="0,0,0,10">
+                    <Button Content="📝 Create note"
+                            Command="{Binding CreateNoteCommand}"
+                            FontSize="10"
+                            Padding="5,3" />
+                    <Button Content="📁 Create folder"
+                            Command="{Binding CreateFolderCommand}"
+                            FontSize="10"
+                            Padding="5,3" />
                 </StackPanel>
 
+                <!-- Единое дерево папок и заметок -->
+                <TreeView x:Name="MainTreeView"
+                         ItemsSource="{Binding TreeItems}"
+                         SelectedItem="{Binding SelectedTreeItem, Mode=TwoWay}"
+                         SelectionChanged="OnTreeViewSelectionChanged">
+                    <TreeView.ContextMenu>
+                        <ContextMenu x:Name="TreeViewContextMenu" Opening="OnContextMenuOpening">
+                            <MenuItem x:Name="NewFolderMenuItem" Header="📁 New Folder" Click="OnNewFolderMenuClick" />
+                            <MenuItem x:Name="NewNoteMenuItem" Header="📝 New Note" Click="OnNewNoteMenuClick" />
+                            <Separator x:Name="FolderSeparator" />
+                            <MenuItem x:Name="RenameMenuItem" Header="✏️ Rename" Click="OnRenameMenuClick" />
+                            <MenuItem x:Name="DeleteMenuItem" Header="🗑️ Delete" Click="OnDeleteMenuClick" />
+                            <Separator x:Name="NoteSeparator" />
+                            <MenuItem x:Name="AddToFavoritesMenuItem" Header="⭐ Add to favorites" Click="OnAddToFavoritesMenuClick" />
+                            <MenuItem x:Name="MoveToFolderMenuItem" Header="📁 Move to folder..." Click="OnMoveToFolderMenuClick" />
+                        </ContextMenu>
+                    </TreeView.ContextMenu>
+                    <TreeView.ItemTemplate>
+                        <TreeDataTemplate ItemsSource="{Binding Children}">
+                            <StackPanel Orientation="Horizontal" Margin="0,1">
+                                <TextBlock Text="{Binding Icon}" 
+                                          FontSize="12"
+                                          VerticalAlignment="Center"
+                                          Margin="0,0,5,0" />
+                                <TextBlock Text="{Binding Name}" 
+                                          FontSize="10"
+                                          VerticalAlignment="Center" />
+                            </StackPanel>
+                        </TreeDataTemplate>
+                    </TreeView.ItemTemplate>
+                </TreeView>
+
+                <!-- Favorites section (сохраняем для обратной совместимости) -->
                 <TextBlock Text="Favorites"
                             FontWeight="Bold"
-                            FontSize="16"
-                            Margin="0,10,0,10" />
+                            FontSize="12"
+                            Margin="0,15,0,5" />
 
                 <ListBox ItemsSource="{Binding Favorites}"
                          SelectedItem="{Binding SelectedFavoriteItem, Mode=TwoWay}"
                          SelectionChanged="OnFavoritesSelectionChanged"
-                         MaxHeight="200">
+                         MaxHeight="150">
                     <ListBox.ContextMenu>
                         <ContextMenu>
                             <MenuItem Header="Remove from favorites"
@@ -82,76 +104,7 @@
 
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <TextBlock Text="{Binding Title}" />
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-
-
-                <!-- Folders section -->
-                <TextBlock Text="Folders"
-                           FontWeight="Bold"
-                           FontSize="16"
-                           Margin="0,20,0,10" />
-
-                <StackPanel Orientation="Horizontal" Spacing="5" Margin="0,0,0,5">
-                    <Button Content="📁 New Folder"
-                            Command="{Binding CreateFolderCommand}"
-                            FontSize="12" />
-                    <Button x:Name="ShowAllButton"
-                            Content="📂 Show All"
-                            Command="{Binding ClearFolderSelectionCommand}"
-                            FontSize="12" />
-                </StackPanel>
-
-                <TreeView x:Name="FolderTreeView"
-                         ItemsSource="{Binding Folders}"
-                         SelectedItem="{Binding SelectedFolder, Mode=TwoWay}"
-                         MaxHeight="200"
-                         SelectionChanged="OnFolderSelectionChanged">
-                    <TreeView.ContextMenu>
-                        <ContextMenu>
-                            <MenuItem Header="New Folder"
-                                        Command="{Binding CreateFolderCommand}" />
-                            <MenuItem Header="Rename"
-                                        Command="{Binding RenameFolderCommand}" />
-                            <MenuItem Header="Delete"
-                                        Command="{Binding DeleteFolderCommand}" />
-                        </ContextMenu>
-                    </TreeView.ContextMenu>
-                    <TreeView.ItemTemplate>
-                        <TreeDataTemplate ItemsSource="{Binding Children}">
-                            <TextBlock Text="{Binding Name}" />
-                        </TreeDataTemplate>
-                    </TreeView.ItemTemplate>
-                </TreeView>
-
-                <TextBlock Text="Your Notes"
-                           FontWeight="Bold"
-                           FontSize="16"
-                           Margin="0,20,0,10" />
-
-                <ListBox ItemsSource="{Binding Notes}"
-                         SelectedItem="{Binding SelectedListItem, Mode=TwoWay}"
-                         SelectionChanged="OnListBoxSelectionChanged"
-                         MaxHeight="300">
-
-                    <ListBox.ContextMenu>
-                        <ContextMenu>
-                            <MenuItem Header="Add to favorites"
-                                        Command="{Binding AddToFavoritesCommand}" />
-                            <MenuItem Header="Rename" Click="OnRenameMenuClick" />
-                            <MenuItem Header="Move to folder..."
-                                        Command="{Binding MoveNoteToFolderCommand}" />
-                            <Separator />
-                            <MenuItem Header="Delete"
-                                        Command="{Binding DeleteNoteCommand}" />
-                        </ContextMenu>
-                    </ListBox.ContextMenu>
-
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding Title}" />
+                            <TextBlock Text="{Binding Title}" FontSize="10" />
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
@@ -159,8 +112,8 @@
                 <!-- Tags section -->
                 <TextBlock Text="Tags"
                            FontWeight="Bold"
-                           FontSize="16"
-                           Margin="0,20,0,10" />
+                           FontSize="12"
+                           Margin="0,15,0,5" />
 
                 <ItemsControl ItemsSource="{Binding AllTags}">
                     <ItemsControl.ItemsPanel>
@@ -173,11 +126,11 @@
                             <Button Content="{Binding Name}"
                                     Command="{Binding $parent[UserControl].((vm:NotesViewModel)DataContext).FilterByTagCommand}"
                                     CommandParameter="{Binding}"
-                                    Margin="0,0,5,5"
-                                    Padding="8,4"
-                                    FontSize="12"
+                                    Margin="0,0,3,3"
+                                    Padding="6,2"
+                                    FontSize="10"
                                     Background="#E0E0E0"
-                                    CornerRadius="10" />
+                                    CornerRadius="8" />
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
@@ -187,7 +140,8 @@
                         Command="{Binding ClearTagFilterCommand}"
                         IsVisible="{Binding IsFilteredByTag}"
                         Margin="0,5,0,0"
-                        FontSize="12"
+                        FontSize="10"
+                        Padding="5,2"
                         HorizontalAlignment="Left" />
             </StackPanel>
         </Border>
