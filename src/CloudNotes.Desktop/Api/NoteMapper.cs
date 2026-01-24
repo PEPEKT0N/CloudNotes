@@ -9,7 +9,7 @@ namespace CloudNotes.Desktop.Api;
 public static class NoteMapper
 {
     // Конвертирует API.NoteDto в локальную модель Note (с сервера)
-    public static Note ToLocal(NoteDto dto)
+    public static Note ToLocal(NoteDto dto, string? userEmail = null)
     {
         if (dto == null)
             throw new ArgumentNullException(nameof(dto));
@@ -24,7 +24,8 @@ public static class NoteMapper
             IsFavorite = false, // IsFavorite не синхронизируется с сервером (локальное поле)
             ServerId = dto.Id, // ServerId = Id заметки на сервере
             IsSynced = true, // Заметка синхронизирована, так как получена с сервера
-            FolderId = dto.FolderId
+            FolderId = dto.FolderId,
+            UserEmail = userEmail // Сохраняем email пользователя для изоляции данных
         };
     }
 
