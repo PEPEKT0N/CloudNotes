@@ -20,6 +20,7 @@ public partial class MainWindow : Window
 {
     private NotesViewModel _viewModel;
     private IConflictService? _conflictService;
+    private IAuthService? _authService;
     private List<int> _searchMatches = new List<int>();
     private int _currentMatchIndex = -1;
     private string _lastSearchText = string.Empty;
@@ -33,8 +34,10 @@ public partial class MainWindow : Window
 
         NoteListViewControl.DataContext = _viewModel;
 
-        // Получаем ConflictService из DI
+        // Получаем сервисы из DI
         _conflictService = App.ServiceProvider?.GetService<IConflictService>();
+        _authService = App.ServiceProvider?.GetService<IAuthService>();
+
         if (_conflictService != null)
         {
             _conflictService.ConflictDetected += OnConflictDetected;
@@ -172,6 +175,67 @@ public partial class MainWindow : Window
         ApplySpoilerFormatting();
     }
 
+    private void OnFlashcardButtonClick(object? sender, RoutedEventArgs e)
+    {
+        InsertFlashcardTemplate();
+    }
+
+    private async void OnStudyButtonClick(object? sender, RoutedEventArgs e)
+    {
+        if (_viewModel.SelectedNote == null)
+            return;
+
+        var noteId = _viewModel.SelectedNote.Id;
+        var content = _viewModel.SelectedNote.Content;
+        var flashcards = FlashcardParser.Parse(content);
+
+        if (flashcards.Count == 0)
+        {
+            return;
+        }
+
+        // Получаем email пользователя для привязки статистики
+        string? userEmail = null;
+        if (_authService != null)
+        {
+            userEmail = await _authService.GetCurrentUserEmailAsync();
+        }
+
+        await StudyDialog.ShowDialogAsync(this, flashcards, noteId, userEmail);
+    }
+
+    private async void OnStudyAllButtonClick(object? sender, RoutedEventArgs e)
+    {
+        // Получаем email пользователя
+        string? userEmail = null;
+        if (_authService != null)
+        {
+            userEmail = await _authService.GetCurrentUserEmailAsync();
+        }
+
+        // Открываем диалог выбора тегов
+        var (confirmed, tagIds) = await TagSelectionDialog.ShowDialogAsync(this, userEmail);
+
+        if (!confirmed || tagIds.Count == 0)
+        {
+            return;
+        }
+
+        // Получаем карточки по выбранным тегам
+        var context = CloudNotes.Services.DbContextProvider.GetContext();
+        var tagService = new TagService(context);
+        var cards = await tagService.GetFlashcardsByTagsAsync(tagIds);
+
+        if (cards.Count == 0)
+        {
+            // Нет карточек для изучения
+            return;
+        }
+
+        // Открываем диалог обучения
+        await StudyDialog.ShowDialogByTagsAsync(this, cards, userEmail);
+    }
+
     // -------------------------------------------------------
     // Методы форматирования текста
     // -------------------------------------------------------
@@ -227,6 +291,47 @@ public partial class MainWindow : Window
         textBox.CaretIndex = caretIndex + dateTimeString.Length;
 
         // Возвращаем фокус на TextBox
+        textBox.Focus();
+    }
+
+    /// <summary>
+    /// Вставляет шаблон карточки ??question::answer?? в текст.
+    /// </summary>
+    private void InsertFlashcardTemplate()
+    {
+        if (_viewModel.SelectedNote == null || _viewModel.IsPreviewMode)
+            return;
+
+        var textBox = NoteContentTextBox;
+        if (textBox == null)
+            return;
+
+        var currentText = textBox.Text ?? string.Empty;
+        var selectedText = textBox.SelectedText ?? string.Empty;
+        var caretIndex = textBox.CaretIndex;
+
+        if (caretIndex < 0) caretIndex = 0;
+        if (caretIndex > currentText.Length) caretIndex = currentText.Length;
+
+        string template;
+        int cursorOffset;
+
+        if (!string.IsNullOrEmpty(selectedText))
+        {
+            // Если есть выделение — используем его как вопрос
+            template = $"??{selectedText}::answer??";
+            cursorOffset = selectedText.Length + 4; // позиция после "::" для ввода ответа
+        }
+        else
+        {
+            // Вставляем пустой шаблон
+            template = "??question::answer??";
+            cursorOffset = 2; // позиция после "??" для ввода вопроса
+        }
+
+        var newText = currentText.Insert(caretIndex, template);
+        textBox.Text = newText;
+        textBox.CaretIndex = caretIndex + cursorOffset;
         textBox.Focus();
     }
 

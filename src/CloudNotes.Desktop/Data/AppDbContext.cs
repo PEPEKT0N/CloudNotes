@@ -18,6 +18,9 @@ public class AppDbContext : DbContext
     public DbSet<Tag> Tags { get; set; } = null!;
     public DbSet<NoteTag> NoteTags { get; set; } = null!;
     public DbSet<Folder> Folders { get; set; } = null!;
+    public DbSet<FlashcardStats> FlashcardStats { get; set; } = null!;
+    public DbSet<FavoriteTagCombo> FavoriteTagCombos { get; set; } = null!;
+    public DbSet<StudyActivity> StudyActivities { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -45,6 +48,20 @@ public class AppDbContext : DbContext
             entity.HasKey(f => f.Id);
             entity.Property(f => f.Name).IsRequired().HasMaxLength(255);
         });
+
+        // Индекс для быстрого поиска статистики карточки
+        modelBuilder.Entity<FlashcardStats>()
+            .HasIndex(fs => new { fs.UserEmail, fs.QuestionHash })
+            .IsUnique();
+
+        // Индекс для избранных комбинаций тегов по пользователю
+        modelBuilder.Entity<FavoriteTagCombo>()
+            .HasIndex(f => f.UserEmail);
+
+        // Индекс для активности: уникальный по пользователю и дате
+        modelBuilder.Entity<StudyActivity>()
+            .HasIndex(sa => new { sa.UserEmail, sa.Date })
+            .IsUnique();
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
