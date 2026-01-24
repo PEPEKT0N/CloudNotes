@@ -132,3 +132,4 @@ Create folders to organize your notes:
 Visit our documentation or report issues on GitHub.
 
 *Happy note-taking! 📝*
+
