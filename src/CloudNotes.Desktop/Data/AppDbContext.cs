@@ -20,6 +20,7 @@ public class AppDbContext : DbContext
     public DbSet<Folder> Folders { get; set; } = null!;
     public DbSet<FlashcardStats> FlashcardStats { get; set; } = null!;
     public DbSet<FavoriteTagCombo> FavoriteTagCombos { get; set; } = null!;
+    public DbSet<StudyActivity> StudyActivities { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -56,6 +57,11 @@ public class AppDbContext : DbContext
         // Индекс для избранных комбинаций тегов по пользователю
         modelBuilder.Entity<FavoriteTagCombo>()
             .HasIndex(f => f.UserEmail);
+
+        // Индекс для активности: уникальный по пользователю и дате
+        modelBuilder.Entity<StudyActivity>()
+            .HasIndex(sa => new { sa.UserEmail, sa.Date })
+            .IsUnique();
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
