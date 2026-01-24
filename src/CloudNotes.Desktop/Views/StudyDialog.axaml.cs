@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using CloudNotes.Desktop.Data;
@@ -11,53 +12,121 @@ namespace CloudNotes.Desktop.Views
 {
     public partial class StudyDialog : Window
     {
-        private readonly List<Flashcard> _flashcards;
-        private readonly Guid _noteId;
+        private const int SESSION_LIMIT = 10;
+
+        private readonly List<(Guid NoteId, Flashcard Card)> _allCards;
+        private readonly List<(Guid NoteId, Flashcard Card)> _sessionCards;
         private readonly SpacedRepetitionService _srService;
         private int _currentIndex;
+        private int _totalReviewed;
+        private int _sessionStartIndex;
         private static readonly Random _random = new();
 
         public StudyDialog()
         {
             InitializeComponent();
-            _flashcards = new List<Flashcard>();
-            // Создаём сервис с контекстом БД
+            _allCards = new List<(Guid, Flashcard)>();
+            _sessionCards = new List<(Guid, Flashcard)>();
             var context = DbContextProvider.GetContext();
             _srService = new SpacedRepetitionService(context);
         }
 
+        /// <summary>
+        /// Конструктор для изучения карточек из одной заметки.
+        /// </summary>
         public StudyDialog(List<Flashcard> flashcards, Guid noteId, string? userEmail = null) : this()
         {
-            _noteId = noteId;
-
-            // Пересоздаём сервис с правильным userEmail
             var context = DbContextProvider.GetContext();
             _srService = new SpacedRepetitionService(context, userEmail);
 
-            // Инициализируем карточки (сортировка будет async)
-            _flashcards = new List<Flashcard>(flashcards);
+            // Преобразуем в кортежи
+            _allCards = flashcards.Select(c => (noteId, c)).ToList();
             _currentIndex = 0;
+            _totalReviewed = 0;
 
-            // Запускаем async инициализацию
-            InitializeAsync(flashcards);
+            InitializeAsync();
         }
 
         /// <summary>
-        /// Асинхронная инициализация — сортировка по приоритету.
+        /// Конструктор для изучения карточек из нескольких заметок (Study by Tags).
         /// </summary>
-        private async void InitializeAsync(List<Flashcard> flashcards)
+        public StudyDialog(List<(Guid NoteId, Flashcard Card)> cards, string? userEmail = null) : this()
         {
-            // Сортируем карточки по приоритету
-            var sorted = await _srService.SortByPriorityAsync(flashcards, _noteId);
-            _flashcards.Clear();
-            _flashcards.AddRange(sorted);
+            var context = DbContextProvider.GetContext();
+            _srService = new SpacedRepetitionService(context, userEmail);
+
+            _allCards = new List<(Guid, Flashcard)>(cards);
             _currentIndex = 0;
-            ShowCurrentCard();
+            _totalReviewed = 0;
+
+            InitializeAsync();
         }
 
-        /// <summary>
-        /// Показывает диалог с карточками для изучения.
-        /// </summary>
+        private async void InitializeAsync()
+        {
+            // Сортируем все карточки по приоритету
+            var sorted = await SortCardsByPriorityAsync(_allCards);
+            _allCards.Clear();
+            _allCards.AddRange(sorted);
+
+            // Загружаем первую сессию
+            LoadNextSession();
+        }
+
+        private async System.Threading.Tasks.Task<List<(Guid NoteId, Flashcard Card)>> SortCardsByPriorityAsync(
+            List<(Guid NoteId, Flashcard Card)> cards)
+        {
+            var cardPriorities = new List<((Guid NoteId, Flashcard Card) Card, int Priority)>();
+
+            foreach (var card in cards)
+            {
+                var priority = await _srService.GetCardPriorityAsync(card.NoteId, card.Card.Question);
+                cardPriorities.Add((card, priority));
+            }
+
+            // Группируем по приоритету, перемешиваем внутри группы
+            var sorted = cardPriorities
+                .GroupBy(cp => cp.Priority)
+                .OrderBy(g => g.Key)
+                .SelectMany(g => Shuffle(g.Select(cp => cp.Card).ToList()))
+                .ToList();
+
+            return sorted;
+        }
+
+        private static List<T> Shuffle<T>(List<T> list)
+        {
+            for (int i = list.Count - 1; i > 0; i--)
+            {
+                int j = _random.Next(i + 1);
+                (list[i], list[j]) = (list[j], list[i]);
+            }
+            return list;
+        }
+
+        private void LoadNextSession()
+        {
+            _sessionCards.Clear();
+            _sessionStartIndex = _totalReviewed;
+
+            // Берём следующие SESSION_LIMIT карточек
+            var remaining = _allCards.Skip(_sessionStartIndex).Take(SESSION_LIMIT).ToList();
+            _sessionCards.AddRange(remaining);
+            _currentIndex = 0;
+
+            // Скрываем панель завершения сессии
+            SessionCompletePanel.IsVisible = false;
+
+            if (_sessionCards.Count > 0)
+            {
+                ShowCurrentCard();
+            }
+            else
+            {
+                Close();
+            }
+        }
+
         public static async System.Threading.Tasks.Task ShowDialogAsync(
             Window owner,
             List<Flashcard> flashcards,
@@ -73,38 +142,77 @@ namespace CloudNotes.Desktop.Views
             await dialog.ShowDialog(owner);
         }
 
-        private async void ShowCurrentCard()
+        /// <summary>
+        /// Показывает диалог для изучения карточек по тегам.
+        /// </summary>
+        public static async System.Threading.Tasks.Task ShowDialogByTagsAsync(
+            Window owner,
+            List<(Guid NoteId, Flashcard Card)> cards,
+            string? userEmail = null)
         {
-            if (_currentIndex >= _flashcards.Count)
+            if (cards.Count == 0)
             {
-                Close();
                 return;
             }
 
-            var card = _flashcards[_currentIndex];
+            var dialog = new StudyDialog(cards, userEmail);
+            await dialog.ShowDialog(owner);
+        }
 
-            ProgressText.Text = $"Card {_currentIndex + 1} of {_flashcards.Count}";
+        private async void ShowCurrentCard()
+        {
+            if (_currentIndex >= _sessionCards.Count)
+            {
+                // Сессия завершена
+                ShowSessionComplete();
+                return;
+            }
+
+            var (noteId, card) = _sessionCards[_currentIndex];
+
+            var totalProgress = _totalReviewed + _currentIndex + 1;
+            ProgressText.Text = $"Card {totalProgress} of {_allCards.Count}";
             QuestionText.Text = card.Question;
             AnswerText.Text = card.Answer;
 
-            // Показываем статус карточки
-            await UpdateCardStatusAsync(card);
+            await UpdateCardStatusAsync(noteId, card);
 
             AnswerPanel.IsVisible = false;
             Separator.IsVisible = false;
             ShowAnswerButton.IsVisible = true;
             RatingPanel.IsVisible = false;
+            SessionCompletePanel.IsVisible = false;
         }
 
-        /// <summary>
-        /// Обновляет бейдж статуса карточки.
-        /// </summary>
-        private async System.Threading.Tasks.Task UpdateCardStatusAsync(Flashcard card)
+        private void ShowSessionComplete()
         {
-            var status = await _srService.GetCardStatusAsync(_noteId, card.Question);
+            var reviewedInSession = _currentIndex;
+            _totalReviewed += reviewedInSession;
+
+            var remaining = _allCards.Count - _totalReviewed;
+
+            if (remaining > 0)
+            {
+                SessionStatsText.Text = $"Session complete! {reviewedInSession} cards reviewed.\n{remaining} cards remaining.";
+            }
+            else
+            {
+                SessionStatsText.Text = $"All done! {_totalReviewed} cards reviewed.";
+            }
+
+            // Скрываем элементы карточки
+            ShowAnswerButton.IsVisible = false;
+            RatingPanel.IsVisible = false;
+
+            // Показываем панель завершения
+            SessionCompletePanel.IsVisible = true;
+        }
+
+        private async System.Threading.Tasks.Task UpdateCardStatusAsync(Guid noteId, Flashcard card)
+        {
+            var status = await _srService.GetCardStatusAsync(noteId, card.Question);
             StatusText.Text = status;
 
-            // Устанавливаем цвет в зависимости от статуса
             if (status.StartsWith("Overdue"))
             {
                 StatusBadge.Background = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#FFEBEE"));
@@ -122,7 +230,6 @@ namespace CloudNotes.Desktop.Views
             }
             else
             {
-                // Scheduled for later
                 StatusBadge.Background = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#F5F5F5"));
                 StatusText.Foreground = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#757575"));
             }
@@ -141,10 +248,9 @@ namespace CloudNotes.Desktop.Views
             if (sender is Button button && button.Tag is string ratingStr)
             {
                 var rating = int.Parse(ratingStr);
-                var card = _flashcards[_currentIndex];
+                var (noteId, card) = _sessionCards[_currentIndex];
 
-                // Применяем алгоритм SM-2 и сохраняем в БД
-                var stats = await _srService.ProcessAnswerAsync(_noteId, card.Question, rating);
+                var stats = await _srService.ProcessAnswerAsync(noteId, card.Question, rating);
                 var nextReview = SpacedRepetitionService.GetNextReviewDescription(stats);
 
                 Console.WriteLine(
@@ -156,15 +262,18 @@ namespace CloudNotes.Desktop.Views
                     $"Next: {nextReview}");
 
                 _currentIndex++;
-                if (_currentIndex >= _flashcards.Count)
-                {
-                    Close();
-                }
-                else
-                {
-                    ShowCurrentCard();
-                }
+                ShowCurrentCard();
             }
+        }
+
+        private void OnContinueClick(object? sender, RoutedEventArgs e)
+        {
+            LoadNextSession();
+        }
+
+        private void OnFinishClick(object? sender, RoutedEventArgs e)
+        {
+            Close();
         }
     }
 }

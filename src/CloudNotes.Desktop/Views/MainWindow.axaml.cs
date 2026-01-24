@@ -204,10 +204,36 @@ public partial class MainWindow : Window
         await StudyDialog.ShowDialogAsync(this, flashcards, noteId, userEmail);
     }
 
-    private void OnStudyAllButtonClick(object? sender, RoutedEventArgs e)
+    private async void OnStudyAllButtonClick(object? sender, RoutedEventArgs e)
     {
-        // TODO: Реализовать после добавления папок/каталогов
-        // Будет собирать все карточки из всех заметок в папке
+        // Получаем email пользователя
+        string? userEmail = null;
+        if (_authService != null)
+        {
+            userEmail = await _authService.GetCurrentUserEmailAsync();
+        }
+
+        // Открываем диалог выбора тегов
+        var (confirmed, tagIds) = await TagSelectionDialog.ShowDialogAsync(this, userEmail);
+
+        if (!confirmed || tagIds.Count == 0)
+        {
+            return;
+        }
+
+        // Получаем карточки по выбранным тегам
+        var context = CloudNotes.Services.DbContextProvider.GetContext();
+        var tagService = new TagService(context);
+        var cards = await tagService.GetFlashcardsByTagsAsync(tagIds);
+
+        if (cards.Count == 0)
+        {
+            // Нет карточек для изучения
+            return;
+        }
+
+        // Открываем диалог обучения
+        await StudyDialog.ShowDialogByTagsAsync(this, cards, userEmail);
     }
 
     // -------------------------------------------------------

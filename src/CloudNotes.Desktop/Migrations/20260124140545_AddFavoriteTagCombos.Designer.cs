@@ -11,14 +11,43 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CloudNotes.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260122161221_AddFlashcardStats")]
-    partial class AddFlashcardStats
+    [Migration("20260124140545_AddFavoriteTagCombos")]
+    partial class AddFavoriteTagCombos
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.10");
+
+            modelBuilder.Entity("CloudNotes.Desktop.Model.FavoriteTagCombo", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TagIdsJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserEmail")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserEmail");
+
+                    b.ToTable("FavoriteTagCombos");
+                });
 
             modelBuilder.Entity("CloudNotes.Desktop.Model.FlashcardStats", b =>
                 {
@@ -66,6 +95,37 @@ namespace CloudNotes.Migrations
                     b.ToTable("FlashcardStats");
                 });
 
+            modelBuilder.Entity("CloudNotes.Desktop.Model.Folder", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsSynced")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("ParentFolderId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("ServerId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Folders");
+                });
+
             modelBuilder.Entity("CloudNotes.Desktop.Model.Note", b =>
                 {
                     b.Property<Guid>("Id")
@@ -77,6 +137,9 @@ namespace CloudNotes.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("FolderId")
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("IsFavorite")
