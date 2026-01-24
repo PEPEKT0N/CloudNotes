@@ -68,9 +68,6 @@ public partial class NoteListView : UserControl
                 }
 
                 await viewModel.RefreshNotesAsync(isLoggedIn: isLoggedIn);
-
-                // Обновляем видимость кнопки "Show All"
-                ShowAllButton.IsVisible = viewModel.SelectedFolder != null;
             }
         };
     }
@@ -228,6 +225,11 @@ public partial class NoteListView : UserControl
                 break;
             }
 
+            // ВАЖНО: получаем предыдущий email ДО авторизации, чтобы правильно определить, тот же это пользователь или другой
+            var previousEmail = _authService.GetLastLoggedInEmail();
+            var isSameUser = !string.IsNullOrEmpty(previousEmail) &&
+                             string.Equals(previousEmail, result.Email, StringComparison.OrdinalIgnoreCase);
+
             try
             {
                 bool success;
@@ -242,11 +244,6 @@ public partial class NoteListView : UserControl
 
                 if (success)
                 {
-                    // Проверяем, это тот же пользователь или другой
-                    // Используем GetLastLoggedInEmail() - он сохраняется даже после logout
-                    var previousEmail = _authService.GetLastLoggedInEmail();
-                    var isSameUser = !string.IsNullOrEmpty(previousEmail) &&
-                                     string.Equals(previousEmail, result.Email, StringComparison.OrdinalIgnoreCase);
 
                     Console.WriteLine($"[Auth] Last user: {previousEmail ?? "null"}, New user: {result.Email}, IsSameUser: {isSameUser}");
 
@@ -255,46 +252,12 @@ public partial class NoteListView : UserControl
                     _currentUserName = await _authService.GetCurrentUserNameAsync();
                     await UpdateAuthMenuAsync();
 
-                    // Очищаем локальную БД только если это ДРУГОЙ пользователь
-                    // Если тот же пользователь - сохраняем его локальные данные
-                    if (_noteServiceFactory != null && !isSameUser)
-                    {
-                        // Если был предыдущий пользователь, сначала синхронизируем его изменения
-                        // (на случай если он не вышел нормально)
-                        if (!string.IsNullOrEmpty(previousEmail) && _syncService != null)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"Syncing previous user ({previousEmail}) changes before clearing...");
-                            try
-                            {
-                                // Примечание: эта синхронизация может не сработать если токены 
-                                // предыдущего пользователя уже недействительны
-                                await _syncService.SyncAsync();
-                            }
-                            catch (Exception ex)
-                            {
-                                System.Diagnostics.Debug.WriteLine($"Could not sync previous user's changes: {ex.Message}");
-                            }
-                        }
-
-                        try
-                        {
-                            await _noteServiceFactory.ClearLocalDatabaseAsync();
-                            System.Diagnostics.Debug.WriteLine($"Local database cleared (different user: {previousEmail ?? "guest"} -> {result.Email})");
-                        }
-                        catch (Exception ex)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"Error clearing local database: {ex.Message}");
-                        }
-                    }
-                    else if (isSameUser)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Same user ({result.Email}) - keeping local data");
-                    }
-
                     // Запускаем синхронизацию после успешной авторизации
                     if (_syncService != null)
                     {
-                        // Выполняем синхронизацию один раз для загрузки заметок с сервера
+                        // Выполняем обычную синхронизацию - она автоматически загрузит данные текущего пользователя
+                        // благодаря фильтрации по UserEmail в NoteService и FolderService
+                        System.Diagnostics.Debug.WriteLine($"[Auth] Выполняем синхронизацию для пользователя: {result.Email}");
                         await _syncService.SyncOnStartupAsync();
                         // Запускаем периодическую синхронизацию
                         _syncService.StartPeriodicSync();
@@ -475,21 +438,19 @@ public partial class NoteListView : UserControl
         }
     }
 
+    private void OnTreeViewSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (DataContext is NotesViewModel vm && sender is TreeView treeView)
+        {
+            var selectedItem = treeView.SelectedItem as CloudNotes.Desktop.Model.TreeItem;
+            vm.SelectedTreeItem = selectedItem;
+            UpdateContextMenuVisibility();
+        }
+    }
+
     private void OnFolderSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
-        // Фильтрация заметок по выбранной папке обрабатывается в ViewModel через SelectedFolder property
-        if (DataContext is NotesViewModel vm)
-        {
-            // Явно синхронизируем SelectedFolder с выбором в TreeView
-            var selectedItem = FolderTreeView.SelectedItem as FolderTreeItem;
-            if (vm.SelectedFolder != selectedItem)
-            {
-                vm.SelectedFolder = selectedItem;
-            }
-
-            // Обновляем видимость кнопки "Show All"
-            ShowAllButton.IsVisible = vm.SelectedFolder != null;
-        }
+        // Legacy метод - больше не используется, но оставляем для обратной совместимости
     }
 
     private void OnFavoritesSelectionChanged(object? sender, SelectionChangedEventArgs e)
@@ -508,16 +469,134 @@ public partial class NoteListView : UserControl
         if (DataContext is not NotesViewModel vm)
             return;
 
-        var listItem = vm.ActiveListItem ?? vm.SelectedListItem;
-        if (listItem == null)
-            return;
+        string? currentName = null;
+        if (vm.SelectedTreeItem != null)
+        {
+            currentName = vm.SelectedTreeItem.Name;
+        }
+        else
+        {
+            var listItem = vm.ActiveListItem ?? vm.SelectedListItem;
+            if (listItem == null)
+                return;
+            currentName = listItem.Title;
+        }
 
         var owner = this.VisualRoot as Window;
-        var result = await RenameDialog.ShowDialogAsync(owner, listItem.Title);
+        var result = await RenameDialog.ShowDialogAsync(owner, currentName);
 
         if (!string.IsNullOrWhiteSpace(result))
         {
-            vm.RenameActiveNote(result);
+            if (vm.SelectedTreeItem?.IsFolder == true)
+            {
+                // Переименовываем папку
+                await vm.RenameFolderAsync(result);
+            }
+            else
+            {
+                vm.RenameActiveNote(result);
+            }
         }
+    }
+
+    private void OnContextMenuOpening(object? sender, System.ComponentModel.CancelEventArgs e)
+    {
+        UpdateContextMenuVisibility();
+    }
+
+    private void UpdateContextMenuVisibility()
+    {
+        if (DataContext is not NotesViewModel vm || TreeViewContextMenu == null)
+            return;
+
+        var isFolder = vm.SelectedTreeItem?.IsFolder == true;
+        var isNote = vm.SelectedTreeItem?.IsNote == true;
+
+        // Показываем/скрываем пункты меню в зависимости от типа выбранного элемента
+        if (NewFolderMenuItem != null)
+            NewFolderMenuItem.IsVisible = isFolder || !isNote; // Показываем для папок или если ничего не выбрано
+        if (NewNoteMenuItem != null)
+            NewNoteMenuItem.IsVisible = isFolder || !isNote; // Показываем для папок или если ничего не выбрано
+        if (FolderSeparator != null)
+            FolderSeparator.IsVisible = isFolder;
+        if (RenameMenuItem != null)
+            RenameMenuItem.IsVisible = isFolder || isNote;
+        if (DeleteMenuItem != null)
+            DeleteMenuItem.IsVisible = isFolder || isNote;
+        if (NoteSeparator != null)
+            NoteSeparator.IsVisible = isNote;
+        if (AddToFavoritesMenuItem != null)
+            AddToFavoritesMenuItem.IsVisible = isNote;
+        if (MoveToFolderMenuItem != null)
+            MoveToFolderMenuItem.IsVisible = isNote;
+    }
+
+    private void OnNewFolderMenuClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not NotesViewModel vm)
+            return;
+
+        if (vm.SelectedTreeItem?.IsFolder == true)
+        {
+            vm.CreateSubfolder();
+        }
+        else
+        {
+            // Вызываем команду создания папки
+            if (vm.CreateFolderCommand.CanExecute(null))
+            {
+                vm.CreateFolderCommand.Execute(null);
+            }
+        }
+    }
+
+    private void OnNewNoteMenuClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not NotesViewModel vm)
+            return;
+
+        if (vm.SelectedTreeItem?.IsFolder == true)
+        {
+            vm.CreateNoteInFolder();
+        }
+        else
+        {
+            vm.CreateNote();
+        }
+    }
+
+    private void OnDeleteMenuClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not NotesViewModel vm)
+            return;
+
+        if (vm.SelectedTreeItem?.IsFolder == true)
+        {
+            // Вызываем команду удаления папки
+            if (vm.DeleteFolderCommand.CanExecute(null))
+            {
+                vm.DeleteFolderCommand.Execute(null);
+            }
+        }
+        else if (vm.SelectedTreeItem?.IsNote == true)
+        {
+            vm.DeleteActiveNote();
+        }
+    }
+
+    private void OnAddToFavoritesMenuClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not NotesViewModel vm)
+            return;
+
+        vm.AddToFavorites();
+    }
+
+    private void OnMoveToFolderMenuClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not NotesViewModel vm)
+            return;
+
+        vm.MoveNoteToFolder();
     }
 }
