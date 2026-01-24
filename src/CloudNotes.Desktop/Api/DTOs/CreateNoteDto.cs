@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace CloudNotes.Desktop.Api.DTOs;
@@ -16,6 +17,11 @@ public class CreateNoteDto
     /// Содержимое заметки (Markdown).
     /// </summary>
     public string? Content { get; set; }
+
+    /// <summary>
+    /// Идентификатор папки, в которой находится заметка (null если заметка не в папке).
+    /// </summary>
+    public Guid? FolderId { get; set; }
 
     /// <summary>
     /// Названия тегов заметки.

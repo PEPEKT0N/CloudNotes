@@ -55,6 +55,16 @@ public class Note
     public bool IsDeleted { get; set; } = false;
 
     /// <summary>
+    /// Идентификатор папки, в которой находится заметка (null если заметка не в папке).
+    /// </summary>
+    public Guid? FolderId { get; set; }
+
+    /// <summary>
+    /// Папка, в которой находится заметка.
+    /// </summary>
+    public Folder? Folder { get; set; }
+
+    /// <summary>
     /// Теги заметки (Many-to-Many через NoteTag).
     /// </summary>
     public ICollection<NoteTag> NoteTags { get; set; } = new List<NoteTag>();
