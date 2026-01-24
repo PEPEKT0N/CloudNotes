@@ -83,6 +83,9 @@ public class SyncService : ISyncService
     // Основная логика синхронизации
     private async Task<bool> PerformSyncAsync()
     {
+        // Получаем email текущего пользователя один раз
+        var currentEmail = await _authService.GetCurrentUserEmailAsync();
+
         // 1. Получаем все заметки с сервера
         var serverNotes = await _api.GetNotesAsync();
 
@@ -107,6 +110,7 @@ public class SyncService : ISyncService
                     localNote.UpdatedAt = serverNote.UpdatedAt;
                     localNote.ServerId = serverNote.Id;
                     localNote.IsSynced = true;
+                    localNote.UserEmail = currentEmail; // Обновляем UserEmail при синхронизации
                     await _noteService.UpdateNoteAsync(localNote);
 
                     // Синхронизируем теги с сервера
@@ -119,6 +123,7 @@ public class SyncService : ISyncService
                     // Локальная заметка не синхронизирована, но серверная версия не новее - просто обновляем ServerId и IsSynced
                     localNote.ServerId = serverNote.Id;
                     localNote.IsSynced = true;
+                    localNote.UserEmail = currentEmail; // Обновляем UserEmail при синхронизации
                     await _noteService.UpdateNoteAsync(localNote);
                     _logger?.LogInformation("Синхронизирована заметка {NoteId}", serverNote.Id);
                 }
@@ -126,7 +131,7 @@ public class SyncService : ISyncService
             else
             {
                 // Новая заметка с сервера - создаем локально
-                var newNote = NoteMapper.ToLocal(serverNote);
+                var newNote = NoteMapper.ToLocal(serverNote, currentEmail);
                 await _noteService.CreateNoteAsync(newNote);
 
                 // Синхронизируем теги с сервера
@@ -136,8 +141,24 @@ public class SyncService : ISyncService
             }
         }
 
-        // 4. Отправляем несинхронизированные локальные изменения на сервер (очередь несинхронизированных изменений)
-        var unsyncedNotes = localNotes.Where(n => !n.IsSynced).ToList();
+        // 4. Удаляем локальные заметки текущего пользователя, которых нет на сервере
+        var serverNoteIds = serverNotes.Select(sn => sn.Id).ToHashSet();
+        var localNotesToDelete = localNotes
+            .Where(n => 
+                // Удаляем только заметки текущего пользователя
+                n.UserEmail == currentEmail &&
+                // Удаляем синхронизированные заметки, которых нет на сервере
+                n.ServerId.HasValue && !serverNoteIds.Contains(n.ServerId.Value))
+            .ToList();
+
+        foreach (var noteToDelete in localNotesToDelete)
+        {
+            await _noteService.DeleteNoteAsync(noteToDelete.Id);
+            _logger?.LogInformation("Удалена локальная заметка {NoteId}, которой нет на сервере", noteToDelete.Id);
+        }
+
+        // 5. Отправляем несинхронизированные локальные изменения на сервер (очередь несинхронизированных изменений)
+        var unsyncedNotes = localNotes.Where(n => !n.IsSynced && !localNotesToDelete.Contains(n)).ToList();
 
         foreach (var localNote in unsyncedNotes)
         {
@@ -221,6 +242,23 @@ public class SyncService : ISyncService
                     _logger?.LogError(ex, "Ошибка при создании заметки {NoteId} на сервере", localNote.Id);
                 }
             }
+        }
+
+        // 6. Синхронизируем папки
+        try
+        {
+            var folderService = new FolderService(
+                DbContextProvider.GetContext(),
+                _api,
+                _authService,
+                null); // Логгер не обязателен для FolderService
+            await folderService.SyncFoldersAsync();
+            _logger?.LogInformation("Синхронизация папок завершена");
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Ошибка при синхронизации папок");
+            // Продолжаем выполнение даже если синхронизация папок не удалась
         }
 
         _logger?.LogInformation("Синхронизация завершена успешно");
