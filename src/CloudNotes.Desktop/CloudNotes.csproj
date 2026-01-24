@@ -40,4 +40,16 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
+
+  <!-- Help files as embedded resources -->
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\*.md" />
+  </ItemGroup>
+
+  <!-- Also copy to output for development fallback -->
+  <ItemGroup>
+    <None Include="Assets\*.md">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>

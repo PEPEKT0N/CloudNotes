@@ -40,6 +40,7 @@ public partial class NoteListView : UserControl
         // Обработчики меню авторизации
         SignInMenuItem.Click += OnSignInMenuItemClick;
         LogoutMenuItem.Click += OnLogoutMenuItemClick;
+        HelpMenuItem.Click += OnHelpMenuItemClick;
 
         // Инициализируем меню авторизации сразу (синхронно) чтобы избежать некорректного состояния
         InitializeAuthMenu();
@@ -122,6 +123,15 @@ public partial class NoteListView : UserControl
     private async void OnSignInMenuItemClick(object? sender, RoutedEventArgs e)
     {
         await OpenAuthWindowAsync();
+    }
+
+    private async void OnHelpMenuItemClick(object? sender, RoutedEventArgs e)
+    {
+        var owner = this.VisualRoot as Window;
+        if (owner != null)
+        {
+            await HelpDialog.ShowDialogAsync(owner);
+        }
     }
 
     private async void OnLogoutMenuItemClick(object? sender, RoutedEventArgs e)
