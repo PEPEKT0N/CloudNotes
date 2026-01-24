@@ -22,6 +22,11 @@ public interface IAuthService
     /// Получить актуальный access токен (с попыткой refresh при необходимости).
     /// </summary>
     Task<string?> GetAccessTokenAsync();
+    
+    /// <summary>
+    /// Принудительно обновляет токен (используется при получении 401 ошибки).
+    /// </summary>
+    Task<string?> ForceRefreshTokenAsync();
 
     /// <summary>
     /// Получить email текущего авторизованного пользователя.

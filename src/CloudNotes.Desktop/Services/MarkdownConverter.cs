@@ -1,20 +1,23 @@
 using System.Text.RegularExpressions;
 using Markdig;
+using Markdig.Extensions.Tables;
 
 namespace CloudNotes.Desktop.Services
 {
     /// <summary>
     /// Сервис для конвертации Markdown в HTML с использованием Markdig.
-    /// Поддерживает: headers, bold, italic, lists, spoiler.
+    /// Поддерживает: headers, bold, italic, lists, spoiler, tables.
     /// </summary>
     public class MarkdownConverter : IMarkdownConverter
     {
         private readonly MarkdownPipeline pipeline;
 
         // Regex для поиска spoiler синтаксиса ||текст||
+        // Не захватывает таблицы - spoiler должен быть в одной строке или не содержать структуру таблицы
+        // Ограничиваем spoiler одной строкой или небольшим блоком без переносов строк, начинающихся с |
         private static readonly Regex SpoilerRegex = new Regex(
-            @"\|\|(.+?)\|\|",
-            RegexOptions.Singleline | RegexOptions.Compiled);
+            @"\|\|([^\r\n]+?)\|\|",
+            RegexOptions.Compiled);
 
         // Placeholders для защиты spoiler от Markdig
         private const string SpoilerStartPlaceholder = "%%SPOILER_START%%";
@@ -31,6 +34,7 @@ namespace CloudNotes.Desktop.Services
         public MarkdownConverter()
         {
             pipeline = new MarkdownPipelineBuilder()
+                .UseAdvancedExtensions()
                 .Build();
         }
 
@@ -59,10 +63,23 @@ namespace CloudNotes.Desktop.Services
                 return $"<span class=\"spoiler\">{hiddenText}</span>";
             });
 
-            // 4. Добавляем стили если есть spoiler
+            // 4. Добавляем стили если есть spoiler, таблицы или изображения
+            var styles = string.Empty;
             if (html.Contains("class=\"spoiler\""))
             {
-                html = SpoilerStyles + html;
+                styles += SpoilerStyles;
+            }
+            if (html.Contains("<table>") || html.Contains("<table "))
+            {
+                styles += "<style>table{border-collapse:collapse;width:100%;margin:10px 0;}th,td{border:1px solid #ddd;padding:8px;text-align:left;}th{background-color:#f2f2f2;font-weight:bold;}</style>";
+            }
+            if (html.Contains("<img") || html.Contains("data:image"))
+            {
+                styles += "<style>img{max-width:100%;height:auto;display:block;margin:10px 0;}</style>";
+            }
+            if (!string.IsNullOrEmpty(styles))
+            {
+                html = styles + html;
             }
 
             return html;

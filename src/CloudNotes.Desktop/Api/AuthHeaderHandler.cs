@@ -48,7 +48,67 @@ public class AuthHeaderHandler : DelegatingHandler
             Console.WriteLine("[AuthHandler] WARNING: No token available, request will be unauthenticated!");
         }
 
-        return await base.SendAsync(request, cancellationToken);
+        // Отправляем запрос
+        var response = await base.SendAsync(request, cancellationToken);
+
+        // Если получили 401, пытаемся обновить токен и повторить запрос
+        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            Console.WriteLine("[AuthHandler] Got 401 Unauthorized, attempting force token refresh...");
+            
+            // Принудительно обновляем токен (токен уже истек, поэтому нужно обновить)
+            var newAccessToken = await authService.ForceRefreshTokenAsync();
+            
+            if (!string.IsNullOrEmpty(newAccessToken))
+            {
+                Console.WriteLine($"[AuthHandler] Token refreshed, retrying request with new token ({newAccessToken.Length} chars)");
+                
+                // Создаем новый запрос (старый уже использован)
+                var retryRequest = CloneRequest(request);
+                retryRequest.Headers.Authorization = null; // Очищаем старый заголовок
+                retryRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", newAccessToken);
+                
+                // Повторяем запрос
+                response = await base.SendAsync(retryRequest, cancellationToken);
+                
+                // Если снова 401, значит refresh token тоже недействителен
+                if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    Console.WriteLine("[AuthHandler] Still 401 after refresh - refresh token invalid, user needs to re-login");
+                }
+            }
+            else
+            {
+                Console.WriteLine("[AuthHandler] Token refresh failed, user needs to re-login");
+            }
+        }
+
+        return response;
+    }
+
+    private HttpRequestMessage CloneRequest(HttpRequestMessage original)
+    {
+        var clone = new HttpRequestMessage(original.Method, original.RequestUri)
+        {
+            Version = original.Version
+        };
+
+        // Копируем Content если есть
+        if (original.Content != null)
+        {
+            clone.Content = original.Content;
+        }
+
+        // Копируем заголовки (кроме Authorization, который мы обновим)
+        foreach (var header in original.Headers)
+        {
+            if (header.Key != "Authorization")
+            {
+                clone.Headers.TryAddWithoutValidation(header.Key, header.Value);
+            }
+        }
+
+        return clone;
     }
 }
 

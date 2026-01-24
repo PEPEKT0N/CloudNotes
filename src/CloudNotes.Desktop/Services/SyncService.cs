@@ -69,8 +69,26 @@ public class SyncService : ISyncService
         }
         catch (ApiException ex)
         {
-            // API ошибки (401, 403, 500 и т.д.) не требуют retry
+            // API ошибки (401, 403, 400, 500 и т.д.) не требуют retry
             _logger?.LogError(ex, "Ошибка API при синхронизации: {StatusCode}", ex.StatusCode);
+            
+            // Если 401 - токен истек, AuthHeaderHandler должен был обновить, но не получилось
+            // Это означает, что refresh token тоже недействителен
+            if (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                System.Diagnostics.Debug.WriteLine("SyncService: 401 Unauthorized - refresh token invalid, user needs to re-login");
+                // Не пробрасываем исключение дальше, просто возвращаем false
+                // UI должен обработать это и предложить перелогиниться
+            }
+            else if (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            {
+                // 400 Bad Request - проблема с данными запроса
+                System.Diagnostics.Debug.WriteLine($"SyncService: 400 Bad Request - {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Content: {ex.Content}");
+                _logger?.LogWarning("400 Bad Request при синхронизации. Возможно, проблема с данными заметки. Продолжаем работу без синхронизации.");
+                // Не пробрасываем исключение, продолжаем работу локально
+            }
+            
             return false;
         }
         catch (Exception ex)
@@ -87,7 +105,30 @@ public class SyncService : ISyncService
         var currentEmail = await _authService.GetCurrentUserEmailAsync();
 
         // 1. Получаем все заметки с сервера
-        var serverNotes = await _api.GetNotesAsync();
+        IReadOnlyList<NoteDto> serverNotes;
+        try
+        {
+            serverNotes = await _api.GetNotesAsync();
+        }
+        catch (Refit.ApiException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            // 401 ошибка - токен истек
+            // Пытаемся обновить токен и повторить запрос
+            System.Diagnostics.Debug.WriteLine("SyncService: Got 401, attempting token refresh...");
+            
+            var newToken = await _authService.ForceRefreshTokenAsync();
+            if (!string.IsNullOrEmpty(newToken))
+            {
+                System.Diagnostics.Debug.WriteLine("SyncService: Token refreshed, retrying GetNotesAsync...");
+                // Повторяем запрос с новым токеном
+                serverNotes = await _api.GetNotesAsync();
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("SyncService: Token refresh failed, user needs to re-login");
+                throw; // Пробрасываем дальше для обработки в UI
+            }
+        }
 
         // 2. Получаем все локальные заметки
         var localNotes = await _noteService.GetAllNoteAsync();
@@ -207,6 +248,14 @@ public class SyncService : ISyncService
                         {
                             HandleConflictFromException(localNote, ex);
                         }
+                        else if (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                        {
+                            // 400 Bad Request - проблема с данными заметки
+                            System.Diagnostics.Debug.WriteLine($"400 Bad Request при обновлении заметки {localNote.ServerId.Value}: {ex.Message}");
+                            System.Diagnostics.Debug.WriteLine($"Content: {ex.Content}");
+                            _logger?.LogWarning(ex, "400 Bad Request при обновлении заметки {NoteId} на сервере. Пропускаем эту заметку.", localNote.ServerId.Value);
+                            // Пропускаем эту заметку, продолжаем синхронизацию остальных
+                        }
                         else
                         {
                             _logger?.LogError(ex, "Ошибка при обновлении заметки {NoteId} на сервере", localNote.ServerId.Value);
@@ -239,7 +288,18 @@ public class SyncService : ISyncService
                 }
                 catch (ApiException ex)
                 {
-                    _logger?.LogError(ex, "Ошибка при создании заметки {NoteId} на сервере", localNote.Id);
+                    if (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                    {
+                        // 400 Bad Request - проблема с данными заметки
+                        System.Diagnostics.Debug.WriteLine($"400 Bad Request при создании заметки {localNote.Id}: {ex.Message}");
+                        System.Diagnostics.Debug.WriteLine($"Content: {ex.Content}");
+                        _logger?.LogWarning(ex, "400 Bad Request при создании заметки {NoteId} на сервере. Пропускаем эту заметку.", localNote.Id);
+                        // Пропускаем эту заметку, продолжаем синхронизацию остальных
+                    }
+                    else
+                    {
+                        _logger?.LogError(ex, "Ошибка при создании заметки {NoteId} на сервере", localNote.Id);
+                    }
                 }
             }
         }
