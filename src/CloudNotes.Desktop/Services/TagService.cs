@@ -13,42 +13,51 @@ namespace CloudNotes.Desktop.Services;
 /// </summary>
 public class TagService : ITagService
 {
-    private readonly AppDbContext _context;
+    private readonly Func<AppDbContext> _contextFactory;
 
     public TagService(AppDbContext context)
     {
-        _context = context;
+        // Используем фабрику для создания нового контекста для каждой операции
+        // Это обеспечивает thread-safety
+        _contextFactory = CloudNotes.Services.DbContextProvider.CreateContext;
     }
+
+    private AppDbContext CreateContext() => _contextFactory();
 
     /// <inheritdoc />
     public async Task<IEnumerable<Tag>> GetAllTagsAsync()
     {
-        return await _context.Tags.ToListAsync();
+        using var context = CreateContext();
+        return await context.Tags.ToListAsync();
     }
 
     /// <inheritdoc />
     public async Task<Tag?> GetTagByIdAsync(Guid id)
     {
-        return await _context.Tags.FindAsync(id);
+        using var context = CreateContext();
+        return await context.Tags.FindAsync(id);
     }
 
     /// <inheritdoc />
     public async Task<Tag?> GetTagByNameAsync(string name)
     {
-        return await _context.Tags
+        using var context = CreateContext();
+        return await context.Tags
             .FirstOrDefaultAsync(t => t.Name.ToLower() == name.ToLower());
     }
 
     /// <inheritdoc />
     public async Task<Tag> CreateTagAsync(Tag tag)
     {
+        using var context = CreateContext();
+        
         if (tag.Id == Guid.Empty)
         {
             tag.Id = Guid.NewGuid();
         }
 
-        _context.Tags.Add(tag);
-        await _context.SaveChangesAsync();
+        context.Tags.Add(tag);
+        await context.SaveChangesAsync();
         return tag;
     }
 
@@ -73,21 +82,24 @@ public class TagService : ITagService
     /// <inheritdoc />
     public async Task<bool> DeleteTagAsync(Guid id)
     {
-        var tag = await _context.Tags.FindAsync(id);
+        using var context = CreateContext();
+        
+        var tag = await context.Tags.FindAsync(id);
         if (tag == null)
         {
             return false;
         }
 
-        _context.Tags.Remove(tag);
-        await _context.SaveChangesAsync();
+        context.Tags.Remove(tag);
+        await context.SaveChangesAsync();
         return true;
     }
 
     /// <inheritdoc />
     public async Task<IEnumerable<Tag>> GetTagsForNoteAsync(Guid noteId)
     {
-        return await _context.NoteTags
+        using var context = CreateContext();
+        return await context.NoteTags
             .Where(nt => nt.NoteId == noteId)
             .Include(nt => nt.Tag)
             .Select(nt => nt.Tag)
@@ -97,7 +109,9 @@ public class TagService : ITagService
     /// <inheritdoc />
     public async Task AddTagToNoteAsync(Guid noteId, Guid tagId)
     {
-        var existingLink = await _context.NoteTags
+        using var context = CreateContext();
+        
+        var existingLink = await context.NoteTags
             .FirstOrDefaultAsync(nt => nt.NoteId == noteId && nt.TagId == tagId);
 
         if (existingLink != null)
@@ -111,14 +125,16 @@ public class TagService : ITagService
             TagId = tagId
         };
 
-        _context.NoteTags.Add(noteTag);
-        await _context.SaveChangesAsync();
+        context.NoteTags.Add(noteTag);
+        await context.SaveChangesAsync();
     }
 
     /// <inheritdoc />
     public async Task RemoveTagFromNoteAsync(Guid noteId, Guid tagId)
     {
-        var noteTag = await _context.NoteTags
+        using var context = CreateContext();
+        
+        var noteTag = await context.NoteTags
             .FirstOrDefaultAsync(nt => nt.NoteId == noteId && nt.TagId == tagId);
 
         if (noteTag == null)
@@ -126,14 +142,15 @@ public class TagService : ITagService
             return;
         }
 
-        _context.NoteTags.Remove(noteTag);
-        await _context.SaveChangesAsync();
+        context.NoteTags.Remove(noteTag);
+        await context.SaveChangesAsync();
     }
 
     /// <inheritdoc />
     public async Task<IEnumerable<Note>> GetNotesWithTagAsync(Guid tagId)
     {
-        return await _context.NoteTags
+        using var context = CreateContext();
+        return await context.NoteTags
             .Where(nt => nt.TagId == tagId)
             .Include(nt => nt.Note)
             .Select(nt => nt.Note)

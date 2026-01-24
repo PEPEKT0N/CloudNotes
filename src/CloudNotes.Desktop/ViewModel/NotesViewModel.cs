@@ -845,8 +845,55 @@ namespace CloudNotes.Desktop.ViewModel
                 allItem.UpdatedAt = note.UpdatedAt;
             }
 
+            // Обновляем TreeItem в дереве, если заметка там есть
+            UpdateTreeItemName(listItem.Id, newName);
+
             // Применяем сортировку
             ApplySort();
+        }
+
+        /// <summary>
+        /// Обновляет имя TreeItem в дереве по ID заметки.
+        /// TreeItem.Name - это computed property, которое возвращает Note.Title,
+        /// поэтому нужно обновить Note, и TreeItem автоматически обновится через привязку.
+        /// </summary>
+        private void UpdateTreeItemName(Guid noteId, string newName)
+        {
+            // Рекурсивно ищем TreeItem с нужным ID
+            TreeItem? foundItem = null;
+            
+            void SearchInCollection(ObservableCollection<TreeItem> items)
+            {
+                foreach (var item in items)
+                {
+                    if (item.IsNote && item.Note?.Id == noteId)
+                    {
+                        foundItem = item;
+                        return;
+                    }
+                    if (item.Children != null && item.Children.Count > 0)
+                    {
+                        SearchInCollection(item.Children);
+                        if (foundItem != null) return;
+                    }
+                }
+            }
+            
+            SearchInCollection(TreeItems);
+            
+            if (foundItem != null && foundItem.Note != null)
+            {
+                // Обновляем Note, чтобы TreeItem.Name автоматически обновился
+                // (TreeItem.Name возвращает _note.Title)
+                foundItem.Note.Title = newName;
+                // Уведомляем об изменении Name в TreeItem
+                foundItem.OnPropertyChanged(nameof(TreeItem.Name));
+                System.Diagnostics.Debug.WriteLine($"TreeItem name updated: {newName}");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"TreeItem not found for note ID: {noteId}");
+            }
         }
 
         public void AddToFavorites()

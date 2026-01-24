@@ -11,17 +11,29 @@ namespace CloudNotes.Desktop.Services;
 
 public class NoteService : INoteService
 {
-    private readonly AppDbContext _context;
+    private readonly Func<AppDbContext> _contextFactory;
     private readonly IAuthService? _authService;
 
     public NoteService(AppDbContext context, IAuthService? authService = null)
     {
-        _context = context;
+        // Используем фабрику для создания нового контекста для каждой операции
+        // Это обеспечивает thread-safety
+        _contextFactory = CloudNotes.Services.DbContextProvider.CreateContext;
         _authService = authService;
     }
 
+    public NoteService(Func<AppDbContext> contextFactory, IAuthService? authService = null)
+    {
+        _contextFactory = contextFactory;
+        _authService = authService;
+    }
+
+    private AppDbContext CreateContext() => _contextFactory();
+
     public async Task<Note> CreateNoteAsync(Note note)
     {
+        using var context = CreateContext();
+        
         // Новая заметка создается локально - помечаем как несинхронизированную
         if (!note.ServerId.HasValue)
         {
@@ -35,17 +47,19 @@ public class NoteService : INoteService
             note.UserEmail = currentEmail;
         }
 
-        _context.Notes.Add(note);
+        context.Notes.Add(note);
 
-        await _context.SaveChangesAsync();
+        await context.SaveChangesAsync();
 
         return note;
     }
 
     public async Task<IEnumerable<Note>> GetAllNoteAsync()
     {
+        using var context = CreateContext();
+        
         // Фильтруем заметки по текущему пользователю
-        var query = _context.Notes.AsQueryable();
+        var query = context.Notes.AsQueryable();
 
         if (_authService != null)
         {
@@ -72,12 +86,15 @@ public class NoteService : INoteService
 
     public async Task<Note?> GetNoteByIdAsync(Guid id)
     {
-        return await _context.Notes.FindAsync(id);
+        using var context = CreateContext();
+        return await context.Notes.FindAsync(id);
     }
 
     public async Task<bool> UpdateNoteAsync(Note note)
     {
-        var existingNote = await _context.Notes.FindAsync(note.Id);
+        using var context = CreateContext();
+        
+        var existingNote = await context.Notes.FindAsync(note.Id);
         if (existingNote == null)
         {
             return false;
@@ -113,25 +130,27 @@ public class NoteService : INoteService
         }
 
         // Явно помечаем сущность как измененную для гарантии обновления UpdatedAt
-        _context.Entry(existingNote).State = EntityState.Modified;
+        context.Entry(existingNote).State = EntityState.Modified;
 
         // Save changes (UpdatedAt обновится автоматически в SaveChangesAsync)
-        await _context.SaveChangesAsync();
+        await context.SaveChangesAsync();
 
         return true;
     }
 
     public async Task<bool> DeleteNoteAsync(Guid id)
     {
-        var note = await _context.Notes.FindAsync(id);
+        using var context = CreateContext();
+        
+        var note = await context.Notes.FindAsync(id);
         if (note == null)
         {
             return false;
         }
 
-        _context.Notes.Remove(note);
+        context.Notes.Remove(note);
 
-        await _context.SaveChangesAsync();
+        await context.SaveChangesAsync();
 
         return true;
     }

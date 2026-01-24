@@ -36,7 +36,7 @@ public class TreeItem : INotifyPropertyChanged
         _note = note ?? throw new ArgumentNullException(nameof(note));
     }
 
-    protected virtual void OnPropertyChanged(string? propertyName = null)
+    public void OnPropertyChanged(string? propertyName = null)
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
