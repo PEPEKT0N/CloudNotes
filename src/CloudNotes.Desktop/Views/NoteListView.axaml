@@ -38,6 +38,38 @@
                                Margin="10,0,0,0" />
                 </Grid>
 
+                <!-- Widget: Due for review today -->
+                <Border x:Name="DueCardsWidget"
+                        Background="#FFF3E0"
+                        CornerRadius="8"
+                        Padding="10"
+                        Margin="0,5,0,10">
+                    <StackPanel>
+                        <TextBlock Text="Due for review today:"
+                                   FontSize="12"
+                                   Foreground="#666666" />
+                        <StackPanel Orientation="Horizontal" Spacing="5">
+                            <TextBlock x:Name="DueCardsCount"
+                                       Text="0"
+                                       FontSize="24"
+                                       FontWeight="Bold"
+                                       Foreground="#E65100" />
+                            <TextBlock Text="cards"
+                                       VerticalAlignment="Bottom"
+                                       Margin="0,0,0,4"
+                                       Foreground="#666666" />
+                        </StackPanel>
+                        <Button x:Name="ViewStatsButton"
+                                Content="View Statistics"
+                                Click="OnViewStatsClick"
+                                FontSize="11"
+                                Margin="0,5,0,0"
+                                Padding="8,4"
+                                Background="#FFE0B2"
+                                Foreground="#E65100" />
+                    </StackPanel>
+                </Border>
+
                 <Button Margin="0.5"
                         Content="Create note"
                         Command="{Binding CreateNoteCommand}" />
