@@ -80,14 +80,13 @@
                                 ToolTip.Tip="Study flashcards from current note"
                                 Click="OnStudyButtonClick" />
                         <Button x:Name="StudyAllButton"
-                                Content="📚 Study All"
-                                Foreground="#888888"
-                                Background="#F0F0F0"
+                                Content="📚 Study by Tags"
+                                Foreground="Black"
+                                Background="#FFFFFF"
                                 Padding="8,0"
                                 Height="32"
-                                ToolTip.Tip="Study all flashcards from folder (coming soon)"
-                                Click="OnStudyAllButtonClick"
-                                IsEnabled="False" />
+                                ToolTip.Tip="Study flashcards from notes with selected tags"
+                                Click="OnStudyAllButtonClick" />
                     </StackPanel>
                 </Border>
 

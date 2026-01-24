@@ -3,11 +3,11 @@
         x:Class="CloudNotes.Desktop.Views.StudyDialog"
         Title="Study Mode"
         Width="500"
-        Height="400"
+        Height="450"
         WindowStartupLocation="CenterOwner"
         CanResize="False">
 
-    <Grid Margin="20" RowDefinitions="Auto, *, Auto, Auto">
+    <Grid Margin="20" RowDefinitions="Auto, *, Auto, Auto, Auto">
         <!-- Прогресс и статус -->
         <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,0,0,15">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
@@ -140,5 +140,36 @@
                         Tag="5" />
             </StackPanel>
         </StackPanel>
+
+        <!-- Панель завершения сессии (после 10 карточек) -->
+        <Border x:Name="SessionCompletePanel"
+                Grid.Row="4"
+                Background="#E8F5E9"
+                CornerRadius="10"
+                Padding="20"
+                Margin="0,15,0,0"
+                IsVisible="False">
+            <StackPanel HorizontalAlignment="Center">
+                <TextBlock x:Name="SessionStatsText"
+                           Text="Session complete! 10 cards reviewed."
+                           FontSize="16"
+                           FontWeight="SemiBold"
+                           Foreground="#2E7D32"
+                           HorizontalAlignment="Center"
+                           Margin="0,0,0,15" />
+                <StackPanel Orientation="Horizontal" Spacing="15" HorizontalAlignment="Center">
+                    <Button Content="Continue (10 more)"
+                            Padding="20,10"
+                            FontSize="14"
+                            Background="#4CAF50"
+                            Foreground="White"
+                            Click="OnContinueClick" />
+                    <Button Content="Finish"
+                            Padding="20,10"
+                            FontSize="14"
+                            Click="OnFinishClick" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
     </Grid>
 </Window>
