@@ -23,7 +23,6 @@ class Program
         );
         Directory.CreateDirectory(folder);
         var dbPath = Path.Combine(folder, "notes.db");
-        var optionsBuidler = new DbContextOptionsBuilder<AppDbContext>();
         optionsBuilder.UseSqlite($"Data Source={dbPath}");
 
         // Create context and apply migrations

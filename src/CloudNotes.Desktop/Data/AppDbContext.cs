@@ -17,6 +17,7 @@ public class AppDbContext : DbContext
     public DbSet<Note> Notes { get; set; } = null!;
     public DbSet<Tag> Tags { get; set; } = null!;
     public DbSet<NoteTag> NoteTags { get; set; } = null!;
+    public DbSet<Folder> Folders { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -37,14 +38,37 @@ public class AppDbContext : DbContext
             .WithMany(t => t.NoteTags)
             .HasForeignKey(nt => nt.TagId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // Настройка Folder
+        modelBuilder.Entity<Folder>(entity =>
+        {
+            entity.HasKey(f => f.Id);
+            entity.Property(f => f.Name).IsRequired().HasMaxLength(255);
+        });
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         // Автоматически устанавливаем/обновляем CreatedAt и UpdatedAt для всех заметок в UTC
-        var entries = ChangeTracker.Entries<Note>();
+        var noteEntries = ChangeTracker.Entries<Note>();
 
-        foreach (var entry in entries)
+        foreach (var entry in noteEntries)
+        {
+            if (entry.State == EntityState.Added || entry.State == EntityState.Modified)
+            {
+                entry.Entity.UpdatedAt = DateTime.UtcNow;
+
+                if (entry.State == EntityState.Added && entry.Entity.CreatedAt == default)
+                {
+                    entry.Entity.CreatedAt = DateTime.UtcNow;
+                }
+            }
+        }
+
+        // Автоматически устанавливаем/обновляем CreatedAt и UpdatedAt для всех папок в UTC
+        var folderEntries = ChangeTracker.Entries<Folder>();
+
+        foreach (var entry in folderEntries)
         {
             if (entry.State == EntityState.Added || entry.State == EntityState.Modified)
             {

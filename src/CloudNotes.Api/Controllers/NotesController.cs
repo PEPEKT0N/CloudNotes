@@ -28,15 +28,25 @@ public class NotesController : ControllerBase
     /// <summary>
     /// Получить все заметки текущего пользователя.
     /// </summary>
+    /// <param name="folderId">Фильтр по папке (null для всех заметок).</param>
     /// <returns>Список заметок.</returns>
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<NoteDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] Guid? folderId = null)
     {
         var userId = HttpContext.GetRequiredUserId();
 
-        var notes = await _context.Notes
-            .Where(n => n.UserId == userId && !n.IsDeleted)
+        var query = _context.Notes
+            .Where(n => n.UserId == userId && !n.IsDeleted);
+
+        // Фильтрация по папке (если указана)
+        if (folderId.HasValue)
+        {
+            query = query.Where(n => n.FolderId == folderId.Value);
+        }
+        // Если folderId не указан, показываем все заметки (и с папками, и без)
+
+        var notes = await query
             .Include(n => n.NoteTags)
                 .ThenInclude(nt => nt.Tag)
             .OrderByDescending(n => n.UpdatedAt)
@@ -132,12 +142,25 @@ public class NotesController : ControllerBase
     {
         var userId = HttpContext.GetRequiredUserId();
 
+        // Проверяем, что папка существует и принадлежит пользователю (если указана)
+        if (dto.FolderId.HasValue)
+        {
+            var folder = await _context.Folders
+                .FirstOrDefaultAsync(f => f.Id == dto.FolderId.Value && f.UserId == userId);
+
+            if (folder == null)
+            {
+                return BadRequest(new { error = "Папка не найдена" });
+            }
+        }
+
         var note = new Note
         {
             Id = Guid.NewGuid(),
             UserId = userId,
             Title = dto.Title,
             Content = dto.Content,
+            FolderId = dto.FolderId,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
             SyncedAt = DateTime.UtcNow
@@ -194,8 +217,21 @@ public class NotesController : ControllerBase
             });
         }
 
+        // Проверяем, что папка существует и принадлежит пользователю (если указана)
+        if (dto.FolderId.HasValue)
+        {
+            var folder = await _context.Folders
+                .FirstOrDefaultAsync(f => f.Id == dto.FolderId.Value && f.UserId == userId);
+
+            if (folder == null)
+            {
+                return BadRequest(new { error = "Папка не найдена" });
+            }
+        }
+
         note.Title = dto.Title;
         note.Content = dto.Content;
+        note.FolderId = dto.FolderId;
         note.UpdatedAt = DateTime.UtcNow;
         note.SyncedAt = DateTime.UtcNow;
 
@@ -258,6 +294,7 @@ public class NotesController : ControllerBase
             CreatedAt = note.CreatedAt,
             UpdatedAt = note.UpdatedAt,
             SyncedAt = note.SyncedAt,
+            FolderId = note.FolderId,
             Tags = note.NoteTags?.Select(nt => nt.Tag.Name).ToList() ?? new List<string>()
         };
     }
