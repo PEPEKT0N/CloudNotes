@@ -20,6 +20,7 @@ public partial class MainWindow : Window
 {
     private NotesViewModel _viewModel;
     private IConflictService? _conflictService;
+    private IAuthService? _authService;
     private List<int> _searchMatches = new List<int>();
     private int _currentMatchIndex = -1;
     private string _lastSearchText = string.Empty;
@@ -33,8 +34,10 @@ public partial class MainWindow : Window
 
         NoteListViewControl.DataContext = _viewModel;
 
-        // Получаем ConflictService из DI
+        // Получаем сервисы из DI
         _conflictService = App.ServiceProvider?.GetService<IConflictService>();
+        _authService = App.ServiceProvider?.GetService<IAuthService>();
+
         if (_conflictService != null)
         {
             _conflictService.ConflictDetected += OnConflictDetected;
@@ -182,17 +185,23 @@ public partial class MainWindow : Window
         if (_viewModel.SelectedNote == null)
             return;
 
+        var noteId = _viewModel.SelectedNote.Id;
         var content = _viewModel.SelectedNote.Content;
         var flashcards = FlashcardParser.Parse(content);
 
         if (flashcards.Count == 0)
         {
-            // Показываем сообщение что карточек нет
-            // Можно использовать простой диалог
             return;
         }
 
-        await StudyDialog.ShowDialogAsync(this, flashcards);
+        // Получаем email пользователя для привязки статистики
+        string? userEmail = null;
+        if (_authService != null)
+        {
+            userEmail = await _authService.GetCurrentUserEmailAsync();
+        }
+
+        await StudyDialog.ShowDialogAsync(this, flashcards, noteId, userEmail);
     }
 
     private void OnStudyAllButtonClick(object? sender, RoutedEventArgs e)

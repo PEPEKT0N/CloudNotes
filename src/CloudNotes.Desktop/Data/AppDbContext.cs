@@ -18,6 +18,7 @@ public class AppDbContext : DbContext
     public DbSet<Tag> Tags { get; set; } = null!;
     public DbSet<NoteTag> NoteTags { get; set; } = null!;
     public DbSet<Folder> Folders { get; set; } = null!;
+    public DbSet<FlashcardStats> FlashcardStats { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -45,6 +46,11 @@ public class AppDbContext : DbContext
             entity.HasKey(f => f.Id);
             entity.Property(f => f.Name).IsRequired().HasMaxLength(255);
         });
+
+        // Индекс для быстрого поиска статистики карточки
+        modelBuilder.Entity<FlashcardStats>()
+            .HasIndex(fs => new { fs.UserEmail, fs.QuestionHash })
+            .IsUnique();
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
