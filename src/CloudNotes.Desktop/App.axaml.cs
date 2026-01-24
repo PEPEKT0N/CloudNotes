@@ -84,7 +84,8 @@ public partial class App : Application
         services.AddSingleton<INoteServiceFactory>(sp =>
         {
             var context = CloudNotes.Services.DbContextProvider.GetContext();
-            return new NoteServiceFactory(context);
+            var authService = sp.GetRequiredService<IAuthService>();
+            return new NoteServiceFactory(context, authService);
         });
 
         // Note Service (для обратной совместимости и SyncService - всегда авторизованный сервис)
