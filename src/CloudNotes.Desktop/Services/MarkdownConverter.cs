@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using Markdig;
+using Markdig.Extensions.EmphasisExtras;
 
 namespace CloudNotes.Desktop.Services
 {
@@ -52,6 +53,9 @@ namespace CloudNotes.Desktop.Services
         public MarkdownConverter()
         {
             pipeline = new MarkdownPipelineBuilder()
+                .UsePipeTables()  // Tables support
+                .UseEmphasisExtras(EmphasisExtraOptions.Strikethrough)  // ~~strikethrough~~
+                .UseTaskLists()  // - [ ] and - [x] task lists
                 .Build();
         }
 
