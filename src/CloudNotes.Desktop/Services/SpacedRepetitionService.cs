@@ -55,6 +55,10 @@ namespace CloudNotes.Desktop.Services
             ApplySM2Algorithm(stats, sm2Quality);
             await _context.SaveChangesAsync();
 
+            // Записываем активность
+            bool isCorrect = sm2Quality >= 3;
+            await RecordActivityAsync(isCorrect);
+
             return stats;
         }
 
@@ -288,6 +292,132 @@ namespace CloudNotes.Desktop.Services
                 1 => "Tomorrow",
                 _ => $"In {days} days"
             };
+        }
+
+        /// <summary>
+        /// Записывает активность пользователя за сегодня.
+        /// Вызывается при каждом ответе на карточку.
+        /// </summary>
+        public async Task RecordActivityAsync(bool isCorrect)
+        {
+            var today = DateTime.UtcNow.Date;
+
+            var activity = await _context.StudyActivities
+                .FirstOrDefaultAsync(a => a.UserEmail == _userEmail && a.Date == today);
+
+            if (activity == null)
+            {
+                activity = new StudyActivity
+                {
+                    UserEmail = _userEmail,
+                    Date = today,
+                    CardsStudied = 0,
+                    CorrectAnswers = 0
+                };
+                _context.StudyActivities.Add(activity);
+            }
+
+            activity.CardsStudied++;
+            if (isCorrect)
+            {
+                activity.CorrectAnswers++;
+            }
+
+            await _context.SaveChangesAsync();
+        }
+
+        /// <summary>
+        /// Получает текущий streak (количество дней подряд с активностью).
+        /// </summary>
+        public async Task<int> GetStreakAsync()
+        {
+            var activities = await _context.StudyActivities
+                .Where(a => a.UserEmail == _userEmail)
+                .OrderByDescending(a => a.Date)
+                .Select(a => a.Date)
+                .ToListAsync();
+
+            if (activities.Count == 0)
+            {
+                return 0;
+            }
+
+            var today = DateTime.UtcNow.Date;
+            var streak = 0;
+            var expectedDate = today;
+
+            // Если сегодня нет активности, проверяем со вчера
+            if (activities.Count == 0 || activities[0] != today)
+            {
+                expectedDate = today.AddDays(-1);
+            }
+
+            foreach (var date in activities)
+            {
+                if (date == expectedDate)
+                {
+                    streak++;
+                    expectedDate = expectedDate.AddDays(-1);
+                }
+                else if (date < expectedDate)
+                {
+                    // Пропущен день — streak прерван
+                    break;
+                }
+            }
+
+            return streak;
+        }
+
+        /// <summary>
+        /// Получает данные для календаря активности за последние N дней.
+        /// Возвращает словарь: дата → количество изученных карточек.
+        /// </summary>
+        public async Task<Dictionary<DateTime, int>> GetActivityCalendarAsync(int days = 35)
+        {
+            var startDate = DateTime.UtcNow.Date.AddDays(-days + 1);
+
+            var activities = await _context.StudyActivities
+                .Where(a => a.UserEmail == _userEmail && a.Date >= startDate)
+                .ToDictionaryAsync(a => a.Date, a => a.CardsStudied);
+
+            // Заполняем все дни, включая дни без активности
+            var result = new Dictionary<DateTime, int>();
+            for (var date = startDate; date <= DateTime.UtcNow.Date; date = date.AddDays(1))
+            {
+                result[date] = activities.GetValueOrDefault(date, 0);
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Получает статистику за сегодня.
+        /// </summary>
+        public async Task<(int CardsStudied, int CorrectAnswers, double SuccessRate)> GetTodayStatsAsync()
+        {
+            var today = DateTime.UtcNow.Date;
+
+            var activity = await _context.StudyActivities
+                .FirstOrDefaultAsync(a => a.UserEmail == _userEmail && a.Date == today);
+
+            if (activity == null || activity.CardsStudied == 0)
+            {
+                return (0, 0, 0);
+            }
+
+            var successRate = (double)activity.CorrectAnswers / activity.CardsStudied * 100;
+            return (activity.CardsStudied, activity.CorrectAnswers, successRate);
+        }
+
+        /// <summary>
+        /// Получает общее количество изученных карточек за всё время.
+        /// </summary>
+        public async Task<int> GetTotalCardsStudiedAsync()
+        {
+            return await _context.StudyActivities
+                .Where(a => a.UserEmail == _userEmail)
+                .SumAsync(a => a.CardsStudied);
         }
     }
 }
