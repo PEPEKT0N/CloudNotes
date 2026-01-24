@@ -52,6 +52,7 @@ namespace CloudNotes.Desktop.Services
         public MarkdownConverter()
         {
             pipeline = new MarkdownPipelineBuilder()
+                .UseAdvancedExtensions()  // Includes: tables, strikethrough, task lists, etc.
                 .Build();
         }
 
