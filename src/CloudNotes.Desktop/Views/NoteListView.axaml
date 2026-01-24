@@ -25,6 +25,9 @@
                                 <Separator x:Name="EmailSeparator" IsVisible="False" />
                                 <!-- Всегда видны -->
                                 <MenuItem x:Name="SignInMenuItem" Header="🔑 Log in / Sign up" />
+                                <Separator />
+                                <MenuItem x:Name="HelpMenuItem" Header="❓ Help" />
+                                <Separator />
                                 <MenuItem x:Name="LogoutMenuItem" Header="🚪 Sign out" IsEnabled="False" />
                             </MenuFlyout>
                         </Button.Flyout>
