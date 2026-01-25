@@ -25,6 +25,9 @@
                                 <Separator x:Name="EmailSeparator" IsVisible="False" />
                                 <!-- Всегда видны -->
                                 <MenuItem x:Name="SignInMenuItem" Header="🔑 Log in / Sign up" />
+                                <Separator />
+                                <MenuItem x:Name="HelpMenuItem" Header="❓ Help" />
+                                <Separator />
                                 <MenuItem x:Name="LogoutMenuItem" Header="🚪 Sign out" IsEnabled="False" />
                             </MenuFlyout>
                         </Button.Flyout>
@@ -45,6 +48,96 @@
                             FontSize="10"
                             Padding="5,3" />
                     <Button Content="📁 Create folder"
+                <!-- Widget: Due for review today -->
+                <Border x:Name="DueCardsWidget"
+                        Background="#FFF3E0"
+                        CornerRadius="8"
+                        Padding="10"
+                        Margin="0,5,0,10">
+                    <StackPanel>
+                        <TextBlock Text="Due for review today:"
+                                   FontSize="12"
+                                   Foreground="#666666" />
+                        <StackPanel Orientation="Horizontal" Spacing="5">
+                            <TextBlock x:Name="DueCardsCount"
+                                       Text="0"
+                                       FontSize="24"
+                                       FontWeight="Bold"
+                                       Foreground="#E65100" />
+                            <TextBlock Text="cards"
+                                       VerticalAlignment="Bottom"
+                                       Margin="0,0,0,4"
+                                       Foreground="#666666" />
+                        </StackPanel>
+                        <Button x:Name="ViewStatsButton"
+                                Content="View Statistics"
+                                Click="OnViewStatsClick"
+                                FontSize="11"
+                                Margin="0,5,0,0"
+                                Padding="8,4"
+                                Background="#FFE0B2"
+                                Foreground="#E65100" />
+                    </StackPanel>
+                </Border>
+
+                <Button Margin="0.5"
+                        Content="Create note"
+                        Command="{Binding CreateNoteCommand}" />
+
+                <!-- Сортировка (влияет на оба списка) -->
+                <StackPanel Orientation="Horizontal" Margin="0,15,0,0" HorizontalAlignment="Right">
+                    <TextBlock Text="Sort by"
+                               FontSize="12"
+                               VerticalAlignment="Center"
+                               Margin="0,0,5,0"
+                               Opacity="0.7" />
+                    <ComboBox ItemsSource="{Binding SortOptions}"
+                              SelectedItem="{Binding SelectedSortOption}"
+                              MinWidth="100"
+                              FontSize="12">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Converter={x:Static local:SortOptionConverter.Instance}}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </StackPanel>
+
+                <TextBlock Text="Favorites"
+                            FontWeight="Bold"
+                            FontSize="16"
+                            Margin="0,10,0,10" />
+
+                <ListBox ItemsSource="{Binding Favorites}"
+                         SelectedItem="{Binding SelectedFavoriteItem, Mode=TwoWay}"
+                         SelectionChanged="OnFavoritesSelectionChanged"
+                         MaxHeight="200">
+                    <ListBox.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Remove from favorites"
+                                        Command="{Binding RemoveFromFavoritesCommand}" />
+                            <MenuItem Header="Rename" Click="OnRenameMenuClick" />
+                            <MenuItem Header="Delete"
+                                        Command="{Binding DeleteNoteCommand}" />
+                        </ContextMenu> 
+                    </ListBox.ContextMenu>
+
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Title}" />
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+
+                <!-- Folders section -->
+                <TextBlock Text="Folders"
+                           FontWeight="Bold"
+                           FontSize="16"
+                           Margin="0,20,0,10" />
+
+                <StackPanel Orientation="Horizontal" Spacing="5" Margin="0,0,0,5">
+                    <Button Content="📁 New Folder"
                             Command="{Binding CreateFolderCommand}"
                             FontSize="10"
                             Padding="5,3" />

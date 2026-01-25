@@ -99,6 +99,12 @@
                                 Width="32" Height="32"
                                 ToolTip.Tip="Spoiler (Ctrl+H) - Hide selected text"
                                 Click="OnSpoilerButtonClick" />
+                        <Button x:Name="FlashcardButton"
+                                Content="🎴"
+                                Background="#FFFFFF"
+                                Width="32" Height="32"
+                                ToolTip.Tip="Insert flashcard template (??question::answer??)"
+                                Click="OnFlashcardButtonClick" />
                         <Rectangle Width="1" Fill="#AAAAAA" Margin="5,2" />
                         <Button x:Name="PreviewButton"
                                 Content="{Binding IsPreviewMode, Converter={x:Static local:PreviewButtonConverter.Instance}}"
@@ -107,6 +113,23 @@
                                 Width="60" Height="32"
                                 ToolTip.Tip="Toggle Preview (Ctrl+E)"
                                 Command="{Binding TogglePreviewModeCommand}" />
+                        <Rectangle Width="1" Fill="#AAAAAA" Margin="5,2" />
+                        <Button x:Name="StudyButton"
+                                Content="📚 Study"
+                                Foreground="Black"
+                                Background="#FFFFFF"
+                                Padding="8,0"
+                                Height="32"
+                                ToolTip.Tip="Study flashcards from current note"
+                                Click="OnStudyButtonClick" />
+                        <Button x:Name="StudyAllButton"
+                                Content="📚 Study by Tags"
+                                Foreground="Black"
+                                Background="#FFFFFF"
+                                Padding="8,0"
+                                Height="32"
+                                ToolTip.Tip="Study flashcards from notes with selected tags"
+                                Click="OnStudyAllButtonClick" />
                     </StackPanel>
                 </Border>
 
