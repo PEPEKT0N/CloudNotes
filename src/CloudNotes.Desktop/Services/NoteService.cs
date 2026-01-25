@@ -13,12 +13,28 @@ public class NoteService : INoteService
 {
     private readonly Func<AppDbContext> _contextFactory;
     private readonly IAuthService? _authService;
+    private readonly bool _shouldDisposeContext;
 
     public NoteService(AppDbContext context, IAuthService? authService = null)
     {
-        // Используем фабрику для создания нового контекста для каждой операции
-        // Это обеспечивает thread-safety
-        _contextFactory = CloudNotes.Services.DbContextProvider.CreateContext;
+        // Проверяем, является ли контекст InMemory (для тестов)
+        // Если да, используем его напрямую, иначе используем DbContextProvider
+        var isInMemory = context.Database.ProviderName?.Contains("InMemory") == true;
+        
+        if (isInMemory)
+        {
+            // Для InMemory базы используем переданный контекст напрямую
+            // (в тестах lifecycle управляется извне)
+            var capturedContext = context;
+            _contextFactory = () => capturedContext;
+            _shouldDisposeContext = false;
+        }
+        else
+        {
+            // Для SQLite создаем новые контексты через DbContextProvider
+            _contextFactory = CloudNotes.Services.DbContextProvider.CreateContext;
+            _shouldDisposeContext = true;
+        }
         _authService = authService;
     }
 
@@ -26,13 +42,26 @@ public class NoteService : INoteService
     {
         _contextFactory = contextFactory;
         _authService = authService;
+        _shouldDisposeContext = true;
     }
 
     private AppDbContext CreateContext() => _contextFactory();
 
     public async Task<Note> CreateNoteAsync(Note note)
     {
-        using var context = CreateContext();
+        var context = CreateContext();
+        if (_shouldDisposeContext)
+        {
+            using (context)
+            {
+                return await CreateNoteInternalAsync(context, note);
+            }
+        }
+        return await CreateNoteInternalAsync(context, note);
+    }
+
+    private async Task<Note> CreateNoteInternalAsync(AppDbContext context, Note note)
+    {
 
         // Новая заметка создается локально - помечаем как несинхронизированную
         if (!note.ServerId.HasValue)
@@ -56,7 +85,19 @@ public class NoteService : INoteService
 
     public async Task<IEnumerable<Note>> GetAllNoteAsync()
     {
-        using var context = CreateContext();
+        var context = CreateContext();
+        if (_shouldDisposeContext)
+        {
+            using (context)
+            {
+                return await GetAllNoteInternalAsync(context);
+            }
+        }
+        return await GetAllNoteInternalAsync(context);
+    }
+
+    private async Task<IEnumerable<Note>> GetAllNoteInternalAsync(AppDbContext context)
+    {
 
         // Фильтруем заметки по текущему пользователю
         var query = context.Notes.AsQueryable();
@@ -86,13 +127,32 @@ public class NoteService : INoteService
 
     public async Task<Note?> GetNoteByIdAsync(Guid id)
     {
-        using var context = CreateContext();
+        var context = CreateContext();
+        if (_shouldDisposeContext)
+        {
+            using (context)
+            {
+                return await context.Notes.FindAsync(id);
+            }
+        }
         return await context.Notes.FindAsync(id);
     }
 
     public async Task<bool> UpdateNoteAsync(Note note)
     {
-        using var context = CreateContext();
+        var context = CreateContext();
+        if (_shouldDisposeContext)
+        {
+            using (context)
+            {
+                return await UpdateNoteInternalAsync(context, note);
+            }
+        }
+        return await UpdateNoteInternalAsync(context, note);
+    }
+
+    private async Task<bool> UpdateNoteInternalAsync(AppDbContext context, Note note)
+    {
 
         var existingNote = await context.Notes.FindAsync(note.Id);
         if (existingNote == null)
@@ -140,8 +200,19 @@ public class NoteService : INoteService
 
     public async Task<bool> DeleteNoteAsync(Guid id)
     {
-        using var context = CreateContext();
+        var context = CreateContext();
+        if (_shouldDisposeContext)
+        {
+            using (context)
+            {
+                return await DeleteNoteInternalAsync(context, id);
+            }
+        }
+        return await DeleteNoteInternalAsync(context, id);
+    }
 
+    private async Task<bool> DeleteNoteInternalAsync(AppDbContext context, Guid id)
+    {
         var note = await context.Notes.FindAsync(id);
         if (note == null)
         {
