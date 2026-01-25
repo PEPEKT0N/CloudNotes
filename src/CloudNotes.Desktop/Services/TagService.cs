@@ -50,7 +50,7 @@ public class TagService : ITagService
     public async Task<Tag> CreateTagAsync(Tag tag)
     {
         using var context = CreateContext();
-        
+
         if (tag.Id == Guid.Empty)
         {
             tag.Id = Guid.NewGuid();
@@ -83,7 +83,7 @@ public class TagService : ITagService
     public async Task<bool> DeleteTagAsync(Guid id)
     {
         using var context = CreateContext();
-        
+
         var tag = await context.Tags.FindAsync(id);
         if (tag == null)
         {
@@ -110,7 +110,7 @@ public class TagService : ITagService
     public async Task AddTagToNoteAsync(Guid noteId, Guid tagId)
     {
         using var context = CreateContext();
-        
+
         var existingLink = await context.NoteTags
             .FirstOrDefaultAsync(nt => nt.NoteId == noteId && nt.TagId == tagId);
 
@@ -133,7 +133,7 @@ public class TagService : ITagService
     public async Task RemoveTagFromNoteAsync(Guid noteId, Guid tagId)
     {
         using var context = CreateContext();
-        
+
         var noteTag = await context.NoteTags
             .FirstOrDefaultAsync(nt => nt.NoteId == noteId && nt.TagId == tagId);
 

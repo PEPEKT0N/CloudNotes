@@ -22,7 +22,7 @@ public static class DbContextProvider
                 var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
                 optionsBuilder.UseSqlite($"Data Source={Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)}/CloudNotes/notes.db");
                 _singletonContext = new AppDbContext(optionsBuilder.Options);
-                
+
                 if (!_migrationsApplied)
                 {
                     _singletonContext.Database.Migrate(); // Applies migrations to update database schema

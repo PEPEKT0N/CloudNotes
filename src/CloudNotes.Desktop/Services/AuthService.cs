@@ -326,13 +326,13 @@ public class AuthService : IAuthService
     public async Task<string?> ForceRefreshTokenAsync()
     {
         Console.WriteLine("[AuthService] ForceRefreshTokenAsync called");
-        
+
         // Очищаем кэш, чтобы загрузить токены заново
         lock (_cacheLock)
         {
             _cachedTokens = null;
         }
-        
+
         var tokens = await LoadTokensAsync();
         if (tokens == null)
         {
@@ -341,7 +341,7 @@ public class AuthService : IAuthService
         }
 
         Console.WriteLine($"[AuthService] Current token expires at: {tokens.ExpiresAt:O}");
-        
+
         tokens = await TryRefreshTokensAsync(tokens);
         if (tokens == null)
         {

@@ -39,7 +39,7 @@ public class FolderService
     public async Task<IEnumerable<Folder>> GetAllFoldersAsync()
     {
         using var context = CreateContext();
-        
+
         // Фильтруем папки по текущему пользователю
         var query = context.Folders.AsQueryable();
 
@@ -92,7 +92,7 @@ public class FolderService
     public async Task<Folder> CreateFolderAsync(Folder folder)
     {
         using var context = CreateContext();
-        
+
         if (!folder.ServerId.HasValue)
         {
             folder.IsSynced = false;
@@ -121,7 +121,7 @@ public class FolderService
     public async Task<bool> UpdateFolderAsync(Folder folder)
     {
         using var context = CreateContext();
-        
+
         var existingFolder = await context.Folders.FindAsync(folder.Id);
         if (existingFolder == null)
         {
@@ -152,7 +152,7 @@ public class FolderService
     public async Task<bool> DeleteFolderAsync(Guid id)
     {
         using var context = CreateContext();
-        
+
         var folder = await context.Folders.FindAsync(id);
         if (folder == null)
         {
@@ -232,7 +232,7 @@ public class FolderService
             // Удаляем локальные папки текущего пользователя, которых нет на сервере
             var serverFolderIds = serverFolders.Select(sf => sf.Id).ToHashSet();
             var localFoldersToDelete = localFolders
-                .Where(f => 
+                .Where(f =>
                     // Удаляем только папки текущего пользователя
                     f.UserEmail == currentEmail &&
                     // Удаляем синхронизированные папки, которых нет на сервере

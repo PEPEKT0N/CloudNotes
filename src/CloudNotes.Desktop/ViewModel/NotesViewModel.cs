@@ -468,7 +468,7 @@ namespace CloudNotes.Desktop.ViewModel
         public async Task RefreshNotesAsync(bool? isLoggedIn = null)
         {
             await LoadNotesFromDbAsyncInternal(isLoggedIn);
-            
+
             // Загружаем папки только если пользователь авторизован
             // LoadFoldersAsync сам проверит гостевой режим и очистит папки
             await LoadFoldersAsync();
@@ -861,7 +861,7 @@ namespace CloudNotes.Desktop.ViewModel
         {
             // Рекурсивно ищем TreeItem с нужным ID
             TreeItem? foundItem = null;
-            
+
             void SearchInCollection(ObservableCollection<TreeItem> items)
             {
                 foreach (var item in items)
@@ -878,9 +878,9 @@ namespace CloudNotes.Desktop.ViewModel
                     }
                 }
             }
-            
+
             SearchInCollection(TreeItems);
-            
+
             if (foundItem != null && foundItem.Note != null)
             {
                 // Обновляем Note, чтобы TreeItem.Name автоматически обновился
