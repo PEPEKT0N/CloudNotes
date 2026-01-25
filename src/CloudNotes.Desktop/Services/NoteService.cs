@@ -33,7 +33,7 @@ public class NoteService : INoteService
     public async Task<Note> CreateNoteAsync(Note note)
     {
         using var context = CreateContext();
-        
+
         // Новая заметка создается локально - помечаем как несинхронизированную
         if (!note.ServerId.HasValue)
         {
@@ -57,7 +57,7 @@ public class NoteService : INoteService
     public async Task<IEnumerable<Note>> GetAllNoteAsync()
     {
         using var context = CreateContext();
-        
+
         // Фильтруем заметки по текущему пользователю
         var query = context.Notes.AsQueryable();
 
@@ -93,7 +93,7 @@ public class NoteService : INoteService
     public async Task<bool> UpdateNoteAsync(Note note)
     {
         using var context = CreateContext();
-        
+
         var existingNote = await context.Notes.FindAsync(note.Id);
         if (existingNote == null)
         {
@@ -108,7 +108,7 @@ public class NoteService : INoteService
         existingNote.ServerId = note.ServerId;
         existingNote.IsSynced = note.IsSynced;
         existingNote.FolderId = note.FolderId;
-        
+
         // Обновляем UserEmail если он был передан
         if (note.UserEmail != null)
         {
@@ -141,7 +141,7 @@ public class NoteService : INoteService
     public async Task<bool> DeleteNoteAsync(Guid id)
     {
         using var context = CreateContext();
-        
+
         var note = await context.Notes.FindAsync(id);
         if (note == null)
         {

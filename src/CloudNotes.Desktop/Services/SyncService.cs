@@ -71,7 +71,7 @@ public class SyncService : ISyncService
         {
             // API ошибки (401, 403, 400, 500 и т.д.) не требуют retry
             _logger?.LogError(ex, "Ошибка API при синхронизации: {StatusCode}", ex.StatusCode);
-            
+
             // Если 401 - токен истек, AuthHeaderHandler должен был обновить, но не получилось
             // Это означает, что refresh token тоже недействителен
             if (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
@@ -88,7 +88,7 @@ public class SyncService : ISyncService
                 _logger?.LogWarning("400 Bad Request при синхронизации. Возможно, проблема с данными заметки. Продолжаем работу без синхронизации.");
                 // Не пробрасываем исключение, продолжаем работу локально
             }
-            
+
             return false;
         }
         catch (Exception ex)
@@ -115,7 +115,7 @@ public class SyncService : ISyncService
             // 401 ошибка - токен истек
             // Пытаемся обновить токен и повторить запрос
             System.Diagnostics.Debug.WriteLine("SyncService: Got 401, attempting token refresh...");
-            
+
             var newToken = await _authService.ForceRefreshTokenAsync();
             if (!string.IsNullOrEmpty(newToken))
             {
@@ -185,7 +185,7 @@ public class SyncService : ISyncService
         // 4. Удаляем локальные заметки текущего пользователя, которых нет на сервере
         var serverNoteIds = serverNotes.Select(sn => sn.Id).ToHashSet();
         var localNotesToDelete = localNotes
-            .Where(n => 
+            .Where(n =>
                 // Удаляем только заметки текущего пользователя
                 n.UserEmail == currentEmail &&
                 // Удаляем синхронизированные заметки, которых нет на сервере

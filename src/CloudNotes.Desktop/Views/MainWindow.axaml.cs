@@ -25,7 +25,7 @@ public partial class MainWindow : Window
     private List<int> _searchMatches = new List<int>();
     private int _currentMatchIndex = -1;
     private string _lastSearchText = string.Empty;
-    
+
     // Сохраняем выделение текста перед потерей фокуса
     private int _savedSelectionStart = -1;
     private int _savedSelectionEnd = -1;
@@ -142,7 +142,7 @@ public partial class MainWindow : Window
         {
             System.Diagnostics.Debug.WriteLine($"KeyDown: Ctrl+{e.Key}");
         }
-        
+
         if (!e.KeyModifiers.HasFlag(KeyModifiers.Control))
             return;
 
@@ -169,10 +169,10 @@ public partial class MainWindow : Window
                 System.Diagnostics.Debug.WriteLine("=== Ctrl+V pressed ===");
                 System.Diagnostics.Debug.WriteLine($"SelectedNote: {_viewModel.SelectedNote != null}");
                 System.Diagnostics.Debug.WriteLine($"IsPreviewMode: {_viewModel.IsPreviewMode}");
-                
+
                 var handled = await HandleImagePasteAsync();
                 e.Handled = handled;
-                
+
                 if (handled)
                 {
                     System.Diagnostics.Debug.WriteLine("✓ Image pasted successfully, preventing default paste");
@@ -405,9 +405,9 @@ public partial class MainWindow : Window
         if (lineEnd == -1) lineEnd = currentText.Length;
         var lineText = currentText.Substring(lineStart, lineEnd - lineStart);
         var trimmedLine = lineText.TrimStart();
-        
+
         var numberedListRegex = new System.Text.RegularExpressions.Regex(@"^\d+\.\s");
-        
+
         if (trimmedLine.StartsWith("- ") || trimmedLine.StartsWith("* "))
         {
             // Уже есть маркер маркированного списка - не добавляем
@@ -472,14 +472,14 @@ public partial class MainWindow : Window
     {
         System.Diagnostics.Debug.WriteLine("=== HandleImagePasteAsync START ===");
         System.Console.WriteLine("=== HandleImagePasteAsync START ==="); // Также в консоль для видимости
-        
+
         if (_viewModel.SelectedNote == null)
         {
             System.Diagnostics.Debug.WriteLine("No note selected");
             System.Console.WriteLine("No note selected");
             return false;
         }
-        
+
         if (_viewModel.IsPreviewMode)
         {
             System.Diagnostics.Debug.WriteLine("Preview mode active");
@@ -503,7 +503,7 @@ public partial class MainWindow : Window
                 System.Diagnostics.Debug.WriteLine("TopLevel is null");
                 return false;
             }
-            
+
             if (topLevel.Clipboard == null)
             {
                 System.Diagnostics.Debug.WriteLine("Clipboard is null");
@@ -534,27 +534,27 @@ public partial class MainWindow : Window
             {
                 // В Avalonia может быть специальный метод для изображений
                 // Пробуем получить через стандартные форматы
-                var imageFormats = new[] { "image/png", "image/jpeg", "image/jpg", "image/bmp", "image/gif", 
+                var imageFormats = new[] { "image/png", "image/jpeg", "image/jpg", "image/bmp", "image/gif",
                                            "PNG", "JFIF", "DeviceIndependentBitmap", "CF_DIB", "CF_BITMAP" };
-                
+
                 foreach (var format in imageFormats)
                 {
                     if (!formats.Contains(format))
                         continue;
-                    
+
                     System.Diagnostics.Debug.WriteLine($"Trying format: {format}");
                     System.Console.WriteLine($"Trying format: {format}");
-                    
+
                     try
                     {
                         var imageData = await clipboard.GetDataAsync(format);
-                        
+
                         if (imageData == null)
                             continue;
-                        
+
                         System.Diagnostics.Debug.WriteLine($"Got data for format {format}, type: {imageData.GetType().Name}");
                         System.Console.WriteLine($"Got data for format {format}, type: {imageData.GetType().Name}");
-                        
+
                         // Пробуем разные способы получения Bitmap
                         if (imageData is Avalonia.Media.Imaging.Bitmap directBitmap)
                         {
@@ -599,7 +599,7 @@ public partial class MainWindow : Window
             }
 
             System.Diagnostics.Debug.WriteLine($"Bitmap created: {bitmap.PixelSize.Width}x{bitmap.PixelSize.Height}");
-            
+
             // Сохраняем изображение и вставляем ссылку
             await InsertImageFromBitmapAsync(bitmap);
             System.Diagnostics.Debug.WriteLine("=== HandleImagePasteAsync SUCCESS ===");
@@ -711,14 +711,14 @@ public partial class MainWindow : Window
 
             var newText = currentText.Insert(caretIndex, imageMarkdown);
             textBox.Text = newText;
-            
+
             // Обновляем Content заметки напрямую, чтобы изменения сохранились
             if (_viewModel.SelectedNote != null)
             {
                 _viewModel.SelectedNote.Content = newText;
                 System.Diagnostics.Debug.WriteLine("Note content updated in ViewModel (from path)");
             }
-            
+
             textBox.CaretIndex = caretIndex + imageMarkdown.Length;
             textBox.Focus();
             System.Diagnostics.Debug.WriteLine($"Image inserted successfully from path: {imagePath}");
@@ -737,13 +737,13 @@ public partial class MainWindow : Window
     private async System.Threading.Tasks.Task InsertImageFromBitmapAsync(Avalonia.Media.Imaging.Bitmap bitmap)
     {
         System.Diagnostics.Debug.WriteLine("=== InsertImageFromBitmapAsync START ===");
-        
+
         if (_viewModel.SelectedNote == null)
         {
             System.Diagnostics.Debug.WriteLine("No note selected in InsertImageFromBitmapAsync");
             return;
         }
-        
+
         if (_viewModel.IsPreviewMode)
         {
             System.Diagnostics.Debug.WriteLine("Preview mode in InsertImageFromBitmapAsync");
@@ -761,7 +761,7 @@ public partial class MainWindow : Window
         {
             System.Diagnostics.Debug.WriteLine($"Bitmap size: {bitmap.PixelSize.Width}x{bitmap.PixelSize.Height}");
             System.Diagnostics.Debug.WriteLine("Converting bitmap to base64...");
-            
+
             // Конвертируем Bitmap в PNG bytes
             // В Avalonia Bitmap.Save принимает Stream и сохраняет в PNG
             byte[] imageBytes;
@@ -774,13 +774,13 @@ public partial class MainWindow : Window
                     memoryStream.Position = 0; // Сбрасываем позицию потока
                     imageBytes = memoryStream.ToArray();
                 }
-                
+
                 if (imageBytes == null || imageBytes.Length == 0)
                 {
                     System.Diagnostics.Debug.WriteLine("Failed to convert bitmap to bytes - empty result");
                     return;
                 }
-                
+
                 System.Diagnostics.Debug.WriteLine($"Successfully converted bitmap to {imageBytes.Length} bytes");
             }
             catch (Exception saveEx)
@@ -790,7 +790,7 @@ public partial class MainWindow : Window
                 System.Diagnostics.Debug.WriteLine($"Stack: {saveEx.StackTrace}");
                 return;
             }
-            
+
             var base64String = Convert.ToBase64String(imageBytes);
             System.Diagnostics.Debug.WriteLine($"Base64 length: {base64String.Length}");
 
@@ -810,17 +810,17 @@ public partial class MainWindow : Window
 
             System.Diagnostics.Debug.WriteLine($"Inserting markdown at position {caretIndex}, length: {imageMarkdown.Length}");
             var newText = currentText.Insert(caretIndex, imageMarkdown);
-            
+
             // Обновляем текст в TextBox
             textBox.Text = newText;
-            
+
             // Обновляем Content заметки напрямую, чтобы изменения сохранились
             if (_viewModel.SelectedNote != null)
             {
                 _viewModel.SelectedNote.Content = newText;
                 System.Diagnostics.Debug.WriteLine("Note content updated in ViewModel");
             }
-            
+
             textBox.CaretIndex = caretIndex + imageMarkdown.Length;
             textBox.Focus();
             System.Diagnostics.Debug.WriteLine("=== InsertImageFromBitmapAsync SUCCESS ===");
@@ -987,7 +987,7 @@ public partial class MainWindow : Window
             return;
 
         var currentText = textBox.Text ?? string.Empty;
-        
+
         // Используем сохраненное выделение, если оно есть, иначе текущее
         int selectionStart;
         int selectionEnd;
@@ -1000,18 +1000,18 @@ public partial class MainWindow : Window
             selectionStart = _savedSelectionStart;
             selectionEnd = _savedSelectionEnd;
             selectionLength = selectionEnd - selectionStart;
-            
+
             // Проверяем границы сохраненного выделения
             if (selectionStart > currentText.Length)
                 selectionStart = currentText.Length;
             if (selectionEnd > currentText.Length)
                 selectionEnd = currentText.Length;
             selectionLength = selectionEnd - selectionStart;
-            
+
             selectedText = selectionLength > 0 && selectionStart < currentText.Length
                 ? currentText.Substring(selectionStart, selectionLength)
                 : string.Empty;
-            
+
             // Сбрасываем сохраненное выделение после использования
             _savedSelectionStart = -1;
             _savedSelectionEnd = -1;
@@ -1022,7 +1022,7 @@ public partial class MainWindow : Window
             selectionStart = textBox.SelectionStart;
             selectionEnd = textBox.SelectionEnd;
             selectionLength = selectionEnd - selectionStart;
-            
+
             selectedText = selectionLength > 0 && selectionStart < currentText.Length
                 ? currentText.Substring(selectionStart, Math.Min(selectionLength, currentText.Length - selectionStart))
                 : string.Empty;

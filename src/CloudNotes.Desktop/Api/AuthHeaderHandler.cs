@@ -55,22 +55,22 @@ public class AuthHeaderHandler : DelegatingHandler
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
             Console.WriteLine("[AuthHandler] Got 401 Unauthorized, attempting force token refresh...");
-            
+
             // Принудительно обновляем токен (токен уже истек, поэтому нужно обновить)
             var newAccessToken = await authService.ForceRefreshTokenAsync();
-            
+
             if (!string.IsNullOrEmpty(newAccessToken))
             {
                 Console.WriteLine($"[AuthHandler] Token refreshed, retrying request with new token ({newAccessToken.Length} chars)");
-                
+
                 // Создаем новый запрос (старый уже использован)
                 var retryRequest = CloneRequest(request);
                 retryRequest.Headers.Authorization = null; // Очищаем старый заголовок
                 retryRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", newAccessToken);
-                
+
                 // Повторяем запрос
                 response = await base.SendAsync(retryRequest, cancellationToken);
-                
+
                 // Если снова 401, значит refresh token тоже недействителен
                 if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
                 {
