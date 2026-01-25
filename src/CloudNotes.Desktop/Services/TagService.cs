@@ -156,4 +156,36 @@ public class TagService : ITagService
             .Select(nt => nt.Note)
             .ToListAsync();
     }
+
+    /// <summary>
+    /// Получает все карточки из заметок с указанными тегами.
+    /// </summary>
+    /// <param name="tagIds">Список ID тегов.</param>
+    /// <returns>Список кортежей (NoteId, Flashcard).</returns>
+    public async Task<List<(Guid NoteId, Flashcard Card)>> GetFlashcardsByTagsAsync(List<Guid> tagIds)
+    {
+        if (tagIds == null || tagIds.Count == 0)
+        {
+            return new List<(Guid, Flashcard)>();
+        }
+
+        // Получаем заметки, у которых есть хотя бы один из указанных тегов
+        var notes = await _context.Notes
+            .Include(n => n.NoteTags)
+            .Where(n => n.NoteTags.Any(nt => tagIds.Contains(nt.TagId)))
+            .ToListAsync();
+
+        var result = new List<(Guid NoteId, Flashcard Card)>();
+
+        foreach (var note in notes)
+        {
+            var cards = FlashcardParser.Parse(note.Content);
+            foreach (var card in cards)
+            {
+                result.Add((note.Id, card));
+            }
+        }
+
+        return result;
+    }
 }

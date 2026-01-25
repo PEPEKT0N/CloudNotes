@@ -21,6 +21,7 @@ public partial class MainWindow : Window
 {
     private NotesViewModel _viewModel;
     private IConflictService? _conflictService;
+    private IAuthService? _authService;
     private List<int> _searchMatches = new List<int>();
     private int _currentMatchIndex = -1;
     private string _lastSearchText = string.Empty;
@@ -38,8 +39,10 @@ public partial class MainWindow : Window
 
         NoteListViewControl.DataContext = _viewModel;
 
-        // Получаем ConflictService из DI
+        // Получаем сервисы из DI
         _conflictService = App.ServiceProvider?.GetService<IConflictService>();
+        _authService = App.ServiceProvider?.GetService<IAuthService>();
+
         if (_conflictService != null)
         {
             _conflictService.ConflictDetected += OnConflictDetected;
@@ -333,6 +336,49 @@ public partial class MainWindow : Window
 
     /// <summary>
     /// Вставляет маркер списка в начало текущей строки или создает новую строку со списком.
+    /// Вставляет шаблон карточки ??question::answer?? в текст.
+    /// </summary>
+    private void InsertFlashcardTemplate()
+    {
+        if (_viewModel.SelectedNote == null || _viewModel.IsPreviewMode)
+            return;
+
+        var textBox = NoteContentTextBox;
+        if (textBox == null)
+            return;
+
+        var currentText = textBox.Text ?? string.Empty;
+        var selectedText = textBox.SelectedText ?? string.Empty;
+        var caretIndex = textBox.CaretIndex;
+
+        if (caretIndex < 0) caretIndex = 0;
+        if (caretIndex > currentText.Length) caretIndex = currentText.Length;
+
+        string template;
+        int cursorOffset;
+
+        if (!string.IsNullOrEmpty(selectedText))
+        {
+            // Если есть выделение — используем его как вопрос
+            template = $"??{selectedText}::answer??";
+            cursorOffset = selectedText.Length + 4; // позиция после "::" для ввода ответа
+        }
+        else
+        {
+            // Вставляем пустой шаблон
+            template = "??question::answer??";
+            cursorOffset = 2; // позиция после "??" для ввода вопроса
+        }
+
+        var newText = currentText.Insert(caretIndex, template);
+        textBox.Text = newText;
+        textBox.CaretIndex = caretIndex + cursorOffset;
+        textBox.Focus();
+    }
+
+    /// <summary>
+    /// Оборачивает выделенный текст в указанные символы.
+    /// Если текст не выделен, вставляет маркеры и ставит курсор между ними.
     /// </summary>
     private void InsertListMarker(string marker)
     {

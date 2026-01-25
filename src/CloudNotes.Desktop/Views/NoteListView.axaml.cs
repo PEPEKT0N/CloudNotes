@@ -7,7 +7,9 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
+using CloudNotes.Desktop.Data;
 using CloudNotes.Desktop.Services;
+using CloudNotes.Services;
 using CloudNotes.Desktop.ViewModel;
 using CloudNotes.Desktop.Model;
 using Microsoft.Extensions.DependencyInjection;
@@ -38,6 +40,7 @@ public partial class NoteListView : UserControl
         // Обработчики меню авторизации
         SignInMenuItem.Click += OnSignInMenuItemClick;
         LogoutMenuItem.Click += OnLogoutMenuItemClick;
+        HelpMenuItem.Click += OnHelpMenuItemClick;
 
         // Инициализируем меню авторизации сразу (синхронно) чтобы избежать некорректного состояния
         InitializeAuthMenu();
@@ -68,13 +71,67 @@ public partial class NoteListView : UserControl
                 }
 
                 await viewModel.RefreshNotesAsync(isLoggedIn: isLoggedIn);
+
+                // Обновляем видимость кнопки "Show All"
+                ShowAllButton.IsVisible = viewModel.SelectedFolder != null;
+
+                // Обновляем виджет с количеством карточек на повторение
+                await UpdateDueCardsWidgetAsync();
             }
         };
+    }
+
+    /// <summary>
+    /// Обновляет виджет с количеством карточек, требующих повторения сегодня.
+    /// </summary>
+    public async Task UpdateDueCardsWidgetAsync()
+    {
+        try
+        {
+            var context = DbContextProvider.GetContext();
+            var userEmail = _currentUserEmail ?? string.Empty;
+            var srService = new SpacedRepetitionService(context, userEmail);
+
+            var dueCount = await srService.GetDueCardsCountAsync();
+
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                DueCardsCount.Text = dueCount.ToString();
+            });
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error updating due cards widget: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Обработчик нажатия на кнопку View Statistics.
+    /// </summary>
+    private async void OnViewStatsClick(object? sender, RoutedEventArgs e)
+    {
+        var owner = this.VisualRoot as Window;
+        if (owner == null) return;
+
+        var userEmail = _currentUserEmail ?? string.Empty;
+        await StatisticsDialog.ShowDialogAsync(owner, userEmail);
+
+        // Обновляем виджет после закрытия диалога статистики
+        await UpdateDueCardsWidgetAsync();
     }
 
     private async void OnSignInMenuItemClick(object? sender, RoutedEventArgs e)
     {
         await OpenAuthWindowAsync();
+    }
+
+    private async void OnHelpMenuItemClick(object? sender, RoutedEventArgs e)
+    {
+        var owner = this.VisualRoot as Window;
+        if (owner != null)
+        {
+            await HelpDialog.ShowDialogAsync(owner);
+        }
     }
 
     private async void OnLogoutMenuItemClick(object? sender, RoutedEventArgs e)
