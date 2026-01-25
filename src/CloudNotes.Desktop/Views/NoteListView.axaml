@@ -48,6 +48,11 @@
                             FontSize="10"
                             Padding="5,3" />
                     <Button Content="📁 Create folder"
+                            Command="{Binding CreateFolderCommand}"
+                            FontSize="10"
+                            Padding="5,3" />
+                </StackPanel>
+
                 <!-- Widget: Due for review today -->
                 <Border x:Name="DueCardsWidget"
                         Background="#FFF3E0"
