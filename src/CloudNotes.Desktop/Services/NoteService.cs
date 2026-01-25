@@ -20,7 +20,7 @@ public class NoteService : INoteService
         // Проверяем, является ли контекст InMemory (для тестов)
         // Если да, используем его напрямую, иначе используем DbContextProvider
         var isInMemory = context.Database.ProviderName?.Contains("InMemory") == true;
-        
+
         if (isInMemory)
         {
             // Для InMemory базы используем переданный контекст напрямую
