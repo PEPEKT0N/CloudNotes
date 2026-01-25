@@ -110,9 +110,9 @@ namespace CloudNotes.Desktop.Services
 
             // 4. Добавляем стили если есть spoiler, таблицы или изображения
             var styles = string.Empty;
-            if (html.Contains("class=\"spoiler\""))
+            if (html.Contains("class=\"spoiler\"") || html.Contains("class=\"flashcard\""))
             {
-                styles += SpoilerStyles;
+                styles += Styles;
             }
             if (html.Contains("<table>") || html.Contains("<table "))
             {
@@ -125,10 +125,6 @@ namespace CloudNotes.Desktop.Services
             if (!string.IsNullOrEmpty(styles))
             {
                 html = styles + html;
-            // 6. Добавляем стили если есть spoiler или flashcard
-            if (html.Contains("class=\"spoiler\"") || html.Contains("class=\"flashcard\""))
-            {
-                html = Styles + html;
             }
 
             return html;
