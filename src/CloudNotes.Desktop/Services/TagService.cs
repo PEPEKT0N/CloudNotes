@@ -169,8 +169,10 @@ public class TagService : ITagService
             return new List<(Guid, Flashcard)>();
         }
 
+        using var context = CreateContext();
+
         // Получаем заметки, у которых есть хотя бы один из указанных тегов
-        var notes = await _context.Notes
+        var notes = await context.Notes
             .Include(n => n.NoteTags)
             .Where(n => n.NoteTags.Any(nt => tagIds.Contains(nt.TagId)))
             .ToListAsync();

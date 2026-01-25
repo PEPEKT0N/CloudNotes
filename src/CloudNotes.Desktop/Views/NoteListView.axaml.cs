@@ -72,9 +72,6 @@ public partial class NoteListView : UserControl
 
                 await viewModel.RefreshNotesAsync(isLoggedIn: isLoggedIn);
 
-                // Обновляем видимость кнопки "Show All"
-                ShowAllButton.IsVisible = viewModel.SelectedFolder != null;
-
                 // Обновляем виджет с количеством карточек на повторение
                 await UpdateDueCardsWidgetAsync();
             }
