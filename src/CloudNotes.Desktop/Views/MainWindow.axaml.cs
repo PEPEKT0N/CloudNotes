@@ -1439,4 +1439,55 @@ public partial class MainWindow : Window
         textBox.SelectionStart = savedSelectionStart;
         textBox.SelectionEnd = savedSelectionEnd;
     }
+
+    /// <summary>
+    /// Обработчик нажатия на кнопку вставки шаблона карточки.
+    /// </summary>
+    private void OnFlashcardButtonClick(object? sender, RoutedEventArgs e)
+    {
+        InsertFlashcardTemplate();
+    }
+
+    /// <summary>
+    /// Обработчик нажатия на кнопку "Study" - изучение карточек из текущей заметки.
+    /// </summary>
+    private async void OnStudyButtonClick(object? sender, RoutedEventArgs e)
+    {
+        if (_viewModel.SelectedNote == null)
+            return;
+
+        var flashcards = FlashcardParser.Parse(_viewModel.SelectedNote.Content);
+        if (flashcards.Count == 0)
+            return;
+
+        var userEmail = _authService != null && await _authService.IsLoggedInAsync()
+            ? await _authService.GetCurrentUserEmailAsync()
+            : null;
+
+        await StudyDialog.ShowDialogAsync(this, flashcards, _viewModel.SelectedNote.Id, userEmail);
+    }
+
+    /// <summary>
+    /// Обработчик нажатия на кнопку "Study by Tags" - изучение карточек из заметок с выбранными тегами.
+    /// </summary>
+    private async void OnStudyAllButtonClick(object? sender, RoutedEventArgs e)
+    {
+        var userEmail = _authService != null && await _authService.IsLoggedInAsync()
+            ? await _authService.GetCurrentUserEmailAsync()
+            : null;
+
+        var (isConfirmed, selectedTagIds) = await TagSelectionDialog.ShowDialogAsync(this, userEmail);
+        if (!isConfirmed || selectedTagIds.Count == 0)
+            return;
+
+        var tagService = App.ServiceProvider?.GetService<ITagService>();
+        if (tagService == null)
+            return;
+
+        var cards = await tagService.GetFlashcardsByTagsAsync(selectedTagIds);
+        if (cards == null || cards.Count == 0)
+            return;
+
+        await StudyDialog.ShowDialogByTagsAsync(this, cards, userEmail);
+    }
 }

@@ -208,6 +208,42 @@ public class GuestTagService : ITagService
         return allNotes.Where(n => noteIds.Contains(n.Id)).ToList();
     }
 
+    /// <inheritdoc />
+    public async Task<List<(Guid NoteId, Flashcard Card)>> GetFlashcardsByTagsAsync(List<Guid> tagIds)
+    {
+        if (tagIds == null || tagIds.Count == 0)
+        {
+            return new List<(Guid, Flashcard)>();
+        }
+
+        List<Guid> noteIds;
+        lock (_lock)
+        {
+            // Получаем заметки, у которых есть хотя бы один из указанных тегов
+            noteIds = _noteTags
+                .Where(nt => tagIds.Contains(nt.TagId))
+                .Select(nt => nt.NoteId)
+                .Distinct()
+                .ToList();
+        }
+
+        var allNotes = await _guestNoteService.GetAllNoteAsync();
+        var notes = allNotes.Where(n => noteIds.Contains(n.Id)).ToList();
+
+        var result = new List<(Guid NoteId, Flashcard Card)>();
+
+        foreach (var note in notes)
+        {
+            var cards = FlashcardParser.Parse(note.Content);
+            foreach (var card in cards)
+            {
+                result.Add((note.Id, card));
+            }
+        }
+
+        return result;
+    }
+
     /// <summary>
     /// Сбрасывает гостевое хранилище тегов к начальному состоянию.
     /// </summary>

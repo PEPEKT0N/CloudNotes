@@ -59,4 +59,9 @@ public interface ITagService
     /// Получает заметки с указанным тегом.
     /// </summary>
     Task<IEnumerable<Note>> GetNotesWithTagAsync(Guid tagId);
+
+    /// <summary>
+    /// Получает все карточки из заметок с указанными тегами.
+    /// </summary>
+    Task<List<(Guid NoteId, Flashcard Card)>> GetFlashcardsByTagsAsync(List<Guid> tagIds);
 }
