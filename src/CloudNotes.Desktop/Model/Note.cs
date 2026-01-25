@@ -34,5 +34,10 @@ public class Note
     /// </summary>
     public Guid? FolderId { get; set; }
 
+    /// <summary>
+    /// Email пользователя-владельца заметки (для изоляции данных разных пользователей).
+    /// </summary>
+    public string? UserEmail { get; set; }
+
     public ICollection<NoteTag> NoteTags { get; set; } = new List<NoteTag>();
 }

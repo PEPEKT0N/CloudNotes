@@ -49,7 +49,50 @@
                                 Width="32" Height="32"
                                 ToolTip.Tip="Italic (Ctrl+I)"
                                 Click="OnItalicButtonClick" />
+                        <Button x:Name="StrikethroughButton"
+                                Foreground="Black"
+                                Background="#FFFFFF"
+                                Width="32" Height="32"
+                                ToolTip.Tip="Strikethrough"
+                                Click="OnStrikethroughButtonClick">
+                            <TextBlock Text="S" TextDecorations="Strikethrough" />
+                        </Button>
+                        <Button x:Name="UnorderedListButton"
+                                Content="•"
+                                Foreground="Black"
+                                Background="#FFFFFF"
+                                Width="32" Height="32"
+                                FontSize="18"
+                                ToolTip.Tip="Unordered List"
+                                Click="OnUnorderedListButtonClick" />
+                        <Button x:Name="OrderedListButton"
+                                Content="1."
+                                Foreground="Black"
+                                Background="#FFFFFF"
+                                Width="32" Height="32"
+                                ToolTip.Tip="Ordered List"
+                                Click="OnOrderedListButtonClick" />
+                        <Button x:Name="TableButton"
+                                Content="⊞"
+                                Foreground="Black"
+                                Background="#FFFFFF"
+                                Width="32" Height="32"
+                                FontSize="16"
+                                ToolTip.Tip="Insert Table"
+                                Click="OnTableButtonClick" />
+                        <Button x:Name="ImageButton"
+                                Content="🖼️"
+                                Background="#FFFFFF"
+                                Width="32" Height="32"
+                                ToolTip.Tip="Insert Image (Ctrl+V)"
+                                Click="OnImageButtonClick" />
                         <Rectangle Width="1" Fill="#AAAAAA" Margin="5,2" />
+                        <Button x:Name="LinkButton"
+                                Content="🔗"
+                                Background="#FFFFFF"
+                                Width="32" Height="32"
+                                ToolTip.Tip="Insert Link"
+                                Click="OnLinkButtonClick" />
                         <Button x:Name="SpoilerButton"
                                 Content="🙈"
                                 Background="#FFFFFF"
@@ -152,7 +195,8 @@
                              IsEnabled="{Binding SelectedNote, Converter={x:Static ObjectConverters.IsNotNull}}"
                              Text="{Binding SelectedNote.Content, Mode=TwoWay}"
                              Watermark="Select a note"
-                             KeyDown="OnNoteContentKeyDown" />
+                             KeyDown="OnNoteContentKeyDown"
+                             LostFocus="OnNoteContentLostFocus" />
                     <!-- Canvas для подсветки найденных слов -->
                     <Canvas x:Name="SearchHighlightCanvas"
                             IsHitTestVisible="False"

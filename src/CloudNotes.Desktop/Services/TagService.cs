@@ -13,43 +13,93 @@ namespace CloudNotes.Desktop.Services;
 /// </summary>
 public class TagService : ITagService
 {
-    private readonly AppDbContext _context;
+    private readonly Func<AppDbContext> _contextFactory;
+    private readonly bool _shouldDisposeContext;
 
     public TagService(AppDbContext context)
     {
-        _context = context;
+        // Проверяем, является ли контекст InMemory (для тестов)
+        var isInMemory = context.Database.ProviderName?.Contains("InMemory") == true;
+
+        if (isInMemory)
+        {
+            // Для InMemory базы используем переданный контекст напрямую
+            var capturedContext = context;
+            _contextFactory = () => capturedContext;
+            _shouldDisposeContext = false;
+        }
+        else
+        {
+            // Для SQLite создаем новые контексты через DbContextProvider
+            _contextFactory = CloudNotes.Services.DbContextProvider.CreateContext;
+            _shouldDisposeContext = true;
+        }
+    }
+
+    private AppDbContext CreateContext() => _contextFactory();
+
+    private async Task<T> ExecuteWithContextAsync<T>(Func<AppDbContext, Task<T>> operation)
+    {
+        var context = CreateContext();
+        if (_shouldDisposeContext)
+        {
+            using (context)
+            {
+                return await operation(context);
+            }
+        }
+        return await operation(context);
+    }
+
+    private async Task ExecuteWithContextAsync(Func<AppDbContext, Task> operation)
+    {
+        var context = CreateContext();
+        if (_shouldDisposeContext)
+        {
+            using (context)
+            {
+                await operation(context);
+            }
+        }
+        else
+        {
+            await operation(context);
+        }
     }
 
     /// <inheritdoc />
     public async Task<IEnumerable<Tag>> GetAllTagsAsync()
     {
-        return await _context.Tags.ToListAsync();
+        return await ExecuteWithContextAsync(async context => await context.Tags.ToListAsync());
     }
 
     /// <inheritdoc />
     public async Task<Tag?> GetTagByIdAsync(Guid id)
     {
-        return await _context.Tags.FindAsync(id);
+        return await ExecuteWithContextAsync(async context => await context.Tags.FindAsync(id));
     }
 
     /// <inheritdoc />
     public async Task<Tag?> GetTagByNameAsync(string name)
     {
-        return await _context.Tags
-            .FirstOrDefaultAsync(t => t.Name.ToLower() == name.ToLower());
+        return await ExecuteWithContextAsync(async context => await context.Tags
+            .FirstOrDefaultAsync(t => t.Name.ToLower() == name.ToLower()));
     }
 
     /// <inheritdoc />
     public async Task<Tag> CreateTagAsync(Tag tag)
     {
-        if (tag.Id == Guid.Empty)
+        return await ExecuteWithContextAsync(async context =>
         {
-            tag.Id = Guid.NewGuid();
-        }
+            if (tag.Id == Guid.Empty)
+            {
+                tag.Id = Guid.NewGuid();
+            }
 
-        _context.Tags.Add(tag);
-        await _context.SaveChangesAsync();
-        return tag;
+            context.Tags.Add(tag);
+            await context.SaveChangesAsync();
+            return tag;
+        });
     }
 
     /// <inheritdoc />
@@ -73,71 +123,80 @@ public class TagService : ITagService
     /// <inheritdoc />
     public async Task<bool> DeleteTagAsync(Guid id)
     {
-        var tag = await _context.Tags.FindAsync(id);
-        if (tag == null)
+        return await ExecuteWithContextAsync(async context =>
         {
-            return false;
-        }
+            var tag = await context.Tags.FindAsync(id);
+            if (tag == null)
+            {
+                return false;
+            }
 
-        _context.Tags.Remove(tag);
-        await _context.SaveChangesAsync();
-        return true;
+            context.Tags.Remove(tag);
+            await context.SaveChangesAsync();
+            return true;
+        });
     }
 
     /// <inheritdoc />
     public async Task<IEnumerable<Tag>> GetTagsForNoteAsync(Guid noteId)
     {
-        return await _context.NoteTags
+        return await ExecuteWithContextAsync(async context => await context.NoteTags
             .Where(nt => nt.NoteId == noteId)
             .Include(nt => nt.Tag)
             .Select(nt => nt.Tag)
-            .ToListAsync();
+            .ToListAsync());
     }
 
     /// <inheritdoc />
     public async Task AddTagToNoteAsync(Guid noteId, Guid tagId)
     {
-        var existingLink = await _context.NoteTags
-            .FirstOrDefaultAsync(nt => nt.NoteId == noteId && nt.TagId == tagId);
-
-        if (existingLink != null)
+        await ExecuteWithContextAsync(async context =>
         {
-            return; // Связь уже существует
-        }
+            var existingLink = await context.NoteTags
+                .FirstOrDefaultAsync(nt => nt.NoteId == noteId && nt.TagId == tagId);
 
-        var noteTag = new NoteTag
-        {
-            NoteId = noteId,
-            TagId = tagId
-        };
+            if (existingLink != null)
+            {
+                return; // Связь уже существует
+            }
 
-        _context.NoteTags.Add(noteTag);
-        await _context.SaveChangesAsync();
+            var noteTag = new NoteTag
+            {
+                NoteId = noteId,
+                TagId = tagId
+            };
+
+            context.NoteTags.Add(noteTag);
+            await context.SaveChangesAsync();
+        });
     }
 
     /// <inheritdoc />
     public async Task RemoveTagFromNoteAsync(Guid noteId, Guid tagId)
     {
-        var noteTag = await _context.NoteTags
-            .FirstOrDefaultAsync(nt => nt.NoteId == noteId && nt.TagId == tagId);
-
-        if (noteTag == null)
+        await ExecuteWithContextAsync(async context =>
         {
-            return;
-        }
+            var noteTag = await context.NoteTags
+                .FirstOrDefaultAsync(nt => nt.NoteId == noteId && nt.TagId == tagId);
 
-        _context.NoteTags.Remove(noteTag);
-        await _context.SaveChangesAsync();
+            if (noteTag == null)
+            {
+                return;
+            }
+
+            context.NoteTags.Remove(noteTag);
+            await context.SaveChangesAsync();
+        });
     }
 
     /// <inheritdoc />
     public async Task<IEnumerable<Note>> GetNotesWithTagAsync(Guid tagId)
     {
-        return await _context.NoteTags
+        return await ExecuteWithContextAsync(async context => await context.NoteTags
             .Where(nt => nt.TagId == tagId)
             .Include(nt => nt.Note)
             .Select(nt => nt.Note)
-            .ToListAsync();
+            .ToListAsync());
     }
 
     /// <summary>
@@ -152,23 +211,26 @@ public class TagService : ITagService
             return new List<(Guid, Flashcard)>();
         }
 
-        // Получаем заметки, у которых есть хотя бы один из указанных тегов
-        var notes = await _context.Notes
-            .Include(n => n.NoteTags)
-            .Where(n => n.NoteTags.Any(nt => tagIds.Contains(nt.TagId)))
-            .ToListAsync();
-
-        var result = new List<(Guid NoteId, Flashcard Card)>();
-
-        foreach (var note in notes)
+        return await ExecuteWithContextAsync(async context =>
         {
-            var cards = FlashcardParser.Parse(note.Content);
-            foreach (var card in cards)
-            {
-                result.Add((note.Id, card));
-            }
-        }
+            // Получаем заметки, у которых есть хотя бы один из указанных тегов
+            var notes = await context.Notes
+                .Include(n => n.NoteTags)
+                .Where(n => n.NoteTags.Any(nt => tagIds.Contains(nt.TagId)))
+                .ToListAsync();
 
-        return result;
+            var result = new List<(Guid NoteId, Flashcard Card)>();
+
+            foreach (var note in notes)
+            {
+                var cards = FlashcardParser.Parse(note.Content);
+                foreach (var card in cards)
+                {
+                    result.Add((note.Id, card));
+                }
+            }
+
+            return result;
+        });
     }
 }

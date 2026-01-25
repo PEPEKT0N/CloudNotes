@@ -16,16 +16,18 @@ public class NoteServiceFactory : INoteServiceFactory
     private readonly INoteService _authenticatedNoteService;
     private readonly ITagService _authenticatedTagService;
     private readonly AppDbContext _dbContext;
+    private readonly IAuthService? _authService;
     private bool _isGuestMode = true;
 
     public event Action<bool>? ModeChanged;
 
-    public NoteServiceFactory(AppDbContext dbContext)
+    public NoteServiceFactory(AppDbContext dbContext, IAuthService? authService = null)
     {
         _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
+        _authService = authService;
         _guestNoteService = new GuestNoteService();
         _guestTagService = new GuestTagService(_guestNoteService);
-        _authenticatedNoteService = new NoteService(dbContext);
+        _authenticatedNoteService = new NoteService(dbContext, authService);
         _authenticatedTagService = new TagService(dbContext);
     }
 
@@ -82,7 +84,10 @@ public class NoteServiceFactory : INoteServiceFactory
             // Удаляем все заметки
             await _dbContext.Notes.ExecuteDeleteAsync();
 
-            System.Diagnostics.Debug.WriteLine("NoteServiceFactory: Local database cleared successfully");
+            // Удаляем все папки
+            await _dbContext.Folders.ExecuteDeleteAsync();
+
+            System.Diagnostics.Debug.WriteLine("NoteServiceFactory: Local database cleared successfully (including folders)");
         }
         catch (Exception ex)
         {

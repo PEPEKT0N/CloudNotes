@@ -69,8 +69,26 @@ public class SyncService : ISyncService
         }
         catch (ApiException ex)
         {
-            // API ошибки (401, 403, 500 и т.д.) не требуют retry
+            // API ошибки (401, 403, 400, 500 и т.д.) не требуют retry
             _logger?.LogError(ex, "Ошибка API при синхронизации: {StatusCode}", ex.StatusCode);
+
+            // Если 401 - токен истек, AuthHeaderHandler должен был обновить, но не получилось
+            // Это означает, что refresh token тоже недействителен
+            if (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                System.Diagnostics.Debug.WriteLine("SyncService: 401 Unauthorized - refresh token invalid, user needs to re-login");
+                // Не пробрасываем исключение дальше, просто возвращаем false
+                // UI должен обработать это и предложить перелогиниться
+            }
+            else if (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            {
+                // 400 Bad Request - проблема с данными запроса
+                System.Diagnostics.Debug.WriteLine($"SyncService: 400 Bad Request - {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Content: {ex.Content}");
+                _logger?.LogWarning("400 Bad Request при синхронизации. Возможно, проблема с данными заметки. Продолжаем работу без синхронизации.");
+                // Не пробрасываем исключение, продолжаем работу локально
+            }
+
             return false;
         }
         catch (Exception ex)
@@ -83,8 +101,34 @@ public class SyncService : ISyncService
     // Основная логика синхронизации
     private async Task<bool> PerformSyncAsync()
     {
+        // Получаем email текущего пользователя один раз
+        var currentEmail = await _authService.GetCurrentUserEmailAsync();
+
         // 1. Получаем все заметки с сервера
-        var serverNotes = await _api.GetNotesAsync();
+        IReadOnlyList<NoteDto> serverNotes;
+        try
+        {
+            serverNotes = await _api.GetNotesAsync();
+        }
+        catch (Refit.ApiException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            // 401 ошибка - токен истек
+            // Пытаемся обновить токен и повторить запрос
+            System.Diagnostics.Debug.WriteLine("SyncService: Got 401, attempting token refresh...");
+
+            var newToken = await _authService.ForceRefreshTokenAsync();
+            if (!string.IsNullOrEmpty(newToken))
+            {
+                System.Diagnostics.Debug.WriteLine("SyncService: Token refreshed, retrying GetNotesAsync...");
+                // Повторяем запрос с новым токеном
+                serverNotes = await _api.GetNotesAsync();
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("SyncService: Token refresh failed, user needs to re-login");
+                throw; // Пробрасываем дальше для обработки в UI
+            }
+        }
 
         // 2. Получаем все локальные заметки
         var localNotes = await _noteService.GetAllNoteAsync();
@@ -107,6 +151,7 @@ public class SyncService : ISyncService
                     localNote.UpdatedAt = serverNote.UpdatedAt;
                     localNote.ServerId = serverNote.Id;
                     localNote.IsSynced = true;
+                    localNote.UserEmail = currentEmail; // Обновляем UserEmail при синхронизации
                     await _noteService.UpdateNoteAsync(localNote);
 
                     // Синхронизируем теги с сервера
@@ -119,6 +164,7 @@ public class SyncService : ISyncService
                     // Локальная заметка не синхронизирована, но серверная версия не новее - просто обновляем ServerId и IsSynced
                     localNote.ServerId = serverNote.Id;
                     localNote.IsSynced = true;
+                    localNote.UserEmail = currentEmail; // Обновляем UserEmail при синхронизации
                     await _noteService.UpdateNoteAsync(localNote);
                     _logger?.LogInformation("Синхронизирована заметка {NoteId}", serverNote.Id);
                 }
@@ -126,7 +172,7 @@ public class SyncService : ISyncService
             else
             {
                 // Новая заметка с сервера - создаем локально
-                var newNote = NoteMapper.ToLocal(serverNote);
+                var newNote = NoteMapper.ToLocal(serverNote, currentEmail);
                 await _noteService.CreateNoteAsync(newNote);
 
                 // Синхронизируем теги с сервера
@@ -136,8 +182,24 @@ public class SyncService : ISyncService
             }
         }
 
-        // 4. Отправляем несинхронизированные локальные изменения на сервер (очередь несинхронизированных изменений)
-        var unsyncedNotes = localNotes.Where(n => !n.IsSynced).ToList();
+        // 4. Удаляем локальные заметки текущего пользователя, которых нет на сервере
+        var serverNoteIds = serverNotes.Select(sn => sn.Id).ToHashSet();
+        var localNotesToDelete = localNotes
+            .Where(n =>
+                // Удаляем только заметки текущего пользователя
+                n.UserEmail == currentEmail &&
+                // Удаляем синхронизированные заметки, которых нет на сервере
+                n.ServerId.HasValue && !serverNoteIds.Contains(n.ServerId.Value))
+            .ToList();
+
+        foreach (var noteToDelete in localNotesToDelete)
+        {
+            await _noteService.DeleteNoteAsync(noteToDelete.Id);
+            _logger?.LogInformation("Удалена локальная заметка {NoteId}, которой нет на сервере", noteToDelete.Id);
+        }
+
+        // 5. Отправляем несинхронизированные локальные изменения на сервер (очередь несинхронизированных изменений)
+        var unsyncedNotes = localNotes.Where(n => !n.IsSynced && !localNotesToDelete.Contains(n)).ToList();
 
         foreach (var localNote in unsyncedNotes)
         {
@@ -186,6 +248,14 @@ public class SyncService : ISyncService
                         {
                             HandleConflictFromException(localNote, ex);
                         }
+                        else if (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                        {
+                            // 400 Bad Request - проблема с данными заметки
+                            System.Diagnostics.Debug.WriteLine($"400 Bad Request при обновлении заметки {localNote.ServerId.Value}: {ex.Message}");
+                            System.Diagnostics.Debug.WriteLine($"Content: {ex.Content}");
+                            _logger?.LogWarning(ex, "400 Bad Request при обновлении заметки {NoteId} на сервере. Пропускаем эту заметку.", localNote.ServerId.Value);
+                            // Пропускаем эту заметку, продолжаем синхронизацию остальных
+                        }
                         else
                         {
                             _logger?.LogError(ex, "Ошибка при обновлении заметки {NoteId} на сервере", localNote.ServerId.Value);
@@ -218,9 +288,37 @@ public class SyncService : ISyncService
                 }
                 catch (ApiException ex)
                 {
-                    _logger?.LogError(ex, "Ошибка при создании заметки {NoteId} на сервере", localNote.Id);
+                    if (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                    {
+                        // 400 Bad Request - проблема с данными заметки
+                        System.Diagnostics.Debug.WriteLine($"400 Bad Request при создании заметки {localNote.Id}: {ex.Message}");
+                        System.Diagnostics.Debug.WriteLine($"Content: {ex.Content}");
+                        _logger?.LogWarning(ex, "400 Bad Request при создании заметки {NoteId} на сервере. Пропускаем эту заметку.", localNote.Id);
+                        // Пропускаем эту заметку, продолжаем синхронизацию остальных
+                    }
+                    else
+                    {
+                        _logger?.LogError(ex, "Ошибка при создании заметки {NoteId} на сервере", localNote.Id);
+                    }
                 }
             }
+        }
+
+        // 6. Синхронизируем папки
+        try
+        {
+            var folderService = new FolderService(
+                DbContextProvider.GetContext(),
+                _api,
+                _authService,
+                null); // Логгер не обязателен для FolderService
+            await folderService.SyncFoldersAsync();
+            _logger?.LogInformation("Синхронизация папок завершена");
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Ошибка при синхронизации папок");
+            // Продолжаем выполнение даже если синхронизация папок не удалась
         }
 
         _logger?.LogInformation("Синхронизация завершена успешно");

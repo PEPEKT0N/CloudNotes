@@ -3,6 +3,7 @@ using System;
 using CloudNotes.Desktop.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,87 +11,14 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CloudNotes.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260124173827_AddUserEmailToNotesAndFolders")]
+    partial class AddUserEmailToNotesAndFolders
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.10");
-
-            modelBuilder.Entity("CloudNotes.Desktop.Model.FavoriteTagCombo", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("TagIdsJson")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UserEmail")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserEmail");
-
-                    b.ToTable("FavoriteTagCombos");
-                });
-
-            modelBuilder.Entity("CloudNotes.Desktop.Model.FlashcardStats", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("CorrectAnswers")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<double>("EaseFactor")
-                        .HasColumnType("REAL");
-
-                    b.Property<int>("IntervalDays")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("LastReviewDate")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("NextReviewDate")
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("NoteId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("QuestionHash")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("RepetitionCount")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("TotalReviews")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("UserEmail")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserEmail", "QuestionHash")
-                        .IsUnique();
-
-                    b.ToTable("FlashcardStats");
-                });
 
             modelBuilder.Entity("CloudNotes.Desktop.Model.Folder", b =>
                 {
@@ -179,33 +107,6 @@ namespace CloudNotes.Migrations
                     b.HasIndex("TagId");
 
                     b.ToTable("NoteTags");
-                });
-
-            modelBuilder.Entity("CloudNotes.Desktop.Model.StudyActivity", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("CardsStudied")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("CorrectAnswers")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("Date")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UserEmail")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserEmail", "Date")
-                        .IsUnique();
-
-                    b.ToTable("StudyActivities");
                 });
 
             modelBuilder.Entity("CloudNotes.Desktop.Model.Tag", b =>

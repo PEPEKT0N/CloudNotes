@@ -1,11 +1,13 @@
 using System.Text.RegularExpressions;
 using Markdig;
+using Markdig.Extensions.Tables;
 using Markdig.Extensions.EmphasisExtras;
 
 namespace CloudNotes.Desktop.Services
 {
     /// <summary>
     /// Сервис для конвертации Markdown в HTML с использованием Markdig.
+    /// Поддерживает: headers, bold, italic, lists, spoiler, tables.
     /// Поддерживает: headers, bold, italic, lists, spoiler, flashcards.
     /// </summary>
     public class MarkdownConverter : IMarkdownConverter
@@ -13,9 +15,11 @@ namespace CloudNotes.Desktop.Services
         private readonly MarkdownPipeline pipeline;
 
         // Regex для поиска spoiler синтаксиса ||текст||
+        // Не захватывает таблицы - spoiler должен быть в одной строке или не содержать структуру таблицы
+        // Ограничиваем spoiler одной строкой или небольшим блоком без переносов строк, начинающихся с |
         private static readonly Regex SpoilerRegex = new Regex(
-            @"\|\|(.+?)\|\|",
-            RegexOptions.Singleline | RegexOptions.Compiled);
+            @"\|\|([^\r\n]+?)\|\|",
+            RegexOptions.Compiled);
 
         // Regex для поиска flashcard синтаксиса ??вопрос::ответ??
         private static readonly Regex FlashcardRegex = new Regex(
@@ -53,6 +57,7 @@ namespace CloudNotes.Desktop.Services
         public MarkdownConverter()
         {
             pipeline = new MarkdownPipelineBuilder()
+                .UseAdvancedExtensions()
                 .UsePipeTables()  // Tables support
                 .UseEmphasisExtras(EmphasisExtraOptions.Strikethrough)  // ~~strikethrough~~
                 .UseTaskLists()  // - [ ] and - [x] task lists
@@ -103,10 +108,23 @@ namespace CloudNotes.Desktop.Services
                 return $"<span class=\"spoiler\">{hiddenText}</span>";
             });
 
-            // 6. Добавляем стили если есть spoiler или flashcard
+            // 4. Добавляем стили если есть spoiler, таблицы или изображения
+            var styles = string.Empty;
             if (html.Contains("class=\"spoiler\"") || html.Contains("class=\"flashcard\""))
             {
-                html = Styles + html;
+                styles += Styles;
+            }
+            if (html.Contains("<table>") || html.Contains("<table "))
+            {
+                styles += "<style>table{border-collapse:collapse;width:100%;margin:10px 0;}th,td{border:1px solid #ddd;padding:8px;text-align:left;}th{background-color:#f2f2f2;font-weight:bold;}</style>";
+            }
+            if (html.Contains("<img") || html.Contains("data:image"))
+            {
+                styles += "<style>img{max-width:100%;height:auto;display:block;margin:10px 0;}</style>";
+            }
+            if (!string.IsNullOrEmpty(styles))
+            {
+                html = styles + html;
             }
 
             return html;
