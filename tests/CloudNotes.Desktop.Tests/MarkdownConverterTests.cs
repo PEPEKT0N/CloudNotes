@@ -22,7 +22,7 @@ namespace CloudNotes.Desktop.Tests
 
                 var result = _converter.ConvertToHtml(markdown);
 
-                Assert.Contains("<h1>", result);
+                Assert.Contains("<h1", result);
                 Assert.Contains("Заголовок первого уровня", result);
                 Assert.Contains("</h1>", result);
             }
@@ -34,7 +34,7 @@ namespace CloudNotes.Desktop.Tests
 
                 var result = _converter.ConvertToHtml(markdown);
 
-                Assert.Contains("<h2>", result);
+                Assert.Contains("<h2", result);
                 Assert.Contains("Заголовок второго уровня", result);
                 Assert.Contains("</h2>", result);
             }
@@ -46,7 +46,7 @@ namespace CloudNotes.Desktop.Tests
 
                 var result = _converter.ConvertToHtml(markdown);
 
-                Assert.Contains("<h3>", result);
+                Assert.Contains("<h3", result);
                 Assert.Contains("Заголовок третьего уровня", result);
                 Assert.Contains("</h3>", result);
             }
@@ -58,9 +58,9 @@ namespace CloudNotes.Desktop.Tests
 
                 var result = _converter.ConvertToHtml(markdown);
 
-                Assert.Contains("<h1>", result);
-                Assert.Contains("<h2>", result);
-                Assert.Contains("<h3>", result);
+                Assert.Contains("<h1", result);
+                Assert.Contains("<h2", result);
+                Assert.Contains("<h3", result);
             }
         }
 
@@ -247,7 +247,7 @@ namespace CloudNotes.Desktop.Tests
 
                 var result = _converter.ConvertToHtml(markdown);
 
-                Assert.Contains("<h1>", result);
+                Assert.Contains("<h1", result);
                 Assert.Contains("class=\"spoiler\"", result);
                 Assert.Contains("секретом", result);
             }
@@ -355,8 +355,8 @@ namespace CloudNotes.Desktop.Tests
 
                 var result = _converter.ConvertToHtml(markdown);
 
-                Assert.Contains("<h1>", result);
-                Assert.Contains("<h2>", result);
+                Assert.Contains("<h1", result);
+                Assert.Contains("<h2", result);
                 Assert.Contains("<strong>", result);
                 Assert.Contains("<em>", result);
                 Assert.Contains("<ul>", result);
