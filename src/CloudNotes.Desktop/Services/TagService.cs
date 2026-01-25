@@ -20,7 +20,7 @@ public class TagService : ITagService
     {
         // Проверяем, является ли контекст InMemory (для тестов)
         var isInMemory = context.Database.ProviderName?.Contains("InMemory") == true;
-        
+
         if (isInMemory)
         {
             // Для InMemory базы используем переданный контекст напрямую
