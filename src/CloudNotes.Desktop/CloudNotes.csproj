@@ -2,7 +2,7 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net9.0</TargetFramework>
-    <ImplicintUsing>enable</ImplicintUsing>
+    <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <UseWPF>false</UseWPF>
     <UseWindowsForms>false</UseWindowsForms>
@@ -41,15 +41,4 @@
     </None>
   </ItemGroup>
 
-  <!-- Help files as embedded resources -->
-  <ItemGroup>
-    <EmbeddedResource Include="Assets\*.md" />
-  </ItemGroup>
-
-  <!-- Also copy to output for development fallback -->
-  <ItemGroup>
-    <None Include="Assets\*.md">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
 </Project>

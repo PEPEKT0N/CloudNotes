@@ -7,6 +7,7 @@ using CloudNotes.Desktop.Api.DTOs;
 using CloudNotes.Desktop.Data;
 using CloudNotes.Desktop.Model;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace CloudNotes.Desktop.Services;
 
@@ -15,23 +16,63 @@ namespace CloudNotes.Desktop.Services;
 /// </summary>
 public class FolderService
 {
-    private readonly AppDbContext _context;
+    private readonly Func<AppDbContext> _contextFactory;
     private readonly ICloudNotesApi? _api;
     private readonly IAuthService? _authService;
+    private readonly ILogger<FolderService>? _logger;
 
-    public FolderService(AppDbContext context, ICloudNotesApi? api = null, IAuthService? authService = null)
+    public FolderService(AppDbContext context, ICloudNotesApi? api = null, IAuthService? authService = null, ILogger<FolderService>? logger = null)
     {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
+        // Используем фабрику для создания нового контекста для каждой операции
+        // Это обеспечивает thread-safety
+        _contextFactory = CloudNotes.Services.DbContextProvider.CreateContext;
         _api = api;
         _authService = authService;
+        _logger = logger;
     }
+
+    private AppDbContext CreateContext() => _contextFactory();
 
     /// <summary>
     /// Получить все папки из локальной БД.
     /// </summary>
     public async Task<IEnumerable<Folder>> GetAllFoldersAsync()
     {
-        return await _context.Folders
+        using var context = CreateContext();
+
+        // Фильтруем папки по текущему пользователю
+        var query = context.Folders.AsQueryable();
+
+        if (_authService != null)
+        {
+            var isAuthenticated = await _authService.IsLoggedInAsync();
+            if (isAuthenticated)
+            {
+                var currentEmail = await _authService.GetCurrentUserEmailAsync();
+                if (currentEmail != null)
+                {
+                    // Показываем только папки текущего пользователя
+                    query = query.Where(f => f.UserEmail == currentEmail);
+                }
+                else
+                {
+                    // Если пользователь не авторизован, не показываем папки с UserEmail
+                    query = query.Where(f => f.UserEmail == null);
+                }
+            }
+            else
+            {
+                // Если пользователь не авторизован, не показываем папки с UserEmail
+                query = query.Where(f => f.UserEmail == null);
+            }
+        }
+        else
+        {
+            // Если AuthService недоступен, показываем только папки без UserEmail (гостевые)
+            query = query.Where(f => f.UserEmail == null);
+        }
+
+        return await query
             .OrderBy(f => f.Name)
             .ToListAsync();
     }
@@ -41,7 +82,8 @@ public class FolderService
     /// </summary>
     public async Task<Folder?> GetFolderByIdAsync(Guid id)
     {
-        return await _context.Folders.FindAsync(id);
+        using var context = CreateContext();
+        return await context.Folders.FindAsync(id);
     }
 
     /// <summary>
@@ -49,13 +91,26 @@ public class FolderService
     /// </summary>
     public async Task<Folder> CreateFolderAsync(Folder folder)
     {
+        using var context = CreateContext();
+
         if (!folder.ServerId.HasValue)
         {
             folder.IsSynced = false;
         }
 
-        _context.Folders.Add(folder);
-        await _context.SaveChangesAsync();
+        // Устанавливаем UserEmail для текущего пользователя
+        if (_authService != null)
+        {
+            var isAuthenticated = await _authService.IsLoggedInAsync();
+            if (isAuthenticated)
+            {
+                var currentEmail = await _authService.GetCurrentUserEmailAsync();
+                folder.UserEmail = currentEmail;
+            }
+        }
+
+        context.Folders.Add(folder);
+        await context.SaveChangesAsync();
 
         return folder;
     }
@@ -65,7 +120,9 @@ public class FolderService
     /// </summary>
     public async Task<bool> UpdateFolderAsync(Folder folder)
     {
-        var existingFolder = await _context.Folders.FindAsync(folder.Id);
+        using var context = CreateContext();
+
+        var existingFolder = await context.Folders.FindAsync(folder.Id);
         if (existingFolder == null)
         {
             return false;
@@ -83,8 +140,8 @@ public class FolderService
             existingFolder.IsSynced = false;
         }
 
-        _context.Entry(existingFolder).State = EntityState.Modified;
-        await _context.SaveChangesAsync();
+        context.Entry(existingFolder).State = EntityState.Modified;
+        await context.SaveChangesAsync();
 
         return true;
     }
@@ -94,14 +151,16 @@ public class FolderService
     /// </summary>
     public async Task<bool> DeleteFolderAsync(Guid id)
     {
-        var folder = await _context.Folders.FindAsync(id);
+        using var context = CreateContext();
+
+        var folder = await context.Folders.FindAsync(id);
         if (folder == null)
         {
             return false;
         }
 
-        _context.Folders.Remove(folder);
-        await _context.SaveChangesAsync();
+        context.Folders.Remove(folder);
+        await context.SaveChangesAsync();
 
         return true;
     }
@@ -128,12 +187,16 @@ public class FolderService
             var serverFolders = await _api.GetFoldersAsync();
 
             // Получаем локальные папки
-            var localFolders = await _context.Folders.ToListAsync();
+            using var context = CreateContext();
+            var localFolders = await context.Folders.ToListAsync();
 
             // Создаем словарь для быстрого поиска
             var localFoldersByServerId = localFolders
                 .Where(f => f.ServerId.HasValue)
                 .ToDictionary(f => f.ServerId!.Value);
+
+            // Получаем email текущего пользователя один раз
+            var currentEmail = await _authService.GetCurrentUserEmailAsync();
 
             // Обновляем существующие и добавляем новые
             foreach (var serverFolder in serverFolders)
@@ -146,6 +209,7 @@ public class FolderService
                     localFolder.CreatedAt = serverFolder.CreatedAt;
                     localFolder.UpdatedAt = serverFolder.UpdatedAt;
                     localFolder.IsSynced = true;
+                    localFolder.UserEmail = currentEmail; // Обновляем UserEmail при синхронизации
                 }
                 else
                 {
@@ -158,14 +222,31 @@ public class FolderService
                         CreatedAt = serverFolder.CreatedAt,
                         UpdatedAt = serverFolder.UpdatedAt,
                         ServerId = serverFolder.Id,
-                        IsSynced = true
+                        IsSynced = true,
+                        UserEmail = currentEmail // Сохраняем email пользователя для изоляции данных
                     };
-                    _context.Folders.Add(newFolder);
+                    context.Folders.Add(newFolder);
                 }
             }
 
+            // Удаляем локальные папки текущего пользователя, которых нет на сервере
+            var serverFolderIds = serverFolders.Select(sf => sf.Id).ToHashSet();
+            var localFoldersToDelete = localFolders
+                .Where(f =>
+                    // Удаляем только папки текущего пользователя
+                    f.UserEmail == currentEmail &&
+                    // Удаляем синхронизированные папки, которых нет на сервере
+                    f.ServerId.HasValue && !serverFolderIds.Contains(f.ServerId.Value))
+                .ToList();
+
+            foreach (var folderToDelete in localFoldersToDelete)
+            {
+                context.Folders.Remove(folderToDelete);
+                _logger?.LogInformation("Удалена локальная папка {FolderId}, которой нет на сервере", folderToDelete.Id);
+            }
+
             // Отправляем несинхронизированные локальные папки на сервер
-            var unsyncedFolders = localFolders.Where(f => !f.IsSynced).ToList();
+            var unsyncedFolders = localFolders.Where(f => !f.IsSynced && !localFoldersToDelete.Contains(f)).ToList();
             foreach (var unsyncedFolder in unsyncedFolders)
             {
                 try
@@ -204,7 +285,7 @@ public class FolderService
                 }
             }
 
-            await _context.SaveChangesAsync();
+            await context.SaveChangesAsync();
             return true;
         }
         catch

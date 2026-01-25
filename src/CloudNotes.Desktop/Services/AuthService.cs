@@ -319,16 +319,52 @@ public class AuthService : IAuthService
         }
     }
 
+    /// <summary>
+    /// Принудительно обновляет токен (используется при получении 401 ошибки).
+    /// Очищает кэш перед обновлением, чтобы гарантировать свежий токен.
+    /// </summary>
+    public async Task<string?> ForceRefreshTokenAsync()
+    {
+        Console.WriteLine("[AuthService] ForceRefreshTokenAsync called");
+
+        // Очищаем кэш, чтобы загрузить токены заново
+        lock (_cacheLock)
+        {
+            _cachedTokens = null;
+        }
+
+        var tokens = await LoadTokensAsync();
+        if (tokens == null)
+        {
+            Console.WriteLine("[AuthService] No tokens to refresh");
+            return null;
+        }
+
+        Console.WriteLine($"[AuthService] Current token expires at: {tokens.ExpiresAt:O}");
+
+        tokens = await TryRefreshTokensAsync(tokens);
+        if (tokens == null)
+        {
+            Console.WriteLine("[AuthService] Force refresh FAILED!");
+            return null;
+        }
+
+        Console.WriteLine($"[AuthService] Force refresh SUCCESS. New token expires at: {tokens.ExpiresAt:O} ({tokens.AccessToken?.Length ?? 0} chars)");
+        return tokens.AccessToken;
+    }
+
     private async Task<AuthTokens?> TryRefreshTokensAsync(AuthTokens currentTokens)
     {
         if (string.IsNullOrWhiteSpace(currentTokens.RefreshToken))
         {
+            Console.WriteLine("[AuthService] TryRefreshTokensAsync: No refresh token");
             DeleteTokensFile();
             return null;
         }
 
         try
         {
+            Console.WriteLine("[AuthService] TryRefreshTokensAsync: Calling API refresh endpoint");
             var response = await _api.RefreshAsync(new RefreshTokenDto
             {
                 RefreshToken = currentTokens.RefreshToken
@@ -346,6 +382,7 @@ public class AuthService : IAuthService
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"[AuthService] TryRefreshTokensAsync: Failed to refresh: {ex.Message}");
             System.Diagnostics.Debug.WriteLine($"TryRefreshTokensAsync: Failed to refresh: {ex.Message}");
             DeleteTokensFile();
             return null;

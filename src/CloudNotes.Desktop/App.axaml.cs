@@ -38,11 +38,28 @@ public partial class App : Application
             {
                 if (ServiceProvider != null)
                 {
-                    var syncService = ServiceProvider.GetRequiredService<ISyncService>();
-                    var synced = await syncService.SyncOnStartupAsync();
-                    if (synced)
+                    try
                     {
-                        syncService.StartPeriodicSync();
+                        var syncService = ServiceProvider.GetRequiredService<ISyncService>();
+                        var synced = await syncService.SyncOnStartupAsync();
+                        if (synced)
+                        {
+                            syncService.StartPeriodicSync();
+                        }
+                    }
+                    catch (Refit.ApiException ex)
+                    {
+                        // Логируем ошибки API, но не прерываем запуск приложения
+                        System.Diagnostics.Debug.WriteLine($"SyncOnStartup API error: {ex.StatusCode} - {ex.Message}");
+                        if (ex.Content != null)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Response content: {ex.Content}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        // Логируем другие ошибки, но не прерываем запуск
+                        System.Diagnostics.Debug.WriteLine($"SyncOnStartup error: {ex.Message}");
                     }
                 }
             });
@@ -84,7 +101,8 @@ public partial class App : Application
         services.AddSingleton<INoteServiceFactory>(sp =>
         {
             var context = CloudNotes.Services.DbContextProvider.GetContext();
-            return new NoteServiceFactory(context);
+            var authService = sp.GetRequiredService<IAuthService>();
+            return new NoteServiceFactory(context, authService);
         });
 
         // Note Service (для обратной совместимости и SyncService - всегда авторизованный сервис)

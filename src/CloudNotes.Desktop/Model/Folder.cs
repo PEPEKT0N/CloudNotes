@@ -37,4 +37,9 @@ public class Folder
 
     // Флаг синхронизации с сервером
     public bool IsSynced { get; set; } = false;
+
+    /// <summary>
+    /// Email пользователя-владельца папки (для изоляции данных разных пользователей).
+    /// </summary>
+    public string? UserEmail { get; set; }
 }
