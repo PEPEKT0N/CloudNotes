@@ -83,16 +83,30 @@ jobs:
             ## CloudNotes ${{ github.ref_name }}
             
             ### Скачать
-            - **Windows (x64)**: `CloudNotes-Windows-x64-${{ github.ref_name }}.zip`
-            - **Linux (x64)**: `CloudNotes-Linux-x64-${{ github.ref_name }}.tar.gz`
-            - **macOS (Apple Silicon)**: `CloudNotes-macOS-ARM64-${{ github.ref_name }}.tar.gz`
+            | ОС | Файл |
+            |---|---|
+            | Windows (x64) | `CloudNotes-Windows-x64-${{ github.ref_name }}.zip` |
+            | Linux (x64) | `CloudNotes-Linux-x64-${{ github.ref_name }}.tar.gz` |
+            | macOS (Apple Silicon) | `CloudNotes-macOS-ARM64-${{ github.ref_name }}.tar.gz` |
             
             ### Установка
-            1. Скачайте архив для вашей ОС
-            2. Распакуйте в любую папку
-            3. Запустите `CloudNotes` (или `CloudNotes.exe` на Windows)
             
-            > Приложение self-contained — установка .NET не требуется!
+            **Windows / Linux:**
+            1. Скачайте и распакуйте архив
+            2. Запустите `CloudNotes.exe` (Windows) или `CloudNotes` (Linux)
+            
+            **macOS:**
+            1. Скачайте и распакуйте архив
+            2. Откройте терминал и выполните:
+            ```bash
+            xattr -cr ~/Downloads/CloudNotes-macOS-ARM64-${{ github.ref_name }}
+            ```
+            3. Запустите `CloudNotes`
+            
+            > ⚠️ macOS блокирует неподписанные приложения. Команда выше снимает карантин.
+            
+            ---
+            *Приложение self-contained — установка .NET не требуется!*
           draft: false
           prerelease: false
           files: ./release-files/*
