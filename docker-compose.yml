@@ -40,6 +40,8 @@ services:
       Jwt__RefreshTokenExpirationDays: ${JWT_REFRESH_TOKEN_EXPIRATION_DAYS:-7}
     ports:
       - "5015:8080"
+    volumes:
+      - dataprotection_keys:/root/.aspnet/DataProtection-Keys
     depends_on:
       postgres:
         condition: service_healthy
@@ -55,6 +57,7 @@ services:
 # ===== Volumes =====
 volumes:
   postgres_data:
+  dataprotection_keys:
     driver: local
 
 # ===== Networks =====
