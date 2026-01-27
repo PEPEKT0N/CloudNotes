@@ -1,0 +1,151 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="CloudNotes.Desktop.Views.StatisticsDialog"
+        Title="Your Statistics"
+        Width="400"
+        Height="500"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False">
+
+    <Grid RowDefinitions="Auto, Auto, Auto, Auto, *" Margin="20">
+        <!-- Header -->
+        <TextBlock Grid.Row="0"
+                   Text="Your Statistics"
+                   FontSize="24"
+                   FontWeight="Bold"
+                   HorizontalAlignment="Center"
+                   Margin="0,0,0,20" />
+
+        <!-- Streak -->
+        <Border Grid.Row="1"
+                Background="#FFF3E0"
+                CornerRadius="10"
+                Padding="15"
+                Margin="0,0,0,15">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <TextBlock Text="🔥"
+                           FontSize="28"
+                           VerticalAlignment="Center"
+                           Margin="0,0,10,0" />
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock x:Name="StreakCount"
+                                   Text="0"
+                                   FontSize="32"
+                                   FontWeight="Bold"
+                                   Foreground="#E65100" />
+                        <TextBlock Text=" days streak"
+                                   FontSize="16"
+                                   VerticalAlignment="Bottom"
+                                   Margin="0,0,0,6"
+                                   Foreground="#666666" />
+                    </StackPanel>
+                    <TextBlock x:Name="StreakMessage"
+                               Text="Keep learning every day!"
+                               FontSize="12"
+                               Foreground="#999999" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- Activity Calendar -->
+        <Border Grid.Row="2"
+                Background="#F5F5F5"
+                CornerRadius="10"
+                Padding="15"
+                Margin="0,0,0,15">
+            <StackPanel>
+                <TextBlock Text="Activity (last 5 weeks)"
+                           FontSize="14"
+                           FontWeight="SemiBold"
+                           Margin="0,0,0,10"
+                           Foreground="#333333" />
+
+                <!-- Day labels -->
+                <Grid ColumnDefinitions="30, *, *, *, *, *, *, *">
+                    <TextBlock Grid.Column="0" Text="" Width="30" />
+                    <TextBlock Grid.Column="1" Text="Mo" FontSize="10" Foreground="#999999" HorizontalAlignment="Center" />
+                    <TextBlock Grid.Column="2" Text="Tu" FontSize="10" Foreground="#999999" HorizontalAlignment="Center" />
+                    <TextBlock Grid.Column="3" Text="We" FontSize="10" Foreground="#999999" HorizontalAlignment="Center" />
+                    <TextBlock Grid.Column="4" Text="Th" FontSize="10" Foreground="#999999" HorizontalAlignment="Center" />
+                    <TextBlock Grid.Column="5" Text="Fr" FontSize="10" Foreground="#999999" HorizontalAlignment="Center" />
+                    <TextBlock Grid.Column="6" Text="Sa" FontSize="10" Foreground="#999999" HorizontalAlignment="Center" />
+                    <TextBlock Grid.Column="7" Text="Su" FontSize="10" Foreground="#999999" HorizontalAlignment="Center" />
+                </Grid>
+
+                <!-- Calendar Grid -->
+                <Grid x:Name="CalendarGrid"
+                      Margin="0,5,0,0">
+                    <!-- Will be populated dynamically -->
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <!-- Stats Summary -->
+        <Border Grid.Row="3"
+                Background="#E3F2FD"
+                CornerRadius="10"
+                Padding="15"
+                Margin="0,0,0,15">
+            <Grid RowDefinitions="Auto, Auto, Auto, Auto" ColumnDefinitions="*, Auto">
+                <TextBlock Grid.Row="0" Grid.Column="0"
+                           Text="Total cards studied:"
+                           FontSize="14"
+                           Foreground="#333333" />
+                <TextBlock Grid.Row="0" Grid.Column="1"
+                           x:Name="TotalCardsStudied"
+                           Text="0"
+                           FontSize="14"
+                           FontWeight="Bold"
+                           Foreground="#1976D2" />
+
+                <TextBlock Grid.Row="1" Grid.Column="0"
+                           Text="Cards reviewed today:"
+                           FontSize="14"
+                           Foreground="#333333"
+                           Margin="0,5,0,0" />
+                <TextBlock Grid.Row="1" Grid.Column="1"
+                           x:Name="CardsReviewedToday"
+                           Text="0"
+                           FontSize="14"
+                           FontWeight="Bold"
+                           Foreground="#1976D2"
+                           Margin="0,5,0,0" />
+
+                <TextBlock Grid.Row="2" Grid.Column="0"
+                           Text="Due for review:"
+                           FontSize="14"
+                           Foreground="#333333"
+                           Margin="0,5,0,0" />
+                <TextBlock Grid.Row="2" Grid.Column="1"
+                           x:Name="DueForReview"
+                           Text="0"
+                           FontSize="14"
+                           FontWeight="Bold"
+                           Foreground="#E65100"
+                           Margin="0,5,0,0" />
+
+                <TextBlock Grid.Row="3" Grid.Column="0"
+                           Text="Today's success rate:"
+                           FontSize="14"
+                           Foreground="#333333"
+                           Margin="0,5,0,0" />
+                <TextBlock Grid.Row="3" Grid.Column="1"
+                           x:Name="TodaySuccessRate"
+                           Text="0%"
+                           FontSize="14"
+                           FontWeight="Bold"
+                           Foreground="#388E3C"
+                           Margin="0,5,0,0" />
+            </Grid>
+        </Border>
+
+        <!-- Close Button -->
+        <Button Grid.Row="4"
+                Content="Close"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Bottom"
+                Padding="30,10"
+                Click="OnCloseClick" />
+    </Grid>
+</Window>

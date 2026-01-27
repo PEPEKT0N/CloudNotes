@@ -36,7 +36,7 @@ try
     builder.Services.AddDbContext<ApiDbContext>(options =>
         options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-    // Identity
+    // Identity с кастомным UserManager (UserName НЕ уникальный, только Email)
     builder.Services.AddIdentity<User, IdentityRole>(options =>
         {
             options.Password.RequireDigit = true;
@@ -48,11 +48,26 @@ try
             options.User.RequireUniqueEmail = true;
         })
         .AddEntityFrameworkStores<ApiDbContext>()
-        .AddDefaultTokenProviders();
+        .AddDefaultTokenProviders()
+        .AddUserManager<CustomUserManager>();
+
+    // Удаляем стандартные UserValidator, т.к. CustomUserManager имеет свою валидацию
+    var userValidators = builder.Services
+        .Where(d => d.ServiceType == typeof(IUserValidator<User>))
+        .ToList();
+    foreach (var validator in userValidators)
+    {
+        builder.Services.Remove(validator);
+    }
 
     // JWT Authentication
-    var jwtSecret = builder.Configuration["Jwt:Secret"]
-        ?? throw new InvalidOperationException("JWT Secret не настроен в конфигурации");
+    var jwtSecret = builder.Configuration["Jwt:Secret"];
+    if (string.IsNullOrWhiteSpace(jwtSecret))
+    {
+        throw new InvalidOperationException(
+            "JWT Secret не настроен в конфигурации. " +
+            "Установите переменную окружения Jwt__Secret или добавьте Jwt:Secret в appsettings.json");
+    }
     var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "CloudNotes.Api";
     var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "CloudNotes.Client";
 
@@ -154,6 +169,42 @@ try
     });
 
     var app = builder.Build();
+
+    // ===== Database Migrations =====
+    using (var scope = app.Services.CreateScope())
+    {
+        var services = scope.ServiceProvider;
+        try
+        {
+            var context = services.GetRequiredService<ApiDbContext>();
+            Log.Information("Применение миграций базы данных...");
+
+            // Проверяем, может ли приложение подключиться к базе
+            if (!context.Database.CanConnect())
+            {
+                Log.Warning("Не удается подключиться к базе данных. Создание базы данных...");
+                context.Database.EnsureCreated();
+            }
+
+            // Применяем миграции
+            context.Database.Migrate();
+            Log.Information("Миграции базы данных успешно применены");
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Ошибка при применении миграций базы данных: {Message}", ex.Message);
+            // Не прерываем запуск приложения, если это ошибка миграций
+            // (например, таблица миграций еще не создана)
+            if (ex.Message.Contains("__EFMigrationsHistory") || ex.Message.Contains("does not exist"))
+            {
+                Log.Warning("Это может быть нормальная ситуация при первом запуске. Продолжаем запуск...");
+            }
+            else
+            {
+                throw;
+            }
+        }
+    }
 
     // ===== Middleware Pipeline =====
 

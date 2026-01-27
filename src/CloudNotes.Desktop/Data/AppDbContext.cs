@@ -15,17 +15,86 @@ public class AppDbContext : DbContext
     }
 
     public DbSet<Note> Notes { get; set; } = null!;
+    public DbSet<Tag> Tags { get; set; } = null!;
+    public DbSet<NoteTag> NoteTags { get; set; } = null!;
+    public DbSet<Folder> Folders { get; set; } = null!;
+    public DbSet<FlashcardStats> FlashcardStats { get; set; } = null!;
+    public DbSet<FavoriteTagCombo> FavoriteTagCombos { get; set; } = null!;
+    public DbSet<StudyActivity> StudyActivities { get; set; } = null!;
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        // Настройка Many-to-Many связи Note ↔ Tag через NoteTag
+        modelBuilder.Entity<NoteTag>()
+            .HasKey(nt => new { nt.NoteId, nt.TagId });
+
+        modelBuilder.Entity<NoteTag>()
+            .HasOne(nt => nt.Note)
+            .WithMany(n => n.NoteTags)
+            .HasForeignKey(nt => nt.NoteId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<NoteTag>()
+            .HasOne(nt => nt.Tag)
+            .WithMany(t => t.NoteTags)
+            .HasForeignKey(nt => nt.TagId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Настройка Folder
+        modelBuilder.Entity<Folder>(entity =>
+        {
+            entity.HasKey(f => f.Id);
+            entity.Property(f => f.Name).IsRequired().HasMaxLength(255);
+        });
+
+        // Индекс для быстрого поиска статистики карточки
+        modelBuilder.Entity<FlashcardStats>()
+            .HasIndex(fs => new { fs.UserEmail, fs.QuestionHash })
+            .IsUnique();
+
+        // Индекс для избранных комбинаций тегов по пользователю
+        modelBuilder.Entity<FavoriteTagCombo>()
+            .HasIndex(f => f.UserEmail);
+
+        // Индекс для активности: уникальный по пользователю и дате
+        modelBuilder.Entity<StudyActivity>()
+            .HasIndex(sa => new { sa.UserEmail, sa.Date })
+            .IsUnique();
+    }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        // Автоматически устанавливаем/обновляем UpdatedAt для всех заметок
-        var entries = ChangeTracker.Entries<Note>();
+        // Автоматически устанавливаем/обновляем CreatedAt и UpdatedAt для всех заметок в UTC
+        var noteEntries = ChangeTracker.Entries<Note>();
 
-        foreach (var entry in entries)
+        foreach (var entry in noteEntries)
         {
             if (entry.State == EntityState.Added || entry.State == EntityState.Modified)
             {
-                entry.Entity.UpdatedAt = DateTime.Now;
+                entry.Entity.UpdatedAt = DateTime.UtcNow;
+
+                if (entry.State == EntityState.Added && entry.Entity.CreatedAt == default)
+                {
+                    entry.Entity.CreatedAt = DateTime.UtcNow;
+                }
+            }
+        }
+
+        // Автоматически устанавливаем/обновляем CreatedAt и UpdatedAt для всех папок в UTC
+        var folderEntries = ChangeTracker.Entries<Folder>();
+
+        foreach (var entry in folderEntries)
+        {
+            if (entry.State == EntityState.Added || entry.State == EntityState.Modified)
+            {
+                entry.Entity.UpdatedAt = DateTime.UtcNow;
+
+                if (entry.State == EntityState.Added && entry.Entity.CreatedAt == default)
+                {
+                    entry.Entity.CreatedAt = DateTime.UtcNow;
+                }
             }
         }
 

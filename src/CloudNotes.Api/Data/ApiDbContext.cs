@@ -17,11 +17,39 @@ public class ApiDbContext : IdentityDbContext<User>
     public DbSet<Note> Notes => Set<Note>();
     public DbSet<Tag> Tags => Set<Tag>();
     public DbSet<NoteTag> NoteTags => Set<NoteTag>();
+    public DbSet<Folder> Folders => Set<Folder>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        // User - убираем уникальный индекс на NormalizedUserName
+        // UserName НЕ должен быть уникальным, только Email
+        modelBuilder.Entity<User>(entity =>
+        {
+            // Удаляем стандартный уникальный индекс на NormalizedUserName
+            entity.HasIndex(u => u.NormalizedUserName)
+                  .HasDatabaseName("UserNameIndex")
+                  .IsUnique(false);
+        });
+
+        // Folder
+        modelBuilder.Entity<Folder>(entity =>
+        {
+            entity.HasKey(f => f.Id);
+            entity.Property(f => f.Name).IsRequired().HasMaxLength(255);
+
+            entity.HasOne(f => f.User)
+                  .WithMany(u => u.Folders)
+                  .HasForeignKey(f => f.UserId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(f => f.ParentFolder)
+                  .WithMany(f => f.ChildFolders)
+                  .HasForeignKey(f => f.ParentFolderId)
+                  .OnDelete(DeleteBehavior.Restrict); // Предотвращаем каскадное удаление при удалении родительской папки
+        });
 
         // Note
         modelBuilder.Entity<Note>(entity =>
@@ -34,6 +62,11 @@ public class ApiDbContext : IdentityDbContext<User>
                   .WithMany(u => u.Notes)
                   .HasForeignKey(n => n.UserId)
                   .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(n => n.Folder)
+                  .WithMany(f => f.Notes)
+                  .HasForeignKey(n => n.FolderId)
+                  .OnDelete(DeleteBehavior.SetNull); // При удалении папки заметки остаются без папки
         });
 
         // Tag
@@ -91,6 +124,19 @@ public class ApiDbContext : IdentityDbContext<User>
             .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified);
 
         foreach (var entry in noteEntries)
+        {
+            entry.Entity.UpdatedAt = DateTime.UtcNow;
+
+            if (entry.State == EntityState.Added)
+            {
+                entry.Entity.CreatedAt = DateTime.UtcNow;
+            }
+        }
+
+        var folderEntries = ChangeTracker.Entries<Folder>()
+            .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified);
+
+        foreach (var entry in folderEntries)
         {
             entry.Entity.UpdatedAt = DateTime.UtcNow;
 

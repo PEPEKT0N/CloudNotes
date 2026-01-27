@@ -4,30 +4,261 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:model="clr-namespace:CloudNotes.Desktop.Model"               
         xmlns:views="clr-namespace:CloudNotes.Desktop.Views"
+        xmlns:vm="clr-namespace:CloudNotes.Desktop.ViewModel"
+        xmlns:local="clr-namespace:CloudNotes.Desktop.Converters"
         xmlns:html="clr-namespace:TheArtOfDev.HtmlRenderer.Avalonia;assembly=Avalonia.HtmlRenderer"
         x:Class="CloudNotes.Desktop.Views.MainWindow"        
         mc:Ignorable="d"
         Title="CloudNotes"
-        Width="800"
-        Height="450">
+        Width="1100"
+        Height="700">
 
     <Grid Background="lightblue" ColumnDefinitions="200, *">
         <views:NoteListView x:Name="NoteListViewControl" Grid.Column="0" />
 
         <Border Padding="5" Grid.Column="1">
-            <Grid>
+            <Grid RowDefinitions="Auto, Auto, Auto, *, Auto">
+                <!-- Заголовок заметки -->
+                <TextBlock Grid.Row="0"
+                           Text="{Binding ActiveListItem.Title, FallbackValue='Select a note'}"
+                           FontSize="20"
+                           FontWeight="Bold"
+                           Margin="5,5,5,5" />
+
+                <!-- Панель инструментов форматирования -->
+                <Border Grid.Row="1" 
+                        Margin="5,0,5,5"
+                        Padding="5"
+                        Background="#E8E8E8"
+                        CornerRadius="5"
+                        IsVisible="{Binding SelectedNote, Converter={x:Static ObjectConverters.IsNotNull}}">
+                    <StackPanel Orientation="Horizontal" Spacing="5">
+                        <Button x:Name="BoldButton"
+                                Content="B"
+                                FontWeight="Bold"
+                                Foreground="Black"
+                                Background="#FFFFFF"
+                                Width="32" Height="32"
+                                ToolTip.Tip="Bold (Ctrl+B)"
+                                Click="OnBoldButtonClick" />
+                        <Button x:Name="ItalicButton"
+                                Content="I"
+                                FontStyle="Italic"
+                                Foreground="Black"
+                                Background="#FFFFFF"
+                                Width="32" Height="32"
+                                ToolTip.Tip="Italic (Ctrl+I)"
+                                Click="OnItalicButtonClick" />
+                        <Button x:Name="StrikethroughButton"
+                                Foreground="Black"
+                                Background="#FFFFFF"
+                                Width="32" Height="32"
+                                ToolTip.Tip="Strikethrough"
+                                Click="OnStrikethroughButtonClick">
+                            <TextBlock Text="S" TextDecorations="Strikethrough" />
+                        </Button>
+                        <Button x:Name="UnorderedListButton"
+                                Content="•"
+                                Foreground="Black"
+                                Background="#FFFFFF"
+                                Width="32" Height="32"
+                                FontSize="18"
+                                ToolTip.Tip="Unordered List"
+                                Click="OnUnorderedListButtonClick" />
+                        <Button x:Name="OrderedListButton"
+                                Content="1."
+                                Foreground="Black"
+                                Background="#FFFFFF"
+                                Width="32" Height="32"
+                                ToolTip.Tip="Ordered List"
+                                Click="OnOrderedListButtonClick" />
+                        <Button x:Name="TableButton"
+                                Content="⊞"
+                                Foreground="Black"
+                                Background="#FFFFFF"
+                                Width="32" Height="32"
+                                FontSize="16"
+                                ToolTip.Tip="Insert Table"
+                                Click="OnTableButtonClick" />
+                        <Button x:Name="ImageButton"
+                                Content="🖼️"
+                                Background="#FFFFFF"
+                                Width="32" Height="32"
+                                ToolTip.Tip="Insert Image (Ctrl+V)"
+                                Click="OnImageButtonClick" />
+                        <Rectangle Width="1" Fill="#AAAAAA" Margin="5,2" />
+                        <Button x:Name="LinkButton"
+                                Content="🔗"
+                                Background="#FFFFFF"
+                                Width="32" Height="32"
+                                ToolTip.Tip="Insert Link"
+                                Click="OnLinkButtonClick" />
+                        <Button x:Name="SpoilerButton"
+                                Content="🙈"
+                                Background="#FFFFFF"
+                                Width="32" Height="32"
+                                ToolTip.Tip="Spoiler (Ctrl+H) - Hide selected text"
+                                Click="OnSpoilerButtonClick" />
+                        <Button x:Name="FlashcardButton"
+                                Content="🎴"
+                                Background="#FFFFFF"
+                                Width="32" Height="32"
+                                ToolTip.Tip="Insert flashcard template (??question::answer??)"
+                                Click="OnFlashcardButtonClick" />
+                        <Rectangle Width="1" Fill="#AAAAAA" Margin="5,2" />
+                        <Button x:Name="PreviewButton"
+                                Content="{Binding IsPreviewMode, Converter={x:Static local:PreviewButtonConverter.Instance}}"
+                                Foreground="Black"
+                                Background="#FFFFFF"
+                                Width="60" Height="32"
+                                ToolTip.Tip="Toggle Preview (Ctrl+E)"
+                                Command="{Binding TogglePreviewModeCommand}" />
+                        <Rectangle Width="1" Fill="#AAAAAA" Margin="5,2" />
+                        <Button x:Name="StudyButton"
+                                Content="📚 Study"
+                                Foreground="Black"
+                                Background="#FFFFFF"
+                                Padding="8,0"
+                                Height="32"
+                                ToolTip.Tip="Study flashcards from current note"
+                                Click="OnStudyButtonClick" />
+                        <Button x:Name="StudyAllButton"
+                                Content="📚 Study by Tags"
+                                Foreground="Black"
+                                Background="#FFFFFF"
+                                Padding="8,0"
+                                Height="32"
+                                ToolTip.Tip="Study flashcards from notes with selected tags"
+                                Click="OnStudyAllButtonClick" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Панель тегов -->
+                <Border Grid.Row="2" 
+                        Margin="5,0,5,10"
+                        MinHeight="32">
+                    <StackPanel Orientation="Horizontal" Spacing="5">
+                        <!-- Чипы тегов -->
+                        <ItemsControl ItemsSource="{Binding CurrentNoteTags}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" Spacing="5" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="#E3F2FD"
+                                            CornerRadius="12"
+                                            Padding="10,4,6,4">
+                                        <StackPanel Orientation="Horizontal" Spacing="4">
+                                            <TextBlock Text="{Binding Name}"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="#1976D2" />
+                                            <Button Content="×"
+                                                    Background="Transparent"
+                                                    BorderThickness="0"
+                                                    Padding="2"
+                                                    FontSize="14"
+                                                    Foreground="#1976D2"
+                                                    VerticalAlignment="Center"
+                                                    Command="{Binding $parent[Window].((vm:NotesViewModel)DataContext).RemoveTagCommand}"
+                                                    CommandParameter="{Binding}" />
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <!-- Поле ввода нового тега с автокомплитом -->
+                        <AutoCompleteBox x:Name="TagAutoCompleteBox"
+                                         Width="150"
+                                         Watermark="Add tag..."
+                                         FilterMode="ContainsOrdinal"
+                                         IsVisible="{Binding SelectedNote, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                         ItemsSource="{Binding AllTags}"
+                                         ValueMemberBinding="{Binding Name}"
+                                         KeyDown="OnTagAutoCompleteKeyDown">
+                            <AutoCompleteBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Name}" Padding="5,2" />
+                                </DataTemplate>
+                            </AutoCompleteBox.ItemTemplate>
+                        </AutoCompleteBox>
+                    </StackPanel>
+                </Border>
+
                 <!-- Режим редактирования (Markdown) -->
-                <TextBox AcceptsReturn="True"
-                         TextWrapping="Wrap"
-                         IsVisible="{Binding IsEditMode}"
-                         Text="{Binding SelectedNote.Content,
-                                        Mode=TwoWay,
-                                        FallbackValue='Select a note'}" />
+                <Grid Grid.Row="3" IsVisible="{Binding IsEditMode}">
+                    <TextBox x:Name="NoteContentTextBox"
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             IsEnabled="{Binding SelectedNote, Converter={x:Static ObjectConverters.IsNotNull}}"
+                             Text="{Binding SelectedNote.Content, Mode=TwoWay}"
+                             Watermark="Select a note"
+                             KeyDown="OnNoteContentKeyDown"
+                             LostFocus="OnNoteContentLostFocus" />
+                    <!-- Canvas для подсветки найденных слов -->
+                    <Canvas x:Name="SearchHighlightCanvas"
+                            IsHitTestVisible="False"
+                            ZIndex="1" />
+                </Grid>
                 
                 <!-- Режим превью (HTML) -->
-                <html:HtmlPanel IsVisible="{Binding IsPreviewMode}"
+                <html:HtmlPanel Grid.Row="3"
+                                IsVisible="{Binding IsPreviewMode}"
                                 Text="{Binding HtmlContent}" 
                                 Background="White" />
+                
+                <!-- Панель поиска -->
+                <Border x:Name="SearchPanel"
+                        Grid.Row="4"
+                        Background="#F0F0F0"
+                        BorderBrush="#CCCCCC"
+                        BorderThickness="0,1,0,0"
+                        Padding="10,5"
+                        IsVisible="False">
+                    <Grid ColumnDefinitions="Auto, *, Auto, Auto, Auto, Auto">
+                        <TextBlock Grid.Column="0"
+                                   Text="Find:"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,10,0" />
+                        <TextBox x:Name="SearchTextBox"
+                                 Grid.Column="1"
+                                 Watermark="Enter search text..."
+                                 Margin="0,0,10,0"
+                                 KeyDown="OnSearchTextBoxKeyDown"
+                                 TextChanged="OnSearchTextBoxTextChanged" />
+                        <Button x:Name="PreviousButton"
+                                Grid.Column="2"
+                                Content="↑"
+                                Width="30"
+                                Height="30"
+                                Margin="0,0,5,0"
+                                ToolTip.Tip="Previous (Shift+F3)"
+                                Click="OnPreviousMatchClick" />
+                        <Button x:Name="NextButton"
+                                Grid.Column="3"
+                                Content="↓"
+                                Width="30"
+                                Height="30"
+                                Margin="0,0,10,0"
+                                ToolTip.Tip="Next (F3)"
+                                Click="OnNextMatchClick" />
+                        <TextBlock x:Name="SearchResultsText"
+                                   Grid.Column="4"
+                                   Text=""
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,10,0"
+                                   Foreground="#666666" />
+                        <Button x:Name="CloseSearchButton"
+                                Grid.Column="5"
+                                Content="✕"
+                                Width="30"
+                                Height="30"
+                                ToolTip.Tip="Close (Esc)"
+                                Click="OnCloseSearchClick" />
+                    </Grid>
+                </Border>
             </Grid>
         </Border>
     </Grid>
