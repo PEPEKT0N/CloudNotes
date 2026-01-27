@@ -16,13 +16,10 @@ jobs:
         include:
           - runtime: win-x64
             artifact_name: CloudNotes-Windows-x64
-            extension: zip
           - runtime: linux-x64
             artifact_name: CloudNotes-Linux-x64
-            extension: tar.gz
           - runtime: osx-arm64
             artifact_name: CloudNotes-macOS-ARM64
-            extension: tar.gz
 
     steps:
       - uses: actions/checkout@v4
@@ -40,25 +37,26 @@ jobs:
             --self-contained true \
             /p:PublishSingleFile=true \
             /p:IncludeNativeLibrariesForSelfExtract=true \
-            -o ./publish/${{ matrix.runtime }}
+            -o ./publish
 
       - name: Create archive (Windows)
         if: matrix.runtime == 'win-x64'
         run: |
-          cd publish/${{ matrix.runtime }}
-          zip -r ../../${{ matrix.artifact_name }}-${{ github.ref_name }}.zip .
+          cd publish
+          zip -r ../${{ matrix.artifact_name }}-${{ github.ref_name }}.zip .
 
       - name: Create archive (Linux/macOS)
         if: matrix.runtime != 'win-x64'
         run: |
-          cd publish/${{ matrix.runtime }}
-          tar -czvf ../../${{ matrix.artifact_name }}-${{ github.ref_name }}.tar.gz .
+          cd publish
+          tar -czvf ../${{ matrix.artifact_name }}-${{ github.ref_name }}.tar.gz .
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact_name }}
+          name: ${{ matrix.artifact_name }}-${{ github.ref_name }}
           path: ${{ matrix.artifact_name }}-${{ github.ref_name }}.*
+          if-no-files-found: error
 
   release:
     needs: build
@@ -68,11 +66,14 @@ jobs:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          path: artifacts
-          merge-multiple: true
+          path: ./artifacts
 
-      - name: List artifacts
-        run: ls -la artifacts/
+      - name: Flatten artifacts
+        run: |
+          mkdir -p ./release-files
+          find ./artifacts -type f \( -name "*.zip" -o -name "*.tar.gz" \) -exec cp {} ./release-files/ \;
+          echo "=== Release files ==="
+          ls -la ./release-files/
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -94,6 +95,6 @@ jobs:
             > Приложение self-contained — установка .NET не требуется!
           draft: false
           prerelease: false
-          files: artifacts/*
+          files: ./release-files/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
