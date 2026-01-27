@@ -38,34 +38,50 @@ public class AuthController : ControllerBase
     [HttpPost("register")]
     [ProducesResponseType(typeof(TokenResponseDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> Register([FromBody] RegisterDto dto)
     {
-        var existingUser = await _userManager.FindByEmailAsync(dto.Email);
-        if (existingUser != null)
+        try
         {
-            return BadRequest(new { error = "Пользователь с таким email уже существует" });
+            _logger.LogInformation("Попытка регистрации пользователя с email: {Email}", dto.Email);
+
+            var existingUser = await _userManager.FindByEmailAsync(dto.Email);
+            if (existingUser != null)
+            {
+                _logger.LogWarning("Попытка регистрации с существующим email: {Email}", dto.Email);
+                return BadRequest(new { error = "Пользователь с таким email уже существует" });
+            }
+
+            var user = new User
+            {
+                UserName = dto.UserName,
+                Email = dto.Email,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _logger.LogDebug("Создание пользователя: {UserName}, {Email}", dto.UserName, dto.Email);
+            var result = await _userManager.CreateAsync(user, dto.Password);
+
+            if (!result.Succeeded)
+            {
+                var errors = result.Errors.Select(e => e.Description).ToList();
+                _logger.LogWarning("Ошибка создания пользователя {Email}: {Errors}", dto.Email, string.Join(", ", errors));
+                return BadRequest(new { errors });
+            }
+
+            _logger.LogInformation("Пользователь {Email} успешно зарегистрирован", dto.Email);
+
+            _logger.LogDebug("Генерация токенов для пользователя: {Email}", dto.Email);
+            var tokens = await _tokenService.GenerateTokensAsync(user);
+
+            _logger.LogInformation("Регистрация успешно завершена для {Email}", dto.Email);
+            return CreatedAtAction(nameof(Register), tokens);
         }
-
-        var user = new User
+        catch (Exception ex)
         {
-            UserName = dto.UserName,
-            Email = dto.Email,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        var result = await _userManager.CreateAsync(user, dto.Password);
-
-        if (!result.Succeeded)
-        {
-            var errors = result.Errors.Select(e => e.Description);
-            return BadRequest(new { errors });
+            _logger.LogError(ex, "Ошибка при регистрации пользователя {Email}: {Message}", dto.Email, ex.Message);
+            return StatusCode(500, new { error = "Внутренняя ошибка сервера. Проверьте логи для деталей.", details = ex.Message });
         }
-
-        _logger.LogInformation("Пользователь {Email} успешно зарегистрирован", dto.Email);
-
-        var tokens = await _tokenService.GenerateTokensAsync(user);
-
-        return CreatedAtAction(nameof(Register), tokens);
     }
 
     /// <summary>

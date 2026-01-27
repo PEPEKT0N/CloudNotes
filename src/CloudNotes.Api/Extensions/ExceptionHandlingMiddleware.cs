@@ -31,7 +31,12 @@ public class ExceptionHandlingMiddleware
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Необработанное исключение: {Message}", ex.Message);
+            _logger.LogError(ex,
+                "Необработанное исключение при обработке {Method} {Path}: {Message}\n{StackTrace}",
+                context.Request.Method,
+                context.Request.Path,
+                ex.Message,
+                ex.StackTrace);
             await HandleExceptionAsync(context, ex);
         }
     }

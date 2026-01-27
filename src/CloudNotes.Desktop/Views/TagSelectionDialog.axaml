@@ -1,0 +1,94 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="CloudNotes.Desktop.Views.TagSelectionDialog"
+        Title="Select Tags for Study"
+        Width="450"
+        Height="500"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False">
+
+    <Grid Margin="20" RowDefinitions="Auto, Auto, *, Auto, Auto, Auto">
+        <!-- Заголовок -->
+        <TextBlock Grid.Row="0"
+                   Text="Select tags to study flashcards"
+                   FontSize="16"
+                   FontWeight="SemiBold"
+                   Margin="0,0,0,15" />
+
+        <!-- Избранные комбинации -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="10" Margin="0,0,0,15">
+            <TextBlock Text="Favorites:"
+                       VerticalAlignment="Center"
+                       Foreground="#666666" />
+            <ComboBox x:Name="FavoritesComboBox"
+                      Width="200"
+                      PlaceholderText="Select favorite..."
+                      SelectionChanged="OnFavoriteSelected" />
+            <Button x:Name="DeleteFavoriteButton"
+                    Content="🗑️"
+                    Width="32" Height="32"
+                    ToolTip.Tip="Delete selected favorite"
+                    Click="OnDeleteFavoriteClick"
+                    IsEnabled="False" />
+        </StackPanel>
+
+        <!-- Список всех тегов -->
+        <Border Grid.Row="2"
+                Background="#F8F8F8"
+                CornerRadius="8"
+                Padding="10">
+            <ScrollViewer>
+                <StackPanel x:Name="TagsPanel" Spacing="5">
+                    <!-- Теги будут добавлены программно -->
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <!-- Выбранные теги -->
+        <StackPanel Grid.Row="3" Margin="0,15,0,0">
+            <TextBlock Text="Selected tags:"
+                       FontWeight="SemiBold"
+                       Margin="0,0,0,8" />
+            <Border Background="#E3F2FD"
+                    CornerRadius="8"
+                    Padding="10"
+                    MinHeight="40">
+                <ItemsControl x:Name="SelectedTagsControl">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+            </Border>
+        </StackPanel>
+
+        <!-- Сохранить как избранное -->
+        <StackPanel Grid.Row="4" Orientation="Horizontal" Spacing="10" Margin="0,15,0,0">
+            <TextBox x:Name="FavoriteNameTextBox"
+                     Width="250"
+                     Watermark="Favorite name (e.g., Math + Hard)" />
+            <Button Content="Save as Favorite"
+                    Click="OnSaveFavoriteClick" />
+        </StackPanel>
+
+        <!-- Кнопки действий -->
+        <StackPanel Grid.Row="5"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Spacing="10"
+                    Margin="0,20,0,0">
+            <Button Content="Cancel"
+                    Width="100"
+                    Click="OnCancelClick" />
+            <Button x:Name="StartStudyButton"
+                    Content="Start Study"
+                    Width="120"
+                    Background="#4CAF50"
+                    Foreground="White"
+                    FontWeight="SemiBold"
+                    Click="OnStartStudyClick"
+                    IsEnabled="False" />
+        </StackPanel>
+    </Grid>
+</Window>

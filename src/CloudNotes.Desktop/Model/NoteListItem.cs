@@ -20,16 +20,20 @@ namespace CloudNotes.Desktop.Model
                 }
             }
         }
+        public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
+
         public NoteListItem(Guid id, string title)
         {
             Id = id;
             Title = title;
         }
-        public NoteListItem(Guid id, string title, DateTime updatedAt)
+
+        public NoteListItem(Guid id, string title, DateTime createdAt, DateTime updatedAt)
         {
             Id = id;
             Title = title;
+            CreatedAt = createdAt;
             UpdatedAt = updatedAt;
         }
     }
