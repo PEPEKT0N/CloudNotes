@@ -71,8 +71,8 @@ public partial class App : Application
     private void ConfigureServices(IServiceCollection services)
     {
         // Получаем директорию, где находится исполняемый файл
-        var assemblyLocation = System.Reflection.Assembly.GetExecutingAssembly().Location;
-        var assemblyDirectory = Path.GetDirectoryName(assemblyLocation) ?? Directory.GetCurrentDirectory();
+        // Используем AppContext.BaseDirectory, т.к. Assembly.Location пуст в single-file app
+        var assemblyDirectory = AppContext.BaseDirectory;
 
         // Настройка конфигурации
         var configuration = new ConfigurationBuilder()
