@@ -117,15 +117,12 @@ namespace CloudNotes.Desktop.Views
                 return File.ReadAllText(filePath);
             }
 
-            // Try relative path from executable
-            var exePath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-            if (exePath != null)
+            // Try relative path from executable (AppContext.BaseDirectory works in single-file apps)
+            var exePath = AppContext.BaseDirectory;
+            filePath = Path.Combine(exePath, "Assets", $"Help_{language}.md");
+            if (File.Exists(filePath))
             {
-                filePath = Path.Combine(exePath, "Assets", $"Help_{language}.md");
-                if (File.Exists(filePath))
-                {
-                    return File.ReadAllText(filePath);
-                }
+                return File.ReadAllText(filePath);
             }
 
             throw new FileNotFoundException($"Help file not found for language: {language}");
