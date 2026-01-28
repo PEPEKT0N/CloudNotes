@@ -26,6 +26,7 @@ public class SyncService : ISyncService
     private readonly IConflictService? _conflictService;
     private readonly ILogger<SyncService>? _logger;
     private Timer? _periodicSyncTimer;
+    private readonly SemaphoreSlim _syncLock = new(1, 1); // Защита от параллельного выполнения
     private const int SyncIntervalMinutes = 5;
     private const int MaxRetryAttempts = 3;
     private const int BaseRetryDelaySeconds = 5;
@@ -49,52 +50,66 @@ public class SyncService : ISyncService
     // Выполняет полную синхронизацию заметок с сервером: загружает новые/обновленные с сервера и отправляет локальные изменения
     public async Task<bool> SyncAsync()
     {
-        // Проверка авторизации
-        var isLoggedIn = await _authService.IsLoggedInAsync();
-        if (!isLoggedIn)
+        // Защита от параллельного выполнения — если синхронизация уже идёт, пропускаем
+        if (!await _syncLock.WaitAsync(0))
         {
-            _logger?.LogInformation("Пропуск синхронизации: пользователь не авторизован");
+            _logger?.LogInformation("Пропуск синхронизации: уже выполняется");
             return false;
         }
 
         try
         {
-            return await PerformSyncAsync();
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogWarning(ex, "Сетевая ошибка при синхронизации");
-            // Retry логика при сетевых ошибках
-            return await RetrySyncAsync();
-        }
-        catch (ApiException ex)
-        {
-            // API ошибки (401, 403, 400, 500 и т.д.) не требуют retry
-            _logger?.LogError(ex, "Ошибка API при синхронизации: {StatusCode}", ex.StatusCode);
-
-            // Если 401 - токен истек, AuthHeaderHandler должен был обновить, но не получилось
-            // Это означает, что refresh token тоже недействителен
-            if (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            // Проверка авторизации
+            var isLoggedIn = await _authService.IsLoggedInAsync();
+            if (!isLoggedIn)
             {
-                System.Diagnostics.Debug.WriteLine("SyncService: 401 Unauthorized - refresh token invalid, user needs to re-login");
-                // Не пробрасываем исключение дальше, просто возвращаем false
-                // UI должен обработать это и предложить перелогиниться
-            }
-            else if (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
-            {
-                // 400 Bad Request - проблема с данными запроса
-                System.Diagnostics.Debug.WriteLine($"SyncService: 400 Bad Request - {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"Content: {ex.Content}");
-                _logger?.LogWarning("400 Bad Request при синхронизации. Возможно, проблема с данными заметки. Продолжаем работу без синхронизации.");
-                // Не пробрасываем исключение, продолжаем работу локально
+                _logger?.LogInformation("Пропуск синхронизации: пользователь не авторизован");
+                return false;
             }
 
-            return false;
+            try
+            {
+                return await PerformSyncAsync();
+            }
+            catch (HttpRequestException ex)
+            {
+                _logger?.LogWarning(ex, "Сетевая ошибка при синхронизации");
+                // Retry логика при сетевых ошибках
+                return await RetrySyncAsync();
+            }
+            catch (ApiException ex)
+            {
+                // API ошибки (401, 403, 400, 500 и т.д.) не требуют retry
+                _logger?.LogError(ex, "Ошибка API при синхронизации: {StatusCode}", ex.StatusCode);
+
+                // Если 401 - токен истек, AuthHeaderHandler должен был обновить, но не получилось
+                // Это означает, что refresh token тоже недействителен
+                if (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    System.Diagnostics.Debug.WriteLine("SyncService: 401 Unauthorized - refresh token invalid, user needs to re-login");
+                    // Не пробрасываем исключение дальше, просто возвращаем false
+                    // UI должен обработать это и предложить перелогиниться
+                }
+                else if (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                {
+                    // 400 Bad Request - проблема с данными запроса
+                    System.Diagnostics.Debug.WriteLine($"SyncService: 400 Bad Request - {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"Content: {ex.Content}");
+                    _logger?.LogWarning("400 Bad Request при синхронизации. Возможно, проблема с данными заметки. Продолжаем работу без синхронизации.");
+                    // Не пробрасываем исключение, продолжаем работу локально
+                }
+
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Неожиданная ошибка при синхронизации");
+                return false;
+            }
         }
-        catch (Exception ex)
+        finally
         {
-            _logger?.LogError(ex, "Неожиданная ошибка при синхронизации");
-            return false;
+            _syncLock.Release();
         }
     }
 
