@@ -174,33 +174,35 @@ try
     using (var scope = app.Services.CreateScope())
     {
         var services = scope.ServiceProvider;
-        try
+        var context = services.GetRequiredService<ApiDbContext>();
+        
+        Log.Information("Применение миграций базы данных...");
+        
+        // Ждём доступности базы данных (до 30 секунд)
+        var maxRetries = 10;
+        var delay = TimeSpan.FromSeconds(3);
+        
+        for (int i = 0; i < maxRetries; i++)
         {
-            var context = services.GetRequiredService<ApiDbContext>();
-            Log.Information("Применение миграций базы данных...");
-
-            // Проверяем, может ли приложение подключиться к базе
-            if (!context.Database.CanConnect())
+            try
             {
-                Log.Warning("Не удается подключиться к базе данных. Создание базы данных...");
-                context.Database.EnsureCreated();
+                if (context.Database.CanConnect())
+                {
+                    // Migrate() автоматически создаёт таблицы и __EFMigrationsHistory
+                    context.Database.Migrate();
+                    Log.Information("Миграции базы данных успешно применены");
+                    break;
+                }
             }
-
-            // Применяем миграции
-            context.Database.Migrate();
-            Log.Information("Миграции базы данных успешно применены");
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Ошибка при применении миграций базы данных: {Message}", ex.Message);
-            // Не прерываем запуск приложения, если это ошибка миграций
-            // (например, таблица миграций еще не создана)
-            if (ex.Message.Contains("__EFMigrationsHistory") || ex.Message.Contains("does not exist"))
+            catch (Exception ex) when (i < maxRetries - 1)
             {
-                Log.Warning("Это может быть нормальная ситуация при первом запуске. Продолжаем запуск...");
+                Log.Warning("Попытка {Attempt}/{MaxRetries}: База данных недоступна. Повтор через {Delay}с... Ошибка: {Error}", 
+                    i + 1, maxRetries, delay.TotalSeconds, ex.Message);
+                Thread.Sleep(delay);
             }
-            else
+            catch (Exception ex)
             {
+                Log.Error(ex, "Не удалось применить миграции после {MaxRetries} попыток", maxRetries);
                 throw;
             }
         }
