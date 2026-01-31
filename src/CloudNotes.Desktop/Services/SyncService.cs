@@ -447,8 +447,9 @@ public class SyncService : ISyncService
         }
 
         var interval = TimeSpan.FromMinutes(SyncIntervalMinutes);
-        _periodicSyncTimer = new Timer(async _ => await SyncAsync(), null, interval, interval);
-        _logger?.LogInformation("Запущена периодическая синхронизация (интервал: {Interval} минут)", SyncIntervalMinutes);
+        // Первый запуск сразу (dueTime: 0), затем каждые SyncIntervalMinutes минут
+        _periodicSyncTimer = new Timer(async _ => await SyncAsync(), null, TimeSpan.Zero, interval);
+        _logger?.LogInformation("Запущена периодическая синхронизация (первый запуск сразу, интервал: {Interval} минут)", SyncIntervalMinutes);
     }
 
     // Останавливает периодическую фоновую синхронизацию

@@ -96,6 +96,21 @@ public partial class MainWindow : Window
             e.Handled = true;
         }
 
+        // Ctrl+S — сохранить заметку (работает и когда фокус не в редакторе)
+        if (e.Key == Key.S && e.KeyModifiers.HasFlag(KeyModifiers.Control))
+        {
+            if (_viewModel.SelectedNote != null)
+            {
+                if (NoteContentTextBox != null)
+                {
+                    var text = NoteContentTextBox.Text ?? string.Empty;
+                    _viewModel.SelectedNote.Content = text;
+                }
+                _ = _viewModel.SaveNoteAsync(_viewModel.SelectedNote);
+            }
+            e.Handled = true;
+        }
+
         // Ctrl+E — переключение между режимом редактирования и превью
         if (e.Key == Key.E && e.KeyModifiers.HasFlag(KeyModifiers.Control))
         {
@@ -148,6 +163,16 @@ public partial class MainWindow : Window
 
         switch (e.Key)
         {
+            case Key.S:
+                // Ctrl+S — сохранить заметку (содержимое из редактора в модель и в БД)
+                if (NoteContentTextBox != null && _viewModel.SelectedNote != null)
+                {
+                    var text = NoteContentTextBox.Text ?? string.Empty;
+                    _viewModel.SelectedNote.Content = text;
+                    await _viewModel.SaveNoteAsync(_viewModel.SelectedNote);
+                }
+                e.Handled = true;
+                break;
             case Key.H:
                 ApplySpoilerFormatting();
                 e.Handled = true;

@@ -41,11 +41,9 @@ public partial class App : Application
                     try
                     {
                         var syncService = ServiceProvider.GetRequiredService<ISyncService>();
-                        var synced = await syncService.SyncOnStartupAsync();
-                        if (synced)
-                        {
-                            syncService.StartPeriodicSync();
-                        }
+                        await syncService.SyncOnStartupAsync();
+                        // Всегда запускаем периодическую синхронизацию при авторизации (первый запуск сразу, затем каждые 5 мин)
+                        syncService.StartPeriodicSync();
                     }
                     catch (Refit.ApiException ex)
                     {
