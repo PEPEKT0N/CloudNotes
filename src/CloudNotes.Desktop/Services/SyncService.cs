@@ -226,7 +226,7 @@ public class SyncService : ISyncService
             {
                 // Заметка существует локально - проверяем, нужно ли обновить
                 Console.WriteLine($"[SyncService]   Comparing dates: server={serverNote.UpdatedAt:O} vs local={localNote.UpdatedAt:O}, localIsSynced={localNote.IsSynced}");
-                
+
                 if (localNote.IsSynced)
                 {
                     // Локальная заметка синхронизирована - безопасно обновляем с сервера если нужно
@@ -283,10 +283,9 @@ public class SyncService : ISyncService
         var serverNoteIds = serverNotes.Select(sn => sn.Id).ToHashSet();
         var localNotesToDelete = localNotes
             .Where(n =>
-                // Удаляем только заметки текущего пользователя
                 n.UserEmail == currentEmail &&
-                // Удаляем синхронизированные заметки, которых нет на сервере
-                n.ServerId.HasValue && !serverNoteIds.Contains(n.ServerId.Value))
+                n.ServerId.HasValue &&
+                !serverNoteIds.Contains(n.ServerId.Value))
             .ToList();
 
         foreach (var noteToDelete in localNotesToDelete)
@@ -311,7 +310,7 @@ public class SyncService : ISyncService
             {
                 Console.WriteLine($"[SyncService] Uploading changes for '{localNote.Title}' ServerId={localNote.ServerId.Value}");
                 Console.WriteLine($"[SyncService]   Content length: {localNote.Content?.Length ?? 0} chars");
-                
+
                 var serverNote = serverNotes.FirstOrDefault(sn => sn.Id == localNote.ServerId.Value);
                 if (serverNote != null)
                 {
@@ -382,7 +381,7 @@ public class SyncService : ISyncService
                         var tagNames = localTags.Select(t => t.Name).ToList();
                         var updateDto = NoteMapper.ToUpdateDto(localNote, localNote.UpdatedAt, tagNames);
                         var response = await _api.UpdateNoteWithResponseAsync(localNote.ServerId.Value, updateDto);
-                        
+
                         if (response.IsSuccessStatusCode)
                         {
                             var updatedNote = response.Content!;
