@@ -27,7 +27,8 @@ public class SyncService : ISyncService
     private readonly ILogger<SyncService>? _logger;
     private Timer? _periodicSyncTimer;
     private readonly SemaphoreSlim _syncLock = new(1, 1); // Защита от параллельного выполнения
-    private const int SyncIntervalMinutes = 5;
+    // Интервал периодической синхронизации (секунды): второй клиент под тем же аккаунтом получает изменения без долгого ожидания
+    private const int SyncIntervalSeconds = 15;
     private const int MaxRetryAttempts = 3;
     private const int BaseRetryDelaySeconds = 5;
 
@@ -437,7 +438,7 @@ public class SyncService : ISyncService
         return await SyncAsync();
     }
 
-    // Запускает периодическую фоновую синхронизацию с интервалом 5 минут
+    // Запускает периодическую фоновую синхронизацию (интервал в секундах — второй клиент быстро получает изменения)
     public void StartPeriodicSync()
     {
         if (_periodicSyncTimer != null)
@@ -446,10 +447,10 @@ public class SyncService : ISyncService
             return;
         }
 
-        var interval = TimeSpan.FromMinutes(SyncIntervalMinutes);
-        // Первый запуск сразу (dueTime: 0), затем каждые SyncIntervalMinutes минут
+        var interval = TimeSpan.FromSeconds(SyncIntervalSeconds);
+        // Первый запуск сразу (dueTime: 0), затем каждые SyncIntervalSeconds секунд
         _periodicSyncTimer = new Timer(async _ => await SyncAsync(), null, TimeSpan.Zero, interval);
-        _logger?.LogInformation("Запущена периодическая синхронизация (первый запуск сразу, интервал: {Interval} минут)", SyncIntervalMinutes);
+        _logger?.LogInformation("Запущена периодическая синхронизация (первый запуск сразу, интервал: {Interval} с)", SyncIntervalSeconds);
     }
 
     // Останавливает периодическую фоновую синхронизацию

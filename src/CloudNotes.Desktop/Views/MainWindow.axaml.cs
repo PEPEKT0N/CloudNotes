@@ -22,6 +22,7 @@ public partial class MainWindow : Window
     private NotesViewModel _viewModel;
     private IConflictService? _conflictService;
     private IAuthService? _authService;
+    private ISyncService? _syncService;
     private List<int> _searchMatches = new List<int>();
     private int _currentMatchIndex = -1;
     private string _lastSearchText = string.Empty;
@@ -42,11 +43,15 @@ public partial class MainWindow : Window
         // Получаем сервисы из DI
         _conflictService = App.ServiceProvider?.GetService<IConflictService>();
         _authService = App.ServiceProvider?.GetService<IAuthService>();
+        _syncService = App.ServiceProvider?.GetService<ISyncService>();
 
         if (_conflictService != null)
         {
             _conflictService.ConflictDetected += OnConflictDetected;
         }
+
+        // При активации окна (вернулись в приложение) — синхронизация, чтобы подтянуть изменения с другого устройства
+        Activated += OnWindowActivated;
 
         // Глобальные горячие клавиши
         KeyDown += OnKeyDown;
@@ -68,6 +73,18 @@ public partial class MainWindow : Window
                 PerformSearch(_lastSearchText);
             }, DispatcherPriority.Background);
         }
+    }
+
+    private async void OnWindowActivated(object? sender, EventArgs e)
+    {
+        if (_syncService == null || _authService == null) return;
+        var isLoggedIn = await _authService.IsLoggedInAsync();
+        if (!isLoggedIn) return;
+        _ = Task.Run(async () =>
+        {
+            await _syncService.SyncAsync();
+            await Dispatcher.UIThread.InvokeAsync(async () => await _viewModel.RefreshNotesAsync(isLoggedIn: true));
+        });
     }
 
     private async void OnConflictDetected(NoteConflict conflict)
