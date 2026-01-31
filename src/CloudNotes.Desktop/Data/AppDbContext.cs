@@ -21,6 +21,7 @@ public class AppDbContext : DbContext
     public DbSet<FlashcardStats> FlashcardStats { get; set; } = null!;
     public DbSet<FavoriteTagCombo> FavoriteTagCombos { get; set; } = null!;
     public DbSet<StudyActivity> StudyActivities { get; set; } = null!;
+    public DbSet<DeletedNote> DeletedNotes { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -61,6 +62,11 @@ public class AppDbContext : DbContext
         // Индекс для активности: уникальный по пользователю и дате
         modelBuilder.Entity<StudyActivity>()
             .HasIndex(sa => new { sa.UserEmail, sa.Date })
+            .IsUnique();
+
+        // Индекс для удалённых заметок по пользователю и ServerId
+        modelBuilder.Entity<DeletedNote>()
+            .HasIndex(dn => new { dn.UserEmail, dn.ServerId })
             .IsUnique();
     }
 

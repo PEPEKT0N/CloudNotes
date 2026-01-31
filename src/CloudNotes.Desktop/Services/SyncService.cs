@@ -149,9 +149,59 @@ public class SyncService : ISyncService
         var localNotes = await _noteService.GetAllNoteAsync();
         var localNotesDict = localNotes.ToDictionary(n => n.Id);
 
+        // 2.5. Получаем и отправляем на сервер локально удалённые заметки
+        // deletedServerIds содержит ВСЕ заметки, которые были удалены локально (для предотвращения восстановления)
+        var deletedServerIds = new HashSet<Guid>();
+        using (var context = DbContextProvider.CreateContext())
+        {
+            var deletedNotes = await context.DeletedNotes
+                .Where(dn => dn.UserEmail == currentEmail)
+                .ToListAsync();
+
+            // Сначала добавляем все удалённые заметки в set, чтобы не восстанавливать их
+            foreach (var deletedNote in deletedNotes)
+            {
+                deletedServerIds.Add(deletedNote.ServerId);
+            }
+
+            // Теперь пытаемся отправить удаления на сервер
+            foreach (var deletedNote in deletedNotes)
+            {
+                try
+                {
+                    await _api.DeleteNoteAsync(deletedNote.ServerId);
+                    context.DeletedNotes.Remove(deletedNote);
+                    _logger?.LogInformation("Удалена заметка {ServerId} на сервере", deletedNote.ServerId);
+                    System.Diagnostics.Debug.WriteLine($"[SyncService] Deleted note {deletedNote.ServerId} on server");
+                }
+                catch (ApiException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    // Заметка уже удалена на сервере - просто удаляем запись из DeletedNotes
+                    context.DeletedNotes.Remove(deletedNote);
+                    _logger?.LogInformation("Заметка {ServerId} уже удалена на сервере", deletedNote.ServerId);
+                }
+                catch (Exception ex)
+                {
+                    // При ошибке оставляем запись в DeletedNotes для повторной попытки
+                    // Но заметка уже в deletedServerIds, поэтому не будет восстановлена
+                    _logger?.LogWarning(ex, "Не удалось удалить заметку {ServerId} на сервере, повторим позже", deletedNote.ServerId);
+                    System.Diagnostics.Debug.WriteLine($"[SyncService] Failed to delete note {deletedNote.ServerId}: {ex.Message}");
+                }
+            }
+
+            await context.SaveChangesAsync();
+        }
+
         // 3. Синхронизация: загружаем новые/обновленные с сервера
         foreach (var serverNote in serverNotes)
         {
+            // Пропускаем заметки, которые были удалены локально и только что удалены на сервере
+            if (deletedServerIds.Contains(serverNote.Id))
+            {
+                _logger?.LogInformation("Пропускаем заметку {NoteId}, которая была удалена локально", serverNote.Id);
+                continue;
+            }
+
             // Ищем локальную заметку по ServerId или по Id
             var localNote = localNotes.FirstOrDefault(n => n.ServerId == serverNote.Id || n.Id == serverNote.Id);
 
@@ -167,7 +217,7 @@ public class SyncService : ISyncService
                     localNote.ServerId = serverNote.Id;
                     localNote.IsSynced = true;
                     localNote.UserEmail = currentEmail; // Обновляем UserEmail при синхронизации
-                    await _noteService.UpdateNoteAsync(localNote);
+                    await _noteService.UpdateNoteAsync(localNote, fromSync: true);
 
                     // Синхронизируем теги с сервера
                     await SyncTagsFromServerAsync(localNote.Id, serverNote.Tags);
@@ -180,7 +230,7 @@ public class SyncService : ISyncService
                     localNote.ServerId = serverNote.Id;
                     localNote.IsSynced = true;
                     localNote.UserEmail = currentEmail; // Обновляем UserEmail при синхронизации
-                    await _noteService.UpdateNoteAsync(localNote);
+                    await _noteService.UpdateNoteAsync(localNote, fromSync: true);
                     _logger?.LogInformation("Синхронизирована заметка {NoteId}", serverNote.Id);
                 }
             }
@@ -242,7 +292,7 @@ public class SyncService : ISyncService
                             localNote.Content = updatedNote.Content ?? string.Empty;
                             localNote.UpdatedAt = updatedNote.UpdatedAt;
                             localNote.IsSynced = true;
-                            await _noteService.UpdateNoteAsync(localNote);
+                            await _noteService.UpdateNoteAsync(localNote, fromSync: true);
 
                             // Синхронизируем теги с сервера (на случай, если сервер изменил их)
                             await SyncTagsFromServerAsync(localNote.Id, updatedNote.Tags);
@@ -294,7 +344,7 @@ public class SyncService : ISyncService
                     localNote.ServerId = createdNote.Id;
                     localNote.IsSynced = true;
                     localNote.UpdatedAt = createdNote.UpdatedAt;
-                    await _noteService.UpdateNoteAsync(localNote);
+                    await _noteService.UpdateNoteAsync(localNote, fromSync: true);
 
                     // Синхронизируем теги с сервера (на случай, если сервер создал новые теги)
                     await SyncTagsFromServerAsync(localNote.Id, createdNote.Tags);
