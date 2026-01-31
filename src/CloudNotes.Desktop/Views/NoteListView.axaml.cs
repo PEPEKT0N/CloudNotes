@@ -59,14 +59,11 @@ public partial class NoteListView : UserControl
                 {
                     System.Diagnostics.Debug.WriteLine($"App started with existing session for: {_currentUserEmail}");
 
-                    // Если пользователь уже был авторизован, запускаем синхронизацию
+                    // Если пользователь уже авторизован — запускаем синхронизацию и периодический таймер (даже если первый sync не удался)
                     if (_syncService != null)
                     {
-                        var synced = await _syncService.SyncOnStartupAsync();
-                        if (synced)
-                        {
-                            _syncService.StartPeriodicSync();
-                        }
+                        await _syncService.SyncOnStartupAsync();
+                        _syncService.StartPeriodicSync();
                     }
                 }
 
