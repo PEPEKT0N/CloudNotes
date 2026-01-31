@@ -49,8 +49,10 @@ namespace CloudNotes.Desktop.Tests
             );
             _context.SaveChanges();
 
-            // Создаем сервис с нашим контекстом
-            _noteService = new NoteService(_context);
+            // Сервис с фабрикой контекста: каждая операция получает свой экземпляр DbContext,
+            // чтобы избежать "A second operation was started on this context instance before a previous operation completed"
+            // при фоновых Task.Run (CreateNote, RenameActiveNote) и синхронном вызове DeleteActiveNote.
+            _noteService = new NoteService(() => new AppDbContext(options));
 
             // Создаем ViewModel с нашим сервисом
             vm = new NotesViewModel(_noteService);
