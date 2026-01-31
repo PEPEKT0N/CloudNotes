@@ -154,7 +154,7 @@ public class NoteService : INoteService
     private async Task<bool> UpdateNoteInternalAsync(AppDbContext context, Note note, bool fromSync)
     {
         Console.WriteLine($"[NoteService] UpdateNoteInternalAsync called: noteId={note.Id}, fromSync={fromSync}");
-        
+
         var existingNote = await context.Notes.FindAsync(note.Id);
         if (existingNote == null)
         {

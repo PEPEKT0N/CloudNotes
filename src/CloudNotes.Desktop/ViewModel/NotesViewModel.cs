@@ -209,8 +209,8 @@ namespace CloudNotes.Desktop.ViewModel
 
         // Сервис для работы с БД (используется через фабрику или напрямую для тестов)
         // ВАЖНО: Всегда используем CurrentNoteService для получения актуального сервиса!
-        private INoteService _noteServiceBackup = null!; // Fallback для тестов без фабрики
-        
+        private INoteService _noteServiceBackup = null!;
+
         // Свойство-геттер которое возвращает актуальный сервис (гостевой или авторизованный)
         private INoteService _noteService => _noteServiceFactory?.CurrentNoteService ?? _noteServiceBackup;
 
@@ -285,7 +285,7 @@ namespace CloudNotes.Desktop.ViewModel
                             }
                         });
                     }
-                    
+
                     _selectedTreeItem = value;
                     OnPropertyChanged();
 
