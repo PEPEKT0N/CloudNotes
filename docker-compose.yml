@@ -5,9 +5,9 @@ services:
     container_name: cloudnotes-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: cloudnotes_dev
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-cloudnotes_dev}
     ports:
       - "5432:5432"
     volumes:
@@ -40,6 +40,8 @@ services:
       Jwt__RefreshTokenExpirationDays: ${JWT_REFRESH_TOKEN_EXPIRATION_DAYS:-7}
     ports:
       - "5015:8080"
+    volumes:
+      - dataprotection_keys:/root/.aspnet/DataProtection-Keys
     depends_on:
       postgres:
         condition: service_healthy
@@ -55,6 +57,7 @@ services:
 # ===== Volumes =====
 volumes:
   postgres_data:
+  dataprotection_keys:
     driver: local
 
 # ===== Networks =====
