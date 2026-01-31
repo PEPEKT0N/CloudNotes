@@ -199,13 +199,7 @@ try
             if (ex.Message.Contains("__EFMigrationsHistory") || ex.Message.Contains("does not exist"))
             {
                 Log.Warning(
-<<<<<<< HEAD
-                    "Попытка {Attempt}/{MaxRetries}: База данных недоступна. Повтор через {Delay}с... Ошибка: {Error}",
-                    i + 1, maxRetries, delay.TotalSeconds, ex.Message);
-                Thread.Sleep(delay);
-=======
                     "Это может быть нормальная ситуация при первом запуске. Продолжаем запуск...");
->>>>>>> 39cac7c48f18a041f2e8a08f0f0a82736ec43afe
             }
             else
             {
