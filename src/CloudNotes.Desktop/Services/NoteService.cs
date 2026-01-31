@@ -153,14 +153,17 @@ public class NoteService : INoteService
 
     private async Task<bool> UpdateNoteInternalAsync(AppDbContext context, Note note, bool fromSync)
     {
+        Console.WriteLine($"[NoteService] UpdateNoteInternalAsync called: noteId={note.Id}, fromSync={fromSync}");
 
         var existingNote = await context.Notes.FindAsync(note.Id);
         if (existingNote == null)
         {
+            Console.WriteLine($"[NoteService] Note {note.Id} not found in DB!");
             return false;
         }
 
         var hasServerId = existingNote.ServerId.HasValue;
+        Console.WriteLine($"[NoteService] Found note '{existingNote.Title}', hasServerId={hasServerId}, existingIsSynced={existingNote.IsSynced}");
 
         existingNote.Title = note.Title;
         existingNote.Content = note.Content;
@@ -187,17 +190,19 @@ public class NoteService : INoteService
         {
             // Вызов от SyncService - используем значение из note
             existingNote.IsSynced = note.IsSynced;
+            Console.WriteLine($"[NoteService] fromSync=true, setting IsSynced={note.IsSynced}");
         }
         else if (hasServerId)
         {
             // Локальное изменение синхронизированной заметки - помечаем как несинхронизированную
             existingNote.IsSynced = false;
-            System.Diagnostics.Debug.WriteLine($"[NoteService] Marking note {note.Id} as unsynced due to local change");
+            Console.WriteLine($"[NoteService] Local change detected, setting IsSynced=false");
         }
         else
         {
             // Заметка ещё не на сервере - используем значение из note
             existingNote.IsSynced = note.IsSynced;
+            Console.WriteLine($"[NoteService] No ServerId, keeping IsSynced={note.IsSynced}");
         }
 
         // Явно помечаем сущность как измененную для гарантии обновления UpdatedAt
