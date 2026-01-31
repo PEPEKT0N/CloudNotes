@@ -108,15 +108,16 @@
                     </ComboBox>
                 </StackPanel>
 
+                <!-- Favorites section -->
                 <TextBlock Text="Favorites"
                             FontWeight="Bold"
-                            FontSize="16"
-                            Margin="0,10,0,10" />
+                            FontSize="12"
+                            Margin="0,15,0,5" />
 
                 <ListBox ItemsSource="{Binding Favorites}"
                          SelectedItem="{Binding SelectedFavoriteItem, Mode=TwoWay}"
                          SelectionChanged="OnFavoritesSelectionChanged"
-                         MaxHeight="200">
+                         MaxHeight="150">
                     <ListBox.ContextMenu>
                         <ContextMenu>
                             <MenuItem Header="Remove from favorites"
@@ -129,11 +130,10 @@
 
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <TextBlock Text="{Binding Title}" />
+                            <TextBlock Text="{Binding Title}" FontSize="10" />
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
-
 
                 <!-- Folders section -->
                 <TextBlock Text="Folders"
@@ -179,33 +179,6 @@
                         </TreeDataTemplate>
                     </TreeView.ItemTemplate>
                 </TreeView>
-
-                <!-- Favorites section (сохраняем для обратной совместимости) -->
-                <TextBlock Text="Favorites"
-                            FontWeight="Bold"
-                            FontSize="12"
-                            Margin="0,15,0,5" />
-
-                <ListBox ItemsSource="{Binding Favorites}"
-                         SelectedItem="{Binding SelectedFavoriteItem, Mode=TwoWay}"
-                         SelectionChanged="OnFavoritesSelectionChanged"
-                         MaxHeight="150">
-                    <ListBox.ContextMenu>
-                        <ContextMenu>
-                            <MenuItem Header="Remove from favorites"
-                                        Command="{Binding RemoveFromFavoritesCommand}" />
-                            <MenuItem Header="Rename" Click="OnRenameMenuClick" />
-                            <MenuItem Header="Delete"
-                                        Command="{Binding DeleteNoteCommand}" />
-                        </ContextMenu> 
-                    </ListBox.ContextMenu>
-
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding Title}" FontSize="10" />
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
 
                 <!-- Tags section -->
                 <TextBlock Text="Tags"

@@ -9,10 +9,16 @@ namespace CloudNotes.Desktop.Services
     /// Сервис для конвертации Markdown в HTML с использованием Markdig.
     /// Поддерживает: headers, bold, italic, lists, spoiler, tables.
     /// Поддерживает: headers, bold, italic, lists, spoiler, flashcards.
+    /// Локальные изображения file:// в превью подменяются на data URI для отображения.
     /// </summary>
     public class MarkdownConverter : IMarkdownConverter
     {
         private readonly MarkdownPipeline pipeline;
+
+        // Regex для подстановки локальных изображений ![alt](file:///path) в data URI для превью
+        private static readonly Regex FileImageRegex = new Regex(
+            @"!\[([^\]]*)\]\((file:///[^)]+)\)",
+            RegexOptions.Compiled);
 
         // Regex для поиска spoiler синтаксиса ||текст||
         // Не захватывает таблицы - spoiler должен быть в одной строке или не содержать структуру таблицы
@@ -71,6 +77,36 @@ namespace CloudNotes.Desktop.Services
             {
                 return string.Empty;
             }
+
+            // 0. Локальные изображения file:// -> data URI, чтобы превью их показывало (WebView не грузит file://)
+            markdown = FileImageRegex.Replace(markdown, match =>
+            {
+                var alt = match.Groups[1].Value;
+                var fileUrl = match.Groups[2].Value;
+                try
+                {
+                    var localPath = new Uri(fileUrl).LocalPath;
+                    if (!System.IO.File.Exists(localPath))
+                        return match.Value;
+                    var bytes = System.IO.File.ReadAllBytes(localPath);
+                    var base64 = Convert.ToBase64String(bytes);
+                    var ext = System.IO.Path.GetExtension(localPath).ToLowerInvariant();
+                    var mime = ext switch
+                    {
+                        ".png" => "image/png",
+                        ".jpg" or ".jpeg" => "image/jpeg",
+                        ".gif" => "image/gif",
+                        ".bmp" => "image/bmp",
+                        ".webp" => "image/webp",
+                        _ => "image/png"
+                    };
+                    return $"![{alt}](data:{mime};base64,{base64})";
+                }
+                catch
+                {
+                    return match.Value;
+                }
+            });
 
             // 1. Заменяем ??вопрос::ответ?? на placeholders
             var withPlaceholders = FlashcardRegex.Replace(markdown, match =>
