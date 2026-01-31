@@ -95,22 +95,28 @@ namespace CloudNotes.Desktop.ViewModel
                 if (selectedListItem != value)
                 {
                     // Автосохранение: сохраняем текущую заметку перед переключением
+                    Console.WriteLine($"[AutoSave] Switching notes. selectedNote={selectedNote?.Title}, isGuestMode={_noteServiceFactory?.IsGuestMode}");
                     if (selectedNote != null && _noteServiceFactory != null && !_noteServiceFactory.IsGuestMode)
                     {
                         // Сохраняем асинхронно, не блокируя UI
                         var noteToSave = selectedNote;
+                        Console.WriteLine($"[AutoSave] Saving note '{noteToSave.Title}' before switch...");
                         Task.Run(async () =>
                         {
                             try
                             {
                                 await _noteService.UpdateNoteAsync(noteToSave);
-                                System.Diagnostics.Debug.WriteLine($"Auto-saved note: {noteToSave.Title}");
+                                Console.WriteLine($"[AutoSave] Note '{noteToSave.Title}' saved successfully");
                             }
                             catch (Exception ex)
                             {
-                                System.Diagnostics.Debug.WriteLine($"Auto-save failed: {ex.Message}");
+                                Console.WriteLine($"[AutoSave] Failed to save note '{noteToSave.Title}': {ex.Message}");
                             }
                         });
+                    }
+                    else
+                    {
+                        Console.WriteLine($"[AutoSave] Skipping auto-save: selectedNote={selectedNote != null}, factory={_noteServiceFactory != null}, isGuest={_noteServiceFactory?.IsGuestMode}");
                     }
 
                     selectedListItem = value;
@@ -202,7 +208,11 @@ namespace CloudNotes.Desktop.ViewModel
         private readonly INoteServiceFactory? _noteServiceFactory;
 
         // Сервис для работы с БД (используется через фабрику или напрямую для тестов)
-        private INoteService _noteService;
+        // ВАЖНО: Всегда используем CurrentNoteService для получения актуального сервиса!
+        private INoteService _noteServiceBackup = null!; // Fallback для тестов без фабрики
+        
+        // Свойство-геттер которое возвращает актуальный сервис (гостевой или авторизованный)
+        private INoteService _noteService => _noteServiceFactory?.CurrentNoteService ?? _noteServiceBackup;
 
         // Сервис для работы с тегами (используется через фабрику или напрямую для тестов)
         private ITagService? _tagService;
@@ -256,6 +266,26 @@ namespace CloudNotes.Desktop.ViewModel
             {
                 if (_selectedTreeItem != value)
                 {
+                    // AUTO-SAVE: Сохраняем текущую заметку перед переключением
+                    Console.WriteLine($"[AutoSave-Tree] Switching. Current selectedNote={selectedNote?.Title}, isGuestMode={_noteServiceFactory?.IsGuestMode}");
+                    if (selectedNote != null && _noteServiceFactory != null && !_noteServiceFactory.IsGuestMode)
+                    {
+                        var noteToSave = selectedNote;
+                        Console.WriteLine($"[AutoSave-Tree] Saving note '{noteToSave.Title}' before switch...");
+                        Task.Run(async () =>
+                        {
+                            try
+                            {
+                                await _noteService.UpdateNoteAsync(noteToSave);
+                                Console.WriteLine($"[AutoSave-Tree] Note '{noteToSave.Title}' saved successfully");
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine($"[AutoSave-Tree] Failed: {ex.Message}");
+                            }
+                        });
+                    }
+                    
                     _selectedTreeItem = value;
                     OnPropertyChanged();
 
@@ -367,14 +397,14 @@ namespace CloudNotes.Desktop.ViewModel
 
             if (_noteServiceFactory != null)
             {
-                // Используем фабрику - по умолчанию гостевой режим
-                _noteService = _noteServiceFactory.CurrentNoteService;
+                // Используем фабрику - _noteService теперь свойство-геттер!
+                // _noteServiceBackup не нужен когда есть фабрика
                 _tagService = _noteServiceFactory.CurrentTagService;
             }
             else
             {
                 // Fallback для случаев без DI (тесты и т.д.)
-                _noteService = new NoteService(context);
+                _noteServiceBackup = new NoteService(context);
                 _tagService = new TagService(context);
             }
 
@@ -422,7 +452,7 @@ namespace CloudNotes.Desktop.ViewModel
         // Конструктор для тестов с переданным сервисом
         public NotesViewModel(INoteService noteService, ITagService? tagService = null)
         {
-            _noteService = noteService;
+            _noteServiceBackup = noteService;
             _tagService = tagService;
             _markdownConverter = new MarkdownConverter();
 
@@ -494,7 +524,7 @@ namespace CloudNotes.Desktop.ViewModel
                 {
                     _noteServiceFactory.SwitchToGuestMode();
                 }
-                _noteService = _noteServiceFactory.CurrentNoteService;
+                // _noteService теперь свойство-геттер, автоматически использует CurrentNoteService
                 _tagService = _noteServiceFactory.CurrentTagService;
             }
 

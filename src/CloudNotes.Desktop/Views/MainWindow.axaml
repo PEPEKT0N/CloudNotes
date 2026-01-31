@@ -110,7 +110,8 @@
                                 Content="{Binding IsPreviewMode, Converter={x:Static local:PreviewButtonConverter.Instance}}"
                                 Foreground="Black"
                                 Background="#FFFFFF"
-                                Width="60" Height="32"
+                                MinWidth="70" Height="32"
+                                Padding="8,0"
                                 ToolTip.Tip="Toggle Preview (Ctrl+E)"
                                 Command="{Binding TogglePreviewModeCommand}" />
                         <Rectangle Width="1" Fill="#AAAAAA" Margin="5,2" />
