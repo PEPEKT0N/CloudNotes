@@ -125,7 +125,7 @@ public class GuestNoteService : INoteService
         }
     }
 
-    public Task<bool> UpdateNoteAsync(Note note)
+    public Task<bool> UpdateNoteAsync(Note note, bool fromSync = false)
     {
         lock (_lock)
         {
@@ -139,7 +139,7 @@ public class GuestNoteService : INoteService
             existingNote.Content = note.Content;
             existingNote.IsFavorite = note.IsFavorite;
             existingNote.UpdatedAt = DateTime.UtcNow;
-            // Гостевые заметки никогда не синхронизируются
+            // Гостевые заметки никогда не синхронизируются (параметр fromSync игнорируется)
             existingNote.IsSynced = false;
             existingNote.ServerId = null;
 
