@@ -196,7 +196,8 @@ try
             }
             catch (Exception ex) when (i < maxRetries - 1)
             {
-                Log.Warning("Попытка {Attempt}/{MaxRetries}: База данных недоступна. Повтор через {Delay}с... Ошибка: {Error}", 
+                Log.Warning(
+                    "Попытка {Attempt}/{MaxRetries}: База данных недоступна. Повтор через {Delay}с... Ошибка: {Error}",
                     i + 1, maxRetries, delay.TotalSeconds, ex.Message);
                 Thread.Sleep(delay);
             }
