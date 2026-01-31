@@ -220,6 +220,9 @@ namespace CloudNotes.Desktop.ViewModel
         // Сервис для работы с папками
         private FolderService? _folderService;
 
+        // Сервис синхронизации (для отправки новых заметок/папок на сервер после создания)
+        private readonly ISyncService? _syncService;
+
         // Сервис для конвертации Markdown в HTML
         private readonly IMarkdownConverter _markdownConverter;
 
@@ -435,6 +438,7 @@ namespace CloudNotes.Desktop.ViewModel
             var api = App.ServiceProvider?.GetService(typeof(ICloudNotesApi)) as ICloudNotesApi;
             var authService = App.ServiceProvider?.GetService(typeof(IAuthService)) as IAuthService;
             _folderService = new FolderService(folderContext, api, authService);
+            _syncService = App.ServiceProvider?.GetService<ISyncService>();
 
             // Загружаем заметки синхронно для совместимости с тестами
             // По умолчанию считаем гостевой режим
@@ -454,6 +458,7 @@ namespace CloudNotes.Desktop.ViewModel
         {
             _noteServiceBackup = noteService;
             _tagService = tagService;
+            _syncService = null;
             _markdownConverter = new MarkdownConverter();
 
             CreateNoteCommand = new RelayCommand(_ => CreateNote());
@@ -502,6 +507,7 @@ namespace CloudNotes.Desktop.ViewModel
             // Загружаем папки только если пользователь авторизован
             // LoadFoldersAsync сам проверит гостевой режим и очистит папки
             await LoadFoldersAsync();
+            await BuildTreeAsync();
         }
 
         private async Task LoadNotesFromDbAsyncInternal(bool? isLoggedIn)
@@ -614,6 +620,7 @@ namespace CloudNotes.Desktop.ViewModel
 
             // UpdatedAt обновится автоматически в SaveChangesAsync
             await _noteService.UpdateNoteAsync(note);
+            _ = _syncService?.SyncAsync();
         }
 
         private void AddNote(Note note)
@@ -737,6 +744,7 @@ namespace CloudNotes.Desktop.ViewModel
             {
                 await _noteService.CreateNoteAsync(note);
                 await BuildTreeAsync();
+                _ = _syncService?.SyncAsync();
             });
 
             SelectedListItem = listItem;
@@ -785,6 +793,7 @@ namespace CloudNotes.Desktop.ViewModel
             // Сохраняем в БД асинхронно
             await _noteService.CreateNoteAsync(note);
             await BuildTreeAsync();
+            _ = _syncService?.SyncAsync();
 
             // Выбираем созданную заметку
             SelectedNote = note;
@@ -829,6 +838,7 @@ namespace CloudNotes.Desktop.ViewModel
             await _folderService.CreateFolderAsync(folder);
             await LoadFoldersAsync();
             await BuildTreeAsync();
+            _ = _syncService?.SyncAsync();
         }
 
         public void RenameActiveNote(string newName)
@@ -848,7 +858,11 @@ namespace CloudNotes.Desktop.ViewModel
                 listItem.UpdatedAt = note.UpdatedAt;
 
                 // Сохраняем изменения в БД (UpdatedAt обновится автоматически в SaveChangesAsync)
-                Task.Run(async () => await _noteService.UpdateNoteAsync(note));
+                Task.Run(async () =>
+                {
+                    await _noteService.UpdateNoteAsync(note);
+                    _ = _syncService?.SyncAsync();
+                });
             }
 
             // Обновляем в основном списке, если есть
@@ -944,7 +958,11 @@ namespace CloudNotes.Desktop.ViewModel
             {
                 note.IsFavorite = true;
                 // Сохраняем изменения в БД
-                Task.Run(async () => await _noteService.UpdateNoteAsync(note));
+                Task.Run(async () =>
+                {
+                    await _noteService.UpdateNoteAsync(note);
+                    _ = _syncService?.SyncAsync();
+                });
             }
 
             if (!Favorites.Any(f => f.Id == note.Id))
@@ -977,7 +995,11 @@ namespace CloudNotes.Desktop.ViewModel
             _allNoteItems.RemoveAll(item => item.Id == listItem.Id);
 
             // Удаляем из БД
-            Task.Run(async () => await _noteService.DeleteNoteAsync(noteId));
+            Task.Run(async () =>
+            {
+                await _noteService.DeleteNoteAsync(noteId);
+                _ = _syncService?.SyncAsync();
+            });
 
             // Сбрасываем выбор
             if (SelectedNote?.Id == listItem.Id)
@@ -1033,6 +1055,7 @@ namespace CloudNotes.Desktop.ViewModel
             // Удаляем из БД
             await _noteService.DeleteNoteAsync(noteId);
             await BuildTreeAsync();
+            _ = _syncService?.SyncAsync();
 
             // Сбрасываем выбор
             SelectedNote = null;
@@ -1050,7 +1073,11 @@ namespace CloudNotes.Desktop.ViewModel
             {
                 note.IsFavorite = false;
                 // Сохраняем изменения в БД
-                Task.Run(async () => await _noteService.UpdateNoteAsync(note));
+                Task.Run(async () =>
+                {
+                    await _noteService.UpdateNoteAsync(note);
+                    _ = _syncService?.SyncAsync();
+                });
             }
 
             Favorites.Remove(SelectedFavoriteItem);
@@ -1136,6 +1163,7 @@ namespace CloudNotes.Desktop.ViewModel
 
                 // Добавляем тег к заметке
                 await _tagService.AddTagToNoteAsync(noteId, tag.Id);
+                _ = _syncService?.SyncAsync();
 
                 // Обновляем UI в главном потоке
                 await Dispatcher.UIThread.InvokeAsync(() =>
@@ -1169,6 +1197,7 @@ namespace CloudNotes.Desktop.ViewModel
             Task.Run(async () =>
             {
                 await _tagService.RemoveTagFromNoteAsync(noteId, tagId);
+                _ = _syncService?.SyncAsync();
 
                 // Обновляем UI в главном потоке
                 await Dispatcher.UIThread.InvokeAsync(() =>
@@ -1469,6 +1498,7 @@ namespace CloudNotes.Desktop.ViewModel
             await _folderService.CreateFolderAsync(folder);
             await LoadFoldersAsync();
             await BuildTreeAsync();
+            _ = _syncService?.SyncAsync();
         }
 
         private async void RenameFolder()
@@ -1498,6 +1528,7 @@ namespace CloudNotes.Desktop.ViewModel
             await _folderService.UpdateFolderAsync(folder);
             await LoadFoldersAsync();
             await BuildTreeAsync();
+            _ = _syncService?.SyncAsync();
         }
 
         public async void DeleteFolder()
@@ -1509,6 +1540,7 @@ namespace CloudNotes.Desktop.ViewModel
             SelectedTreeItem = null;
             await LoadFoldersAsync();
             await BuildTreeAsync();
+            _ = _syncService?.SyncAsync();
         }
 
         private void ClearFolderSelection()
@@ -1575,7 +1607,7 @@ namespace CloudNotes.Desktop.ViewModel
             note.FolderId = newFolderId;
             note.UpdatedAt = DateTime.UtcNow;
 
-            // Сохраняем изменения
+            // Сохраняем изменения (SaveNoteAsync уже вызывает SyncAsync)
             await SaveNoteAsync(note);
             await BuildTreeAsync();
 
