@@ -86,15 +86,15 @@ public class SyncService : ISyncService
                 // Это означает, что refresh token тоже недействителен
                 if (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
                 {
-                    System.Diagnostics.Debug.WriteLine("SyncService: 401 Unauthorized - refresh token invalid, user needs to re-login");
+                    Console.WriteLine("SyncService: 401 Unauthorized - refresh token invalid, user needs to re-login");
                     // Не пробрасываем исключение дальше, просто возвращаем false
                     // UI должен обработать это и предложить перелогиниться
                 }
                 else if (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
                 {
                     // 400 Bad Request - проблема с данными запроса
-                    System.Diagnostics.Debug.WriteLine($"SyncService: 400 Bad Request - {ex.Message}");
-                    System.Diagnostics.Debug.WriteLine($"Content: {ex.Content}");
+                    Console.WriteLine($"SyncService: 400 Bad Request - {ex.Message}");
+                    Console.WriteLine($"Content: {ex.Content}");
                     _logger?.LogWarning("400 Bad Request при синхронизации. Возможно, проблема с данными заметки. Продолжаем работу без синхронизации.");
                     // Не пробрасываем исключение, продолжаем работу локально
                 }
@@ -129,18 +129,18 @@ public class SyncService : ISyncService
         {
             // 401 ошибка - токен истек
             // Пытаемся обновить токен и повторить запрос
-            System.Diagnostics.Debug.WriteLine("SyncService: Got 401, attempting token refresh...");
+            Console.WriteLine("SyncService: Got 401, attempting token refresh...");
 
             var newToken = await _authService.ForceRefreshTokenAsync();
             if (!string.IsNullOrEmpty(newToken))
             {
-                System.Diagnostics.Debug.WriteLine("SyncService: Token refreshed, retrying GetNotesAsync...");
+                Console.WriteLine("SyncService: Token refreshed, retrying GetNotesAsync...");
                 // Повторяем запрос с новым токеном
                 serverNotes = await _api.GetNotesAsync();
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine("SyncService: Token refresh failed, user needs to re-login");
+                Console.WriteLine("SyncService: Token refresh failed, user needs to re-login");
                 throw; // Пробрасываем дальше для обработки в UI
             }
         }
@@ -148,6 +148,17 @@ public class SyncService : ISyncService
         // 2. Получаем все локальные заметки
         var localNotes = await _noteService.GetAllNoteAsync();
         var localNotesDict = localNotes.ToDictionary(n => n.Id);
+
+        Console.WriteLine($"[SyncService] Server notes: {serverNotes.Count()}");
+        foreach (var sn in serverNotes)
+        {
+            Console.WriteLine($"[SyncService]   Server: '{sn.Title}' Id={sn.Id}");
+        }
+        Console.WriteLine($"[SyncService] Local notes: {localNotes.Count()}");
+        foreach (var ln in localNotes)
+        {
+            Console.WriteLine($"[SyncService]   Local: '{ln.Title}' Id={ln.Id}, ServerId={ln.ServerId}, IsSynced={ln.IsSynced}");
+        }
 
         // 2.5. Получаем и отправляем на сервер локально удалённые заметки
         // deletedServerIds содержит ВСЕ заметки, которые были удалены локально (для предотвращения восстановления)
@@ -172,7 +183,7 @@ public class SyncService : ISyncService
                     await _api.DeleteNoteAsync(deletedNote.ServerId);
                     context.DeletedNotes.Remove(deletedNote);
                     _logger?.LogInformation("Удалена заметка {ServerId} на сервере", deletedNote.ServerId);
-                    System.Diagnostics.Debug.WriteLine($"[SyncService] Deleted note {deletedNote.ServerId} on server");
+                    Console.WriteLine($"[SyncService] Deleted note {deletedNote.ServerId} on server");
                 }
                 catch (ApiException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
                 {
@@ -185,7 +196,7 @@ public class SyncService : ISyncService
                     // При ошибке оставляем запись в DeletedNotes для повторной попытки
                     // Но заметка уже в deletedServerIds, поэтому не будет восстановлена
                     _logger?.LogWarning(ex, "Не удалось удалить заметку {ServerId} на сервере, повторим позже", deletedNote.ServerId);
-                    System.Diagnostics.Debug.WriteLine($"[SyncService] Failed to delete note {deletedNote.ServerId}: {ex.Message}");
+                    Console.WriteLine($"[SyncService] Failed to delete note {deletedNote.ServerId}: {ex.Message}");
                 }
             }
 
@@ -205,38 +216,59 @@ public class SyncService : ISyncService
             // Ищем локальную заметку по ServerId или по Id
             var localNote = localNotes.FirstOrDefault(n => n.ServerId == serverNote.Id || n.Id == serverNote.Id);
 
+            Console.WriteLine($"[SyncService] Processing server note '{serverNote.Title}' Id={serverNote.Id}, found local: {localNote != null}");
+            if (localNote != null)
+            {
+                Console.WriteLine($"[SyncService]   Matched with local '{localNote.Title}' Id={localNote.Id}, ServerId={localNote.ServerId}");
+            }
+
             if (localNote != null)
             {
                 // Заметка существует локально - проверяем, нужно ли обновить
-                if (serverNote.UpdatedAt > localNote.UpdatedAt)
+                Console.WriteLine($"[SyncService]   Comparing dates: server={serverNote.UpdatedAt:O} vs local={localNote.UpdatedAt:O}, localIsSynced={localNote.IsSynced}");
+
+                if (localNote.IsSynced)
                 {
-                    // Серверная версия новее - обновляем локально
-                    localNote.Title = serverNote.Title;
-                    localNote.Content = serverNote.Content ?? string.Empty;
-                    localNote.UpdatedAt = serverNote.UpdatedAt;
-                    localNote.ServerId = serverNote.Id;
-                    localNote.IsSynced = true;
-                    localNote.UserEmail = currentEmail; // Обновляем UserEmail при синхронизации
-                    await _noteService.UpdateNoteAsync(localNote, fromSync: true);
-
-                    // Синхронизируем теги с сервера
-                    await SyncTagsFromServerAsync(localNote.Id, serverNote.Tags);
-
-                    _logger?.LogInformation("Обновлена заметка {NoteId} с сервера", serverNote.Id);
+                    // Локальная заметка синхронизирована - безопасно обновляем с сервера если нужно
+                    if (serverNote.UpdatedAt > localNote.UpdatedAt)
+                    {
+                        Console.WriteLine($"[SyncService]   Server is newer, updating local note");
+                        localNote.Title = serverNote.Title;
+                        localNote.Content = serverNote.Content ?? string.Empty;
+                        localNote.UpdatedAt = serverNote.UpdatedAt;
+                        localNote.ServerId = serverNote.Id;
+                        localNote.UserEmail = currentEmail;
+                        await _noteService.UpdateNoteAsync(localNote, fromSync: true);
+                        await SyncTagsFromServerAsync(localNote.Id, serverNote.Tags);
+                        _logger?.LogInformation("Обновлена заметка {NoteId} с сервера", serverNote.Id);
+                    }
+                    else
+                    {
+                        // Убедимся что ServerId установлен
+                        if (!localNote.ServerId.HasValue)
+                        {
+                            localNote.ServerId = serverNote.Id;
+                            await _noteService.UpdateNoteAsync(localNote, fromSync: true);
+                        }
+                    }
                 }
-                else if (!localNote.IsSynced)
+                else
                 {
-                    // Локальная заметка не синхронизирована, но серверная версия не новее - просто обновляем ServerId и IsSynced
-                    localNote.ServerId = serverNote.Id;
-                    localNote.IsSynced = true;
-                    localNote.UserEmail = currentEmail; // Обновляем UserEmail при синхронизации
-                    await _noteService.UpdateNoteAsync(localNote, fromSync: true);
-                    _logger?.LogInformation("Синхронизирована заметка {NoteId}", serverNote.Id);
+                    // Локальная заметка НЕ синхронизирована - есть локальные изменения
+                    // НЕ перезаписываем! Оставляем для отправки на сервер в шаге 5
+                    Console.WriteLine($"[SyncService]   Local note has unsaved changes, will upload to server later");
+                    // Только убедимся что ServerId установлен
+                    if (!localNote.ServerId.HasValue)
+                    {
+                        localNote.ServerId = serverNote.Id;
+                        await _noteService.UpdateNoteAsync(localNote, fromSync: true);
+                    }
                 }
             }
             else
             {
                 // Новая заметка с сервера - создаем локально
+                Console.WriteLine($"[SyncService] !!! CREATING LOCAL COPY of server note '{serverNote.Title}' ServerId={serverNote.Id}");
                 var newNote = NoteMapper.ToLocal(serverNote, currentEmail);
                 await _noteService.CreateNoteAsync(newNote);
 
@@ -251,10 +283,9 @@ public class SyncService : ISyncService
         var serverNoteIds = serverNotes.Select(sn => sn.Id).ToHashSet();
         var localNotesToDelete = localNotes
             .Where(n =>
-                // Удаляем только заметки текущего пользователя
                 n.UserEmail == currentEmail &&
-                // Удаляем синхронизированные заметки, которых нет на сервере
-                n.ServerId.HasValue && !serverNoteIds.Contains(n.ServerId.Value))
+                n.ServerId.HasValue &&
+                !serverNoteIds.Contains(n.ServerId.Value))
             .ToList();
 
         foreach (var noteToDelete in localNotesToDelete)
@@ -266,11 +297,20 @@ public class SyncService : ISyncService
         // 5. Отправляем несинхронизированные локальные изменения на сервер (очередь несинхронизированных изменений)
         var unsyncedNotes = localNotes.Where(n => !n.IsSynced && !localNotesToDelete.Contains(n)).ToList();
 
+        Console.WriteLine($"[SyncService] Found {unsyncedNotes.Count} unsynced notes to upload");
+        foreach (var un in unsyncedNotes)
+        {
+            Console.WriteLine($"[SyncService]   - '{un.Title}' Id={un.Id}, ServerId={un.ServerId}, IsSynced={un.IsSynced}");
+        }
+
         foreach (var localNote in unsyncedNotes)
         {
             // Если есть ServerId, значит заметка уже существует на сервере - обновляем
             if (localNote.ServerId.HasValue)
             {
+                Console.WriteLine($"[SyncService] Uploading changes for '{localNote.Title}' ServerId={localNote.ServerId.Value}");
+                Console.WriteLine($"[SyncService]   Content length: {localNote.Content?.Length ?? 0} chars");
+
                 var serverNote = serverNotes.FirstOrDefault(sn => sn.Id == localNote.ServerId.Value);
                 if (serverNote != null)
                 {
@@ -282,12 +322,14 @@ public class SyncService : ISyncService
                         var tagNames = localTags.Select(t => t.Name).ToList();
 
                         var updateDto = NoteMapper.ToUpdateDto(localNote, localNote.UpdatedAt, tagNames);
+                        Console.WriteLine($"[SyncService]   Sending update: Title='{updateDto.Title}', ContentLen={updateDto.Content?.Length ?? 0}");
                         var response = await _api.UpdateNoteWithResponseAsync(localNote.ServerId.Value, updateDto);
 
                         if (response.IsSuccessStatusCode)
                         {
                             // Обновление успешно
                             var updatedNote = response.Content!;
+                            Console.WriteLine($"[SyncService]   Update SUCCESS: server returned ContentLen={updatedNote.Content?.Length ?? 0}");
                             localNote.Title = updatedNote.Title;
                             localNote.Content = updatedNote.Content ?? string.Empty;
                             localNote.UpdatedAt = updatedNote.UpdatedAt;
@@ -301,6 +343,7 @@ public class SyncService : ISyncService
                         }
                         else if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
                         {
+                            Console.WriteLine($"[SyncService]   Update CONFLICT: server version is newer");
                             // Конфликт - серверная версия новее
                             // Refit выбрасывает ApiException при 409, поэтому обработка будет в catch блоке
                             _logger?.LogWarning("Конфликт при обновлении заметки {NoteId}: версия на сервере новее", localNote.ServerId.Value);
@@ -316,8 +359,8 @@ public class SyncService : ISyncService
                         else if (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
                         {
                             // 400 Bad Request - проблема с данными заметки
-                            System.Diagnostics.Debug.WriteLine($"400 Bad Request при обновлении заметки {localNote.ServerId.Value}: {ex.Message}");
-                            System.Diagnostics.Debug.WriteLine($"Content: {ex.Content}");
+                            Console.WriteLine($"400 Bad Request при обновлении заметки {localNote.ServerId.Value}: {ex.Message}");
+                            Console.WriteLine($"Content: {ex.Content}");
                             _logger?.LogWarning(ex, "400 Bad Request при обновлении заметки {NoteId} на сервере. Пропускаем эту заметку.", localNote.ServerId.Value);
                             // Пропускаем эту заметку, продолжаем синхронизацию остальных
                         }
@@ -325,6 +368,41 @@ public class SyncService : ISyncService
                         {
                             _logger?.LogError(ex, "Ошибка при обновлении заметки {NoteId} на сервере", localNote.ServerId.Value);
                         }
+                    }
+                }
+                else
+                {
+                    // serverNote is null - заметка имеет ServerId, но её нет на сервере
+                    // Возможно была удалена на сервере, или это race condition
+                    Console.WriteLine($"[SyncService]   WARNING: Note has ServerId={localNote.ServerId.Value} but not found on server, trying to update anyway");
+                    try
+                    {
+                        var localTags = await _tagService.GetTagsForNoteAsync(localNote.Id);
+                        var tagNames = localTags.Select(t => t.Name).ToList();
+                        var updateDto = NoteMapper.ToUpdateDto(localNote, localNote.UpdatedAt, tagNames);
+                        var response = await _api.UpdateNoteWithResponseAsync(localNote.ServerId.Value, updateDto);
+
+                        if (response.IsSuccessStatusCode)
+                        {
+                            var updatedNote = response.Content!;
+                            Console.WriteLine($"[SyncService]   Update SUCCESS (was not in initial list)");
+                            localNote.Title = updatedNote.Title;
+                            localNote.Content = updatedNote.Content ?? string.Empty;
+                            localNote.UpdatedAt = updatedNote.UpdatedAt;
+                            localNote.IsSynced = true;
+                            await _noteService.UpdateNoteAsync(localNote, fromSync: true);
+                            await SyncTagsFromServerAsync(localNote.Id, updatedNote.Tags);
+                        }
+                    }
+                    catch (ApiException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    {
+                        // Заметка действительно удалена на сервере - удаляем локально
+                        Console.WriteLine($"[SyncService]   Note was deleted on server, removing locally");
+                        await _noteService.DeleteNoteAsync(localNote.Id);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[SyncService]   Failed to update: {ex.Message}");
                     }
                 }
             }
@@ -340,11 +418,15 @@ public class SyncService : ISyncService
                     var createDto = NoteMapper.ToCreateDto(localNote, tagNames);
                     var createdNote = await _api.CreateNoteAsync(createDto);
 
+                    Console.WriteLine($"[SyncService] Created on server: '{localNote.Title}' LocalId={localNote.Id} -> ServerId={createdNote.Id}");
+
                     // Обновляем локальную заметку с ServerId и помечаем как синхронизированную
                     localNote.ServerId = createdNote.Id;
                     localNote.IsSynced = true;
                     localNote.UpdatedAt = createdNote.UpdatedAt;
                     await _noteService.UpdateNoteAsync(localNote, fromSync: true);
+
+                    Console.WriteLine($"[SyncService] Updated local note: '{localNote.Title}' Id={localNote.Id}, ServerId={localNote.ServerId}, IsSynced={localNote.IsSynced}");
 
                     // Синхронизируем теги с сервера (на случай, если сервер создал новые теги)
                     await SyncTagsFromServerAsync(localNote.Id, createdNote.Tags);
@@ -356,8 +438,8 @@ public class SyncService : ISyncService
                     if (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
                     {
                         // 400 Bad Request - проблема с данными заметки
-                        System.Diagnostics.Debug.WriteLine($"400 Bad Request при создании заметки {localNote.Id}: {ex.Message}");
-                        System.Diagnostics.Debug.WriteLine($"Content: {ex.Content}");
+                        Console.WriteLine($"400 Bad Request при создании заметки {localNote.Id}: {ex.Message}");
+                        Console.WriteLine($"Content: {ex.Content}");
                         _logger?.LogWarning(ex, "400 Bad Request при создании заметки {NoteId} на сервере. Пропускаем эту заметку.", localNote.Id);
                         // Пропускаем эту заметку, продолжаем синхронизацию остальных
                     }

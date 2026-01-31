@@ -137,6 +137,25 @@ public partial class NoteListView : UserControl
         {
             Console.WriteLine("[Logout] Starting logout process...");
 
+            // ВАЖНО: Сохраняем текущую редактируемую заметку в БД ПЕРЕД синхронизацией
+            if (DataContext is NotesViewModel viewModel && viewModel.SelectedNote != null)
+            {
+                Console.WriteLine($"[Logout] Saving current note '{viewModel.SelectedNote.Title}' before sync...");
+                try
+                {
+                    var noteService = _noteServiceFactory?.CurrentNoteService;
+                    if (noteService != null && !(_noteServiceFactory?.IsGuestMode ?? true))
+                    {
+                        await noteService.UpdateNoteAsync(viewModel.SelectedNote);
+                        Console.WriteLine("[Logout] Current note saved successfully");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[Logout] Failed to save current note: {ex.Message}");
+                }
+            }
+
             // Синхронизируем все локальные изменения на сервер ПЕРЕД выходом
             // чтобы не потерять данные пользователя
             if (_syncService != null)
@@ -166,9 +185,9 @@ public partial class NoteListView : UserControl
             _noteServiceFactory?.SwitchToGuestMode();
 
             // Обновляем список заметок - показываем гостевые заметки
-            if (DataContext is NotesViewModel viewModel)
+            if (DataContext is NotesViewModel vm)
             {
-                await viewModel.RefreshNotesAsync(isLoggedIn: false);
+                await vm.RefreshNotesAsync(isLoggedIn: false);
             }
 
             Console.WriteLine("[Logout] Logout completed");
