@@ -176,7 +176,8 @@ try
         var services = scope.ServiceProvider;
         try
         {
-            var context = services.GetRequiredService<ApiDbContext>();
+            var context = services
+                .GetRequiredService<ApiDbContext>();
             Log.Information("Применение миграций базы данных...");
 
             // Проверяем, может ли приложение подключиться к базе
@@ -197,7 +198,8 @@ try
             // (например, таблица миграций еще не создана)
             if (ex.Message.Contains("__EFMigrationsHistory") || ex.Message.Contains("does not exist"))
             {
-                Log.Warning("Это может быть нормальная ситуация при первом запуске. Продолжаем запуск...");
+                Log.Warning(
+                    "Это может быть нормальная ситуация при первом запуске. Продолжаем запуск...");
             }
             else
             {
