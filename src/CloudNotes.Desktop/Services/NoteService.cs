@@ -236,7 +236,7 @@ public class NoteService : INoteService
             // Проверяем, не была ли эта заметка уже добавлена в список удалённых
             var existingDeleted = await context.DeletedNotes
                 .FirstOrDefaultAsync(dn => dn.ServerId == note.ServerId.Value && dn.UserEmail == note.UserEmail);
-            
+
             if (existingDeleted == null)
             {
                 var deletedNote = new Model.DeletedNote
