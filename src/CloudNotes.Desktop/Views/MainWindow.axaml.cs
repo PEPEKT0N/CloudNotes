@@ -666,7 +666,7 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Вставляет изображение из файла в текст как base64 или ссылку.
+    /// Вставляет изображение из локального файла в текст как ссылку (название без расширения, путь к файлу).
     /// </summary>
     private async System.Threading.Tasks.Task InsertImageFromPathAsync(string imagePath)
     {
@@ -679,24 +679,16 @@ public partial class MainWindow : Window
 
         try
         {
-            // Читаем файл и конвертируем в base64
-            var imageBytes = await System.IO.File.ReadAllBytesAsync(imagePath);
-            var base64String = Convert.ToBase64String(imageBytes);
+            // Название файла без расширения — для подписи в Markdown ![название](url)
+            var nameWithoutExtension = System.IO.Path.GetFileNameWithoutExtension(imagePath);
+            if (string.IsNullOrWhiteSpace(nameWithoutExtension))
+                nameWithoutExtension = "Image";
 
-            // Определяем MIME тип по расширению
-            var extension = System.IO.Path.GetExtension(imagePath).ToLowerInvariant();
-            var mimeType = extension switch
-            {
-                ".png" => "image/png",
-                ".jpg" or ".jpeg" => "image/jpeg",
-                ".gif" => "image/gif",
-                ".bmp" => "image/bmp",
-                ".webp" => "image/webp",
-                _ => "image/png"
-            };
+            // Ссылка на локальный файл (file:// с прямыми слэшами для совместимости)
+            var fileUrl = "file:///" + imagePath.Replace('\\', '/');
 
-            // Вставляем Markdown изображение с base64
-            var imageMarkdown = $"![Image](data:{mimeType};base64,{base64String})";
+            // Вставляем Markdown: подпись без расширения, ссылка на локальный файл
+            var imageMarkdown = $"![{nameWithoutExtension}]({fileUrl})";
 
             var currentText = textBox.Text ?? string.Empty;
             var caretIndex = Math.Min(textBox.CaretIndex, currentText.Length);
