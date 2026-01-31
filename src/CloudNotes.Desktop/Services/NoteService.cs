@@ -138,20 +138,20 @@ public class NoteService : INoteService
         return await context.Notes.FindAsync(id);
     }
 
-    public async Task<bool> UpdateNoteAsync(Note note)
+    public async Task<bool> UpdateNoteAsync(Note note, bool fromSync = false)
     {
         var context = CreateContext();
         if (_shouldDisposeContext)
         {
             using (context)
             {
-                return await UpdateNoteInternalAsync(context, note);
+                return await UpdateNoteInternalAsync(context, note, fromSync);
             }
         }
-        return await UpdateNoteInternalAsync(context, note);
+        return await UpdateNoteInternalAsync(context, note, fromSync);
     }
 
-    private async Task<bool> UpdateNoteInternalAsync(AppDbContext context, Note note)
+    private async Task<bool> UpdateNoteInternalAsync(AppDbContext context, Note note, bool fromSync)
     {
 
         var existingNote = await context.Notes.FindAsync(note.Id);
@@ -160,13 +160,12 @@ public class NoteService : INoteService
             return false;
         }
 
-        var wasSynced = existingNote.IsSynced;
+        var hasServerId = existingNote.ServerId.HasValue;
 
         existingNote.Title = note.Title;
         existingNote.Content = note.Content;
         existingNote.IsFavorite = note.IsFavorite;
         existingNote.ServerId = note.ServerId;
-        existingNote.IsSynced = note.IsSynced;
         existingNote.FolderId = note.FolderId;
 
         // Обновляем UserEmail если он был передан
@@ -181,12 +180,24 @@ public class NoteService : INoteService
             existingNote.UserEmail = currentEmail;
         }
 
-        // Если заметка была синхронизирована и мы обновляем её локально (не из синхронизации),
-        // то помечаем как несинхронизированную для повторной синхронизации
-        // SyncService явно устанавливает IsSynced = true, поэтому это не затронет синхронизацию
-        if (wasSynced && !note.IsSynced)
+        // Логика установки IsSynced:
+        // - fromSync = true: вызов от SyncService, используем IsSynced из note (обычно true)
+        // - fromSync = false: локальное изменение, если заметка уже на сервере - помечаем как несинхронизированную
+        if (fromSync)
         {
+            // Вызов от SyncService - используем значение из note
+            existingNote.IsSynced = note.IsSynced;
+        }
+        else if (hasServerId)
+        {
+            // Локальное изменение синхронизированной заметки - помечаем как несинхронизированную
             existingNote.IsSynced = false;
+            System.Diagnostics.Debug.WriteLine($"[NoteService] Marking note {note.Id} as unsynced due to local change");
+        }
+        else
+        {
+            // Заметка ещё не на сервере - используем значение из note
+            existingNote.IsSynced = note.IsSynced;
         }
 
         // Явно помечаем сущность как измененную для гарантии обновления UpdatedAt
@@ -217,6 +228,27 @@ public class NoteService : INoteService
         if (note == null)
         {
             return false;
+        }
+
+        // Если заметка была синхронизирована с сервером, сохраняем её ServerId для последующего удаления на сервере
+        if (note.ServerId.HasValue && !string.IsNullOrEmpty(note.UserEmail))
+        {
+            // Проверяем, не была ли эта заметка уже добавлена в список удалённых
+            var existingDeleted = await context.DeletedNotes
+                .FirstOrDefaultAsync(dn => dn.ServerId == note.ServerId.Value && dn.UserEmail == note.UserEmail);
+            
+            if (existingDeleted == null)
+            {
+                var deletedNote = new Model.DeletedNote
+                {
+                    Id = Guid.NewGuid(),
+                    ServerId = note.ServerId.Value,
+                    UserEmail = note.UserEmail,
+                    DeletedAt = DateTime.UtcNow
+                };
+                context.DeletedNotes.Add(deletedNote);
+                System.Diagnostics.Debug.WriteLine($"[NoteService] Saved deleted note {note.ServerId.Value} for sync");
+            }
         }
 
         context.Notes.Remove(note);
