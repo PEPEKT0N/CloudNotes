@@ -1,0 +1,26 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="CloudNotes.Desktop.Views.ErrorDialog"
+        Width="380"
+        Height="160"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        Title="Error">
+
+  <StackPanel Margin="20" Spacing="20">
+    <TextBlock x:Name="MessageText" 
+               Text="An error occurred" 
+               TextWrapping="Wrap"
+               Foreground="#e74c3c"
+               FontWeight="SemiBold"
+               FontSize="14" />
+
+    <Button x:Name="OkButton" 
+            Content="OK" 
+            HorizontalAlignment="Center" 
+            MinWidth="100"
+            IsDefault="True" />
+  </StackPanel>
+</Window>
+
+
