@@ -7,6 +7,16 @@
         WindowStartupLocation="CenterOwner"
         CanResize="False">
 
+    <Window.Styles>
+        <Style Selector="CheckBox">
+            <Setter Property="Foreground" Value="#333333"/>
+        </Style>
+        <Style Selector="CheckBox:unchecked /template/ Border">
+            <Setter Property="Background" Value="#EEEEEE"/>
+            <Setter Property="BorderBrush" Value="#555555"/>
+        </Style>
+    </Window.Styles>
+
     <Grid Margin="20" RowDefinitions="Auto, Auto, *, Auto, Auto, Auto">
         <!-- Заголовок -->
         <TextBlock Grid.Row="0"
@@ -34,7 +44,9 @@
 
         <!-- Список всех тегов -->
         <Border Grid.Row="2"
-                Background="#F8F8F8"
+                Background="White"
+                BorderBrush="#CCCCCC"
+                BorderThickness="1"
                 CornerRadius="8"
                 Padding="10">
             <ScrollViewer>
