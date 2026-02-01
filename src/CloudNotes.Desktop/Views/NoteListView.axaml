@@ -7,6 +7,7 @@
              >
 
         <Border Padding="10">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
             <StackPanel>
                 <!-- Header с hamburger menu -->
                 <Grid ColumnDefinitions="Auto, *" Margin="0,0,0,10">
@@ -152,7 +153,8 @@
                 <TreeView x:Name="MainTreeView"
                          ItemsSource="{Binding TreeItems}"
                          SelectedItem="{Binding SelectedTreeItem, Mode=TwoWay}"
-                         SelectionChanged="OnTreeViewSelectionChanged">
+                         SelectionChanged="OnTreeViewSelectionChanged"
+                         MaxHeight="300">
                     <TreeView.ContextMenu>
                         <ContextMenu x:Name="TreeViewContextMenu" Opening="OnContextMenuOpening">
                             <MenuItem x:Name="NewFolderMenuItem" Header="📁 New Folder" Click="OnNewFolderMenuClick" />
@@ -215,6 +217,7 @@
                         Padding="5,2"
                         HorizontalAlignment="Left" />
             </StackPanel>
+            </ScrollViewer>
         </Border>
 
     
