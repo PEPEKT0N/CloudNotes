@@ -219,11 +219,12 @@ public class GuestTagService : ITagService
         List<Guid> noteIds;
         lock (_lock)
         {
-            // Получаем заметки, у которых есть хотя бы один из указанных тегов
+            // Получаем заметки, у которых есть ВСЕ указанные теги
+            var tagIdsSet = tagIds.ToHashSet();
             noteIds = _noteTags
-                .Where(nt => tagIds.Contains(nt.TagId))
-                .Select(nt => nt.NoteId)
-                .Distinct()
+                .GroupBy(nt => nt.NoteId)
+                .Where(g => tagIdsSet.All(tagId => g.Any(nt => nt.TagId == tagId)))
+                .Select(g => g.Key)
                 .ToList();
         }
 

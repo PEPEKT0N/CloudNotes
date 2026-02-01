@@ -201,6 +201,7 @@ public class TagService : ITagService
 
     /// <summary>
     /// Получает все карточки из заметок с указанными тегами.
+    /// Заметка должна содержать ВСЕ указанные теги.
     /// </summary>
     /// <param name="tagIds">Список ID тегов.</param>
     /// <returns>Список кортежей (NoteId, Flashcard).</returns>
@@ -213,10 +214,11 @@ public class TagService : ITagService
 
         return await ExecuteWithContextAsync(async context =>
         {
-            // Получаем заметки, у которых есть хотя бы один из указанных тегов
+            // Получаем заметки, у которых есть ВСЕ указанные теги
+            var tagIdsSet = tagIds.ToHashSet();
             var notes = await context.Notes
                 .Include(n => n.NoteTags)
-                .Where(n => n.NoteTags.Any(nt => tagIds.Contains(nt.TagId)))
+                .Where(n => tagIds.All(tagId => n.NoteTags.Any(nt => nt.TagId == tagId)))
                 .ToListAsync();
 
             var result = new List<(Guid NoteId, Flashcard Card)>();
