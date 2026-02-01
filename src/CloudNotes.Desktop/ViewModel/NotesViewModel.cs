@@ -1134,15 +1134,30 @@ namespace CloudNotes.Desktop.ViewModel
         /// </summary>
         public async Task LoadTagsForCurrentNoteAsync()
         {
-            CurrentNoteTags.Clear();
+            // Захватываем noteId в начале чтобы избежать race condition
+            var noteId = SelectedNote?.Id;
 
-            if (SelectedNote == null || _tagService == null) return;
-
-            var tags = await _tagService.GetTagsForNoteAsync(SelectedNote.Id);
-            foreach (var tag in tags)
+            if (noteId == null || _tagService == null)
             {
-                CurrentNoteTags.Add(tag);
+                await Dispatcher.UIThread.InvokeAsync(() => CurrentNoteTags.Clear());
+                return;
             }
+
+            var tags = (await _tagService.GetTagsForNoteAsync(noteId.Value)).ToList();
+
+            // Обновляем UI в главном потоке и проверяем что заметка не изменилась
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                // Проверяем что заметка всё ещё та же
+                if (SelectedNote?.Id != noteId)
+                    return;
+
+                CurrentNoteTags.Clear();
+                foreach (var tag in tags)
+                {
+                    CurrentNoteTags.Add(tag);
+                }
+            });
         }
 
         /// <summary>
