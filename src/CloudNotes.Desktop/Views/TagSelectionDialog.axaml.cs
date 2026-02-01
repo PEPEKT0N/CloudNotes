@@ -68,7 +68,9 @@ namespace CloudNotes.Desktop.Views
                 {
                     Content = tag.Name,
                     Tag = tag.Id,
-                    Margin = new Avalonia.Thickness(0, 2)
+                    Margin = new Avalonia.Thickness(0, 2),
+                    Foreground = new SolidColorBrush(Color.Parse("#333333")),
+                    BorderBrush = new SolidColorBrush(Color.Parse("#666666"))
                 };
                 checkBox.IsCheckedChanged += OnTagCheckChanged;
                 TagsPanel.Children.Add(checkBox);
