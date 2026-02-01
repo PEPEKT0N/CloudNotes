@@ -110,6 +110,13 @@ public partial class App : Application
             return factory.AuthenticatedNoteService;
         });
 
+        // Tag Service (для Study by Tags)
+        services.AddSingleton<ITagService>(sp =>
+        {
+            var context = CloudNotes.Services.DbContextProvider.GetContext();
+            return new TagService(context);
+        });
+
         // Conflict Service
         services.AddSingleton<IConflictService, ConflictService>();
 

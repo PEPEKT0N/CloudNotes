@@ -1506,22 +1506,41 @@ public partial class MainWindow : Window
     /// </summary>
     private async void OnStudyAllButtonClick(object? sender, RoutedEventArgs e)
     {
+        Console.WriteLine("[StudyByTags] Button clicked");
+
         var userEmail = _authService != null && await _authService.IsLoggedInAsync()
             ? await _authService.GetCurrentUserEmailAsync()
             : null;
+        Console.WriteLine($"[StudyByTags] userEmail={userEmail}");
 
         var (isConfirmed, selectedTagIds) = await TagSelectionDialog.ShowDialogAsync(this, userEmail);
+        Console.WriteLine($"[StudyByTags] Dialog result: isConfirmed={isConfirmed}, tagCount={selectedTagIds.Count}");
+
         if (!isConfirmed || selectedTagIds.Count == 0)
+        {
+            Console.WriteLine("[StudyByTags] Cancelled or no tags selected");
             return;
+        }
 
         var tagService = App.ServiceProvider?.GetService<ITagService>();
+        Console.WriteLine($"[StudyByTags] tagService={tagService?.GetType().Name ?? "NULL"}");
+
         if (tagService == null)
+        {
+            Console.WriteLine("[StudyByTags] tagService is NULL!");
             return;
+        }
 
         var cards = await tagService.GetFlashcardsByTagsAsync(selectedTagIds);
-        if (cards == null || cards.Count == 0)
-            return;
+        Console.WriteLine($"[StudyByTags] cards count={cards?.Count ?? -1}");
 
+        if (cards == null || cards.Count == 0)
+        {
+            Console.WriteLine("[StudyByTags] No flashcards found!");
+            return;
+        }
+
+        Console.WriteLine("[StudyByTags] Opening StudyDialog...");
         await StudyDialog.ShowDialogByTagsAsync(this, cards, userEmail);
     }
 }
