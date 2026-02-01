@@ -504,6 +504,15 @@ namespace CloudNotes.Desktop.ViewModel
         {
             await LoadNotesFromDbAsyncInternal(isLoggedIn);
 
+            // Сбрасываем фильтр по тегу при смене режима
+            if (isLoggedIn == false)
+            {
+                FilterTag = null;
+            }
+
+            // Загружаем теги
+            await LoadAllTagsAsync();
+
             // Загружаем папки только если пользователь авторизован
             // LoadFoldersAsync сам проверит гостевой режим и очистит папки
             await LoadFoldersAsync();
@@ -696,6 +705,9 @@ namespace CloudNotes.Desktop.ViewModel
                     }
                 }
             }
+
+            // Перестраиваем дерево с новой сортировкой
+            _ = Task.Run(async () => await BuildTreeAsync());
         }
 
         private void UpdateSelectedNote(NoteListItem? listItem)
@@ -1119,7 +1131,15 @@ namespace CloudNotes.Desktop.ViewModel
         /// </summary>
         private async Task LoadAllTagsAsync()
         {
-            if (_tagService == null) return;
+            // Очищаем теги текущей заметки
+            CurrentNoteTags.Clear();
+
+            if (_tagService == null || _noteServiceFactory?.IsGuestMode == true)
+            {
+                // В гостевом режиме очищаем все теги
+                AllTags.Clear();
+                return;
+            }
 
             var tags = await _tagService.GetAllTagsAsync();
             AllTags.Clear();
@@ -1134,15 +1154,30 @@ namespace CloudNotes.Desktop.ViewModel
         /// </summary>
         public async Task LoadTagsForCurrentNoteAsync()
         {
-            CurrentNoteTags.Clear();
+            // Захватываем noteId в начале чтобы избежать race condition
+            var noteId = SelectedNote?.Id;
 
-            if (SelectedNote == null || _tagService == null) return;
-
-            var tags = await _tagService.GetTagsForNoteAsync(SelectedNote.Id);
-            foreach (var tag in tags)
+            if (noteId == null || _tagService == null)
             {
-                CurrentNoteTags.Add(tag);
+                await Dispatcher.UIThread.InvokeAsync(() => CurrentNoteTags.Clear());
+                return;
             }
+
+            var tags = (await _tagService.GetTagsForNoteAsync(noteId.Value)).ToList();
+
+            // Обновляем UI в главном потоке и проверяем что заметка не изменилась
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                // Проверяем что заметка всё ещё та же
+                if (SelectedNote?.Id != noteId)
+                    return;
+
+                CurrentNoteTags.Clear();
+                foreach (var tag in tags)
+                {
+                    CurrentNoteTags.Add(tag);
+                }
+            });
         }
 
         /// <summary>
@@ -1266,8 +1301,10 @@ namespace CloudNotes.Desktop.ViewModel
                     {
                         Notes.Add(item);
                     }
-                    ApplySort();
                 });
+
+                // Перестраиваем дерево с учётом фильтра
+                await BuildTreeAsync();
             });
         }
 
@@ -1384,8 +1421,17 @@ namespace CloudNotes.Desktop.ViewModel
                 }
             }
 
+            // Получаем отфильтрованные заметки (по тегу если есть фильтр)
+            IEnumerable<Note> filteredNotes = AllNotes;
+            if (FilterTag != null && _tagService != null)
+            {
+                var notesWithTag = await _tagService.GetNotesWithTagAsync(FilterTag.Id);
+                var noteIds = notesWithTag.Select(n => n.Id).ToHashSet();
+                filteredNotes = AllNotes.Where(n => noteIds.Contains(n.Id));
+            }
+
             // Добавляем заметки в соответствующие папки
-            foreach (var note in AllNotes)
+            foreach (var note in filteredNotes)
             {
                 var noteItem = new TreeItem(note);
                 if (note.FolderId.HasValue && folderDict.TryGetValue(note.FolderId.Value, out var parentFolder))
@@ -1399,11 +1445,23 @@ namespace CloudNotes.Desktop.ViewModel
                 }
             }
 
-            // Сортируем корневые элементы: сначала папки, потом заметки, внутри каждой группы по имени
-            var sortedRoots = rootFolders
-                .OrderBy(item => item.IsFolder ? 0 : 1) // Папки первыми
-                .ThenBy(item => item.Name)
-                .ToList();
+            // Функция сортировки заметок по выбранной опции
+            IOrderedEnumerable<TreeItem> ApplyNoteSort(IEnumerable<TreeItem> items)
+            {
+                return SelectedSortOption switch
+                {
+                    SortOption.TitleAsc => items.OrderBy(i => i.IsFolder ? 0 : 1).ThenBy(i => i.Name),
+                    SortOption.TitleDesc => items.OrderBy(i => i.IsFolder ? 0 : 1).ThenByDescending(i => i.Name),
+                    SortOption.CreatedDesc => items.OrderBy(i => i.IsFolder ? 0 : 1).ThenByDescending(i => i.Note?.CreatedAt),
+                    SortOption.CreatedAsc => items.OrderBy(i => i.IsFolder ? 0 : 1).ThenBy(i => i.Note?.CreatedAt),
+                    SortOption.UpdatedDesc => items.OrderBy(i => i.IsFolder ? 0 : 1).ThenByDescending(i => i.Note?.UpdatedAt),
+                    SortOption.UpdatedAsc => items.OrderBy(i => i.IsFolder ? 0 : 1).ThenBy(i => i.Note?.UpdatedAt),
+                    _ => items.OrderBy(i => i.IsFolder ? 0 : 1).ThenBy(i => i.Name)
+                };
+            }
+
+            // Сортируем корневые элементы
+            var sortedRoots = ApplyNoteSort(rootFolders).ToList();
 
             foreach (var root in sortedRoots)
             {
@@ -1413,10 +1471,7 @@ namespace CloudNotes.Desktop.ViewModel
             // Сортируем дочерние элементы в каждой папке
             void SortChildren(TreeItem item)
             {
-                var sortedChildren = item.Children
-                    .OrderBy(child => child.IsFolder ? 0 : 1)
-                    .ThenBy(child => child.Name)
-                    .ToList();
+                var sortedChildren = ApplyNoteSort(item.Children).ToList();
                 item.Children.Clear();
                 foreach (var child in sortedChildren)
                 {
