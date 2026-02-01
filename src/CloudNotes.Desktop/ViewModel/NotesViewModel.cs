@@ -504,6 +504,12 @@ namespace CloudNotes.Desktop.ViewModel
         {
             await LoadNotesFromDbAsyncInternal(isLoggedIn);
 
+            // Сбрасываем фильтр по тегу при смене режима
+            if (isLoggedIn == false)
+            {
+                FilterTag = null;
+            }
+
             // Загружаем теги
             await LoadAllTagsAsync();
 
@@ -1125,7 +1131,15 @@ namespace CloudNotes.Desktop.ViewModel
         /// </summary>
         private async Task LoadAllTagsAsync()
         {
-            if (_tagService == null) return;
+            // Очищаем теги текущей заметки
+            CurrentNoteTags.Clear();
+
+            if (_tagService == null || _noteServiceFactory?.IsGuestMode == true)
+            {
+                // В гостевом режиме очищаем все теги
+                AllTags.Clear();
+                return;
+            }
 
             var tags = await _tagService.GetAllTagsAsync();
             AllTags.Clear();

@@ -4,8 +4,8 @@
 [AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
 [AuthService] GetAccessTokenAsync called
 [AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
-[AuthService] Token loaded. Email=demo@example.com, ExpiresAt=2026-02-01T06:34:58.0143589Z, TokenLen=571
-[AuthService] Now(UTC)=2026-02-01T05:36:35.7803100Z, NeedsRefresh=False
+[AuthService] Token loaded. Email=demo@example.com, ExpiresAt=2026-02-01T06:36:51.2971178Z, TokenLen=571
+[AuthService] Now(UTC)=2026-02-01T05:43:16.6268630Z, NeedsRefresh=False
 [AuthService] Returning token (571 chars)
 [AuthHandler] Request to http://5.129.221.139:5015/api/notes
 [AuthHandler] AccessToken: present (571 chars)
@@ -13,14 +13,14 @@
 [AuthService] ForceRefreshTokenAsync called
 [AuthService] LoadTokens: Cache empty, reading file: /Users/rayn_gosling/Library/Application Support/CloudNotes/tokens.json
 [AuthService] LoadTokens: Loaded from file and cached. Email=demo@example.com
-[AuthService] Current token expires at: 2026-02-01T06:34:58.0143589Z
+[AuthService] Current token expires at: 2026-02-01T06:36:51.2971178Z
 [AuthService] TryRefreshTokensAsync: Calling API refresh endpoint
 [AuthHandler] Skipping auth endpoint: /api/auth/refresh
-[AuthService] SaveTokens: Email=demo@example.com, ExpiresAt=2026-02-01T06:36:35.8465367Z
+[AuthService] SaveTokens: Email=demo@example.com, ExpiresAt=2026-02-01T06:43:16.7258488Z
 [AuthService] SaveTokens: CACHED in memory. TokenLen=571
 [AuthService] Saved last user email: demo@example.com
 [AuthService] SaveTokens: Written to file
-[AuthService] Force refresh SUCCESS. New token expires at: 2026-02-01T06:36:35.8465367Z (571 chars)
+[AuthService] Force refresh SUCCESS. New token expires at: 2026-02-01T06:43:16.7258488Z (571 chars)
 [AuthHandler] Token refreshed, retrying request with new token (571 chars)
 [AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
 [AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
@@ -29,15 +29,36 @@
 [AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
 [AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
 [AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
-[SyncService] Server notes: 3
-[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[SyncService] Server notes: 5
+[SyncService]   Server: 'Second note' Id=6ba3fdbb-7fc5-4605-89b4-a52b8252e85b
+[SyncService]   Server: 'Welcome note' Id=0d285cd9-ff5f-44da-aa82-f39b8e319879
 [SyncService]   Server: 'odd_sum' Id=f91fc564-4c7e-4d05-9d95-010f24f3d645
 [SyncService]   Server: 'mult' Id=1ca9c605-06c0-4e91-8fbc-cd7cede83bd1
 [SyncService]   Server: 'even_sum' Id=24649667-7628-4b7a-aa18-09a0f6a03dff
-[SyncService] Local notes: 3
+[SyncService] Local notes: 5
 [SyncService]   Local: 'even_sum' Id=24649667-7628-4b7a-aa18-09a0f6a03dff, ServerId=24649667-7628-4b7a-aa18-09a0f6a03dff, IsSynced=False
 [SyncService]   Local: 'odd_sum' Id=f91fc564-4c7e-4d05-9d95-010f24f3d645, ServerId=f91fc564-4c7e-4d05-9d95-010f24f3d645, IsSynced=False
 [SyncService]   Local: 'mult' Id=0b28c40b-837c-4669-a08e-c24f4d644ed4, ServerId=1ca9c605-06c0-4e91-8fbc-cd7cede83bd1, IsSynced=False
+[SyncService]   Local: 'Welcome note' Id=dc5fb519-d89a-446d-8516-e2044940e19a, ServerId=0d285cd9-ff5f-44da-aa82-f39b8e319879, IsSynced=True
+[SyncService]   Local: 'Second note' Id=93774f1e-09e9-4cb3-b776-324ea964fc1a, ServerId=6ba3fdbb-7fc5-4605-89b4-a52b8252e85b, IsSynced=True
+[SyncService] Processing server note 'Second note' Id=6ba3fdbb-7fc5-4605-89b4-a52b8252e85b, found local: True
+[SyncService]   Matched with local 'Second note' Id=93774f1e-09e9-4cb3-b776-324ea964fc1a, ServerId=6ba3fdbb-7fc5-4605-89b4-a52b8252e85b
+[SyncService]   Comparing dates: server=2026-02-01T05:36:51.2715740Z vs local=2026-02-01T05:36:51.2709490, localIsSynced=True
+[SyncService]   Server is newer, updating local note
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[NoteService] UpdateNoteInternalAsync called: noteId=93774f1e-09e9-4cb3-b776-324ea964fc1a, fromSync=True
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[NoteService] Found note 'Second note', hasServerId=True, existingIsSynced=True
+[NoteService] fromSync=true, setting IsSynced=True
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[SyncService] Processing server note 'Welcome note' Id=0d285cd9-ff5f-44da-aa82-f39b8e319879, found local: True
+[SyncService]   Matched with local 'Welcome note' Id=dc5fb519-d89a-446d-8516-e2044940e19a, ServerId=0d285cd9-ff5f-44da-aa82-f39b8e319879
+[SyncService]   Comparing dates: server=2026-02-01T05:36:51.2118590Z vs local=2026-02-01T05:36:51.2241570, localIsSynced=True
 [SyncService] Processing server note 'odd_sum' Id=f91fc564-4c7e-4d05-9d95-010f24f3d645, found local: True
 [SyncService]   Matched with local 'odd_sum' Id=f91fc564-4c7e-4d05-9d95-010f24f3d645, ServerId=f91fc564-4c7e-4d05-9d95-010f24f3d645
 [SyncService]   Comparing dates: server=2026-02-01T05:34:56.6191810Z vs local=2026-02-01T05:34:54.5030340, localIsSynced=False
@@ -59,94 +80,88 @@
 [SyncService]   Sending update: Title='even_sum', ContentLen=45
 [AuthService] GetAccessTokenAsync called
 [AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
-[AuthService] Token loaded. Email=demo@example.com, ExpiresAt=2026-02-01T06:36:35.8465367Z, TokenLen=571
-[AuthService] Now(UTC)=2026-02-01T05:36:36.0985760Z, NeedsRefresh=False
+[AuthService] Token loaded. Email=demo@example.com, ExpiresAt=2026-02-01T06:43:16.7258488Z, TokenLen=571
+[AuthService] Now(UTC)=2026-02-01T05:43:17.0276210Z, NeedsRefresh=False
 [AuthService] Returning token (571 chars)
 [AuthHandler] Request to http://5.129.221.139:5015/api/notes/24649667-7628-4b7a-aa18-09a0f6a03dff
 [AuthHandler] AccessToken: present (571 chars)
-[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
-[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
-[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
 [AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
 [AuthHandler] Got 401 Unauthorized, attempting force token refresh...
 [AuthService] ForceRefreshTokenAsync called
 [AuthService] LoadTokens: Cache empty, reading file: /Users/rayn_gosling/Library/Application Support/CloudNotes/tokens.json
 [AuthService] LoadTokens: Loaded from file and cached. Email=demo@example.com
-[AuthService] Current token expires at: 2026-02-01T06:36:35.8465367Z
+[AuthService] Current token expires at: 2026-02-01T06:43:16.7258488Z
 [AuthService] TryRefreshTokensAsync: Calling API refresh endpoint
 [AuthHandler] Skipping auth endpoint: /api/auth/refresh
-[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
-[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
-[AuthService] SaveTokens: Email=demo@example.com, ExpiresAt=2026-02-01T06:36:36.1393707Z
+[AuthService] SaveTokens: Email=demo@example.com, ExpiresAt=2026-02-01T06:43:17.0555964Z
 [AuthService] SaveTokens: CACHED in memory. TokenLen=571
 [AuthService] Saved last user email: demo@example.com
 [AuthService] SaveTokens: Written to file
-[AuthService] Force refresh SUCCESS. New token expires at: 2026-02-01T06:36:36.1393707Z (571 chars)
+[AuthService] Force refresh SUCCESS. New token expires at: 2026-02-01T06:43:17.0555964Z (571 chars)
 [AuthHandler] Token refreshed, retrying request with new token (571 chars)
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
 [SyncService]   Update CONFLICT: server version is newer
 [SyncService] Uploading changes for 'odd_sum' ServerId=f91fc564-4c7e-4d05-9d95-010f24f3d645
 [SyncService]   Content length: 21 chars
 [SyncService]   Sending update: Title='odd_sum', ContentLen=21
 [AuthService] GetAccessTokenAsync called
 [AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
-[AuthService] Token loaded. Email=demo@example.com, ExpiresAt=2026-02-01T06:36:36.1393707Z, TokenLen=571
-[AuthService] Now(UTC)=2026-02-01T05:36:36.1438780Z, NeedsRefresh=False
+[AuthService] Token loaded. Email=demo@example.com, ExpiresAt=2026-02-01T06:43:17.0555964Z, TokenLen=571
+[AuthService] Now(UTC)=2026-02-01T05:43:17.0613140Z, NeedsRefresh=False
 [AuthService] Returning token (571 chars)
 [AuthHandler] Request to http://5.129.221.139:5015/api/notes/f91fc564-4c7e-4d05-9d95-010f24f3d645
 [AuthHandler] AccessToken: present (571 chars)
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
 [AuthHandler] Got 401 Unauthorized, attempting force token refresh...
 [AuthService] ForceRefreshTokenAsync called
 [AuthService] LoadTokens: Cache empty, reading file: /Users/rayn_gosling/Library/Application Support/CloudNotes/tokens.json
 [AuthService] LoadTokens: Loaded from file and cached. Email=demo@example.com
-[AuthService] Current token expires at: 2026-02-01T06:36:36.1393707Z
+[AuthService] Current token expires at: 2026-02-01T06:43:17.0555964Z
 [AuthService] TryRefreshTokensAsync: Calling API refresh endpoint
 [AuthHandler] Skipping auth endpoint: /api/auth/refresh
-[AuthService] SaveTokens: Email=demo@example.com, ExpiresAt=2026-02-01T06:36:36.1720506Z
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] SaveTokens: Email=demo@example.com, ExpiresAt=2026-02-01T06:43:17.1061393Z
 [AuthService] SaveTokens: CACHED in memory. TokenLen=571
 [AuthService] Saved last user email: demo@example.com
 [AuthService] SaveTokens: Written to file
-[AuthService] Force refresh SUCCESS. New token expires at: 2026-02-01T06:36:36.1720506Z (571 chars)
+[AuthService] Force refresh SUCCESS. New token expires at: 2026-02-01T06:43:17.1061393Z (571 chars)
 [AuthHandler] Token refreshed, retrying request with new token (571 chars)
-[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
-[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
-[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
-[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
 [SyncService]   Update CONFLICT: server version is newer
 [SyncService] Uploading changes for 'mult' ServerId=1ca9c605-06c0-4e91-8fbc-cd7cede83bd1
 [SyncService]   Content length: 23 chars
 [SyncService]   Sending update: Title='mult', ContentLen=23
 [AuthService] GetAccessTokenAsync called
 [AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
-[AuthService] Token loaded. Email=demo@example.com, ExpiresAt=2026-02-01T06:36:36.1720506Z, TokenLen=571
-[AuthService] Now(UTC)=2026-02-01T05:36:36.1886550Z, NeedsRefresh=False
+[AuthService] Token loaded. Email=demo@example.com, ExpiresAt=2026-02-01T06:43:17.1061393Z, TokenLen=571
+[AuthService] Now(UTC)=2026-02-01T05:43:17.1144540Z, NeedsRefresh=False
 [AuthService] Returning token (571 chars)
 [AuthHandler] Request to http://5.129.221.139:5015/api/notes/1ca9c605-06c0-4e91-8fbc-cd7cede83bd1
 [AuthHandler] AccessToken: present (571 chars)
-[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
 [AuthHandler] Got 401 Unauthorized, attempting force token refresh...
 [AuthService] ForceRefreshTokenAsync called
 [AuthService] LoadTokens: Cache empty, reading file: /Users/rayn_gosling/Library/Application Support/CloudNotes/tokens.json
 [AuthService] LoadTokens: Loaded from file and cached. Email=demo@example.com
-[AuthService] Current token expires at: 2026-02-01T06:36:36.1720506Z
+[AuthService] Current token expires at: 2026-02-01T06:43:17.1061393Z
 [AuthService] TryRefreshTokensAsync: Calling API refresh endpoint
 [AuthHandler] Skipping auth endpoint: /api/auth/refresh
-[AuthService] SaveTokens: Email=demo@example.com, ExpiresAt=2026-02-01T06:36:36.2186824Z
+[AuthService] SaveTokens: Email=demo@example.com, ExpiresAt=2026-02-01T06:43:17.1387686Z
 [AuthService] SaveTokens: CACHED in memory. TokenLen=571
-[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
 [AuthService] Saved last user email: demo@example.com
 [AuthService] SaveTokens: Written to file
-[AuthService] Force refresh SUCCESS. New token expires at: 2026-02-01T06:36:36.2186824Z (571 chars)
+[AuthService] Force refresh SUCCESS. New token expires at: 2026-02-01T06:43:17.1387686Z (571 chars)
 [AuthHandler] Token refreshed, retrying request with new token (571 chars)
-[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
-[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
-[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
-[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
 [SyncService]   Update CONFLICT: server version is newer
 [AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
 [AuthService] GetAccessTokenAsync called
 [AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
-[AuthService] Token loaded. Email=demo@example.com, ExpiresAt=2026-02-01T06:36:36.2186824Z, TokenLen=571
-[AuthService] Now(UTC)=2026-02-01T05:36:36.2214400Z, NeedsRefresh=False
+[AuthService] Token loaded. Email=demo@example.com, ExpiresAt=2026-02-01T06:43:17.1387686Z, TokenLen=571
+[AuthService] Now(UTC)=2026-02-01T05:43:17.1405900Z, NeedsRefresh=False
 [AuthService] Returning token (571 chars)
 [AuthHandler] Request to http://5.129.221.139:5015/api/folders
 [AuthHandler] AccessToken: present (571 chars)
@@ -156,34 +171,24 @@
 [AuthService] ForceRefreshTokenAsync called
 [AuthService] LoadTokens: Cache empty, reading file: /Users/rayn_gosling/Library/Application Support/CloudNotes/tokens.json
 [AuthService] LoadTokens: Loaded from file and cached. Email=demo@example.com
-[AuthService] Current token expires at: 2026-02-01T06:36:36.2186824Z
+[AuthService] Current token expires at: 2026-02-01T06:43:17.1387686Z
 [AuthService] TryRefreshTokensAsync: Calling API refresh endpoint
 [AuthHandler] Skipping auth endpoint: /api/auth/refresh
-[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
-[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
-[AuthService] SaveTokens: Email=demo@example.com, ExpiresAt=2026-02-01T06:36:36.2620018Z
+[AuthService] SaveTokens: Email=demo@example.com, ExpiresAt=2026-02-01T06:43:17.1798700Z
 [AuthService] SaveTokens: CACHED in memory. TokenLen=571
 [AuthService] Saved last user email: demo@example.com
 [AuthService] SaveTokens: Written to file
-[AuthService] Force refresh SUCCESS. New token expires at: 2026-02-01T06:36:36.2620018Z (571 chars)
+[AuthService] Force refresh SUCCESS. New token expires at: 2026-02-01T06:43:17.1798700Z (571 chars)
 [AuthHandler] Token refreshed, retrying request with new token (571 chars)
 [AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
-[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
-[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
-[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
-[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
-[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
-[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
-[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
-[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
-[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
-[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[Logout] Starting logout process...
+[Logout] Syncing local changes before logout...
 [AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
 [AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
 [AuthService] GetAccessTokenAsync called
 [AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
-[AuthService] Token loaded. Email=demo@example.com, ExpiresAt=2026-02-01T06:36:36.2620018Z, TokenLen=571
-[AuthService] Now(UTC)=2026-02-01T05:36:51.0129130Z, NeedsRefresh=False
+[AuthService] Token loaded. Email=demo@example.com, ExpiresAt=2026-02-01T06:43:17.1798700Z, TokenLen=571
+[AuthService] Now(UTC)=2026-02-01T05:43:20.6687230Z, NeedsRefresh=False
 [AuthService] Returning token (571 chars)
 [AuthHandler] Request to http://5.129.221.139:5015/api/notes
 [AuthHandler] AccessToken: present (571 chars)
@@ -191,17 +196,19 @@
 [AuthService] ForceRefreshTokenAsync called
 [AuthService] LoadTokens: Cache empty, reading file: /Users/rayn_gosling/Library/Application Support/CloudNotes/tokens.json
 [AuthService] LoadTokens: Loaded from file and cached. Email=demo@example.com
-[AuthService] Current token expires at: 2026-02-01T06:36:36.2620018Z
+[AuthService] Current token expires at: 2026-02-01T06:43:17.1798700Z
 [AuthService] TryRefreshTokensAsync: Calling API refresh endpoint
 [AuthHandler] Skipping auth endpoint: /api/auth/refresh
-[AuthService] SaveTokens: Email=demo@example.com, ExpiresAt=2026-02-01T06:36:51.0614749Z
+[AuthService] SaveTokens: Email=demo@example.com, ExpiresAt=2026-02-01T06:43:20.7137828Z
 [AuthService] SaveTokens: CACHED in memory. TokenLen=571
 [AuthService] Saved last user email: demo@example.com
 [AuthService] SaveTokens: Written to file
-[AuthService] Force refresh SUCCESS. New token expires at: 2026-02-01T06:36:51.0614749Z (571 chars)
+[AuthService] Force refresh SUCCESS. New token expires at: 2026-02-01T06:43:20.7137828Z (571 chars)
 [AuthHandler] Token refreshed, retrying request with new token (571 chars)
 [AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
-[SyncService] Server notes: 3
+[SyncService] Server notes: 5
+[SyncService]   Server: 'Second note' Id=6ba3fdbb-7fc5-4605-89b4-a52b8252e85b
+[SyncService]   Server: 'Welcome note' Id=0d285cd9-ff5f-44da-aa82-f39b8e319879
 [SyncService]   Server: 'odd_sum' Id=f91fc564-4c7e-4d05-9d95-010f24f3d645
 [SyncService]   Server: 'mult' Id=1ca9c605-06c0-4e91-8fbc-cd7cede83bd1
 [SyncService]   Server: 'even_sum' Id=24649667-7628-4b7a-aa18-09a0f6a03dff
@@ -209,8 +216,14 @@
 [SyncService]   Local: 'even_sum' Id=24649667-7628-4b7a-aa18-09a0f6a03dff, ServerId=24649667-7628-4b7a-aa18-09a0f6a03dff, IsSynced=False
 [SyncService]   Local: 'odd_sum' Id=f91fc564-4c7e-4d05-9d95-010f24f3d645, ServerId=f91fc564-4c7e-4d05-9d95-010f24f3d645, IsSynced=False
 [SyncService]   Local: 'mult' Id=0b28c40b-837c-4669-a08e-c24f4d644ed4, ServerId=1ca9c605-06c0-4e91-8fbc-cd7cede83bd1, IsSynced=False
-[SyncService]   Local: 'Welcome note' Id=dc5fb519-d89a-446d-8516-e2044940e19a, ServerId=, IsSynced=False
-[SyncService]   Local: 'Second note' Id=93774f1e-09e9-4cb3-b776-324ea964fc1a, ServerId=, IsSynced=False
+[SyncService]   Local: 'Welcome note' Id=dc5fb519-d89a-446d-8516-e2044940e19a, ServerId=0d285cd9-ff5f-44da-aa82-f39b8e319879, IsSynced=True
+[SyncService]   Local: 'Second note' Id=93774f1e-09e9-4cb3-b776-324ea964fc1a, ServerId=6ba3fdbb-7fc5-4605-89b4-a52b8252e85b, IsSynced=True
+[SyncService] Processing server note 'Second note' Id=6ba3fdbb-7fc5-4605-89b4-a52b8252e85b, found local: True
+[SyncService]   Matched with local 'Second note' Id=93774f1e-09e9-4cb3-b776-324ea964fc1a, ServerId=6ba3fdbb-7fc5-4605-89b4-a52b8252e85b
+[SyncService]   Comparing dates: server=2026-02-01T05:36:51.2715740Z vs local=2026-02-01T05:43:16.9800450, localIsSynced=True
+[SyncService] Processing server note 'Welcome note' Id=0d285cd9-ff5f-44da-aa82-f39b8e319879, found local: True
+[SyncService]   Matched with local 'Welcome note' Id=dc5fb519-d89a-446d-8516-e2044940e19a, ServerId=0d285cd9-ff5f-44da-aa82-f39b8e319879
+[SyncService]   Comparing dates: server=2026-02-01T05:36:51.2118590Z vs local=2026-02-01T05:36:51.2241570, localIsSynced=True
 [SyncService] Processing server note 'odd_sum' Id=f91fc564-4c7e-4d05-9d95-010f24f3d645, found local: True
 [SyncService]   Matched with local 'odd_sum' Id=f91fc564-4c7e-4d05-9d95-010f24f3d645, ServerId=f91fc564-4c7e-4d05-9d95-010f24f3d645
 [SyncService]   Comparing dates: server=2026-02-01T05:34:56.6191810Z vs local=2026-02-01T05:34:54.5030340, localIsSynced=False
@@ -223,19 +236,17 @@
 [SyncService]   Matched with local 'even_sum' Id=24649667-7628-4b7a-aa18-09a0f6a03dff, ServerId=24649667-7628-4b7a-aa18-09a0f6a03dff
 [SyncService]   Comparing dates: server=2026-02-01T05:34:53.2104480Z vs local=2026-02-01T05:34:52.3396700, localIsSynced=False
 [SyncService]   Local note has unsaved changes, will upload to server later
-[SyncService] Found 5 unsynced notes to upload
+[SyncService] Found 3 unsynced notes to upload
 [SyncService]   - 'even_sum' Id=24649667-7628-4b7a-aa18-09a0f6a03dff, ServerId=24649667-7628-4b7a-aa18-09a0f6a03dff, IsSynced=False
 [SyncService]   - 'odd_sum' Id=f91fc564-4c7e-4d05-9d95-010f24f3d645, ServerId=f91fc564-4c7e-4d05-9d95-010f24f3d645, IsSynced=False
 [SyncService]   - 'mult' Id=0b28c40b-837c-4669-a08e-c24f4d644ed4, ServerId=1ca9c605-06c0-4e91-8fbc-cd7cede83bd1, IsSynced=False
-[SyncService]   - 'Welcome note' Id=dc5fb519-d89a-446d-8516-e2044940e19a, ServerId=, IsSynced=False
-[SyncService]   - 'Second note' Id=93774f1e-09e9-4cb3-b776-324ea964fc1a, ServerId=, IsSynced=False
 [SyncService] Uploading changes for 'even_sum' ServerId=24649667-7628-4b7a-aa18-09a0f6a03dff
 [SyncService]   Content length: 45 chars
 [SyncService]   Sending update: Title='even_sum', ContentLen=45
 [AuthService] GetAccessTokenAsync called
 [AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
-[AuthService] Token loaded. Email=demo@example.com, ExpiresAt=2026-02-01T06:36:51.0614749Z, TokenLen=571
-[AuthService] Now(UTC)=2026-02-01T05:36:51.0771970Z, NeedsRefresh=False
+[AuthService] Token loaded. Email=demo@example.com, ExpiresAt=2026-02-01T06:43:20.7137828Z, TokenLen=571
+[AuthService] Now(UTC)=2026-02-01T05:43:20.7256880Z, NeedsRefresh=False
 [AuthService] Returning token (571 chars)
 [AuthHandler] Request to http://5.129.221.139:5015/api/notes/24649667-7628-4b7a-aa18-09a0f6a03dff
 [AuthHandler] AccessToken: present (571 chars)
@@ -243,14 +254,14 @@
 [AuthService] ForceRefreshTokenAsync called
 [AuthService] LoadTokens: Cache empty, reading file: /Users/rayn_gosling/Library/Application Support/CloudNotes/tokens.json
 [AuthService] LoadTokens: Loaded from file and cached. Email=demo@example.com
-[AuthService] Current token expires at: 2026-02-01T06:36:51.0614749Z
+[AuthService] Current token expires at: 2026-02-01T06:43:20.7137828Z
 [AuthService] TryRefreshTokensAsync: Calling API refresh endpoint
 [AuthHandler] Skipping auth endpoint: /api/auth/refresh
-[AuthService] SaveTokens: Email=demo@example.com, ExpiresAt=2026-02-01T06:36:51.1036138Z
+[AuthService] SaveTokens: Email=demo@example.com, ExpiresAt=2026-02-01T06:43:20.7644976Z
 [AuthService] SaveTokens: CACHED in memory. TokenLen=571
 [AuthService] Saved last user email: demo@example.com
 [AuthService] SaveTokens: Written to file
-[AuthService] Force refresh SUCCESS. New token expires at: 2026-02-01T06:36:51.1036138Z (571 chars)
+[AuthService] Force refresh SUCCESS. New token expires at: 2026-02-01T06:43:20.7644976Z (571 chars)
 [AuthHandler] Token refreshed, retrying request with new token (571 chars)
 [SyncService]   Update CONFLICT: server version is newer
 [SyncService] Uploading changes for 'odd_sum' ServerId=f91fc564-4c7e-4d05-9d95-010f24f3d645
@@ -258,8 +269,8 @@
 [SyncService]   Sending update: Title='odd_sum', ContentLen=21
 [AuthService] GetAccessTokenAsync called
 [AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
-[AuthService] Token loaded. Email=demo@example.com, ExpiresAt=2026-02-01T06:36:51.1036138Z, TokenLen=571
-[AuthService] Now(UTC)=2026-02-01T05:36:51.1102750Z, NeedsRefresh=False
+[AuthService] Token loaded. Email=demo@example.com, ExpiresAt=2026-02-01T06:43:20.7644976Z, TokenLen=571
+[AuthService] Now(UTC)=2026-02-01T05:43:20.7700160Z, NeedsRefresh=False
 [AuthService] Returning token (571 chars)
 [AuthHandler] Request to http://5.129.221.139:5015/api/notes/f91fc564-4c7e-4d05-9d95-010f24f3d645
 [AuthHandler] AccessToken: present (571 chars)
@@ -267,14 +278,14 @@
 [AuthService] ForceRefreshTokenAsync called
 [AuthService] LoadTokens: Cache empty, reading file: /Users/rayn_gosling/Library/Application Support/CloudNotes/tokens.json
 [AuthService] LoadTokens: Loaded from file and cached. Email=demo@example.com
-[AuthService] Current token expires at: 2026-02-01T06:36:51.1036138Z
+[AuthService] Current token expires at: 2026-02-01T06:43:20.7644976Z
 [AuthService] TryRefreshTokensAsync: Calling API refresh endpoint
 [AuthHandler] Skipping auth endpoint: /api/auth/refresh
-[AuthService] SaveTokens: Email=demo@example.com, ExpiresAt=2026-02-01T06:36:51.1371019Z
+[AuthService] SaveTokens: Email=demo@example.com, ExpiresAt=2026-02-01T06:43:20.8039612Z
 [AuthService] SaveTokens: CACHED in memory. TokenLen=571
 [AuthService] Saved last user email: demo@example.com
 [AuthService] SaveTokens: Written to file
-[AuthService] Force refresh SUCCESS. New token expires at: 2026-02-01T06:36:51.1371019Z (571 chars)
+[AuthService] Force refresh SUCCESS. New token expires at: 2026-02-01T06:43:20.8039612Z (571 chars)
 [AuthHandler] Token refreshed, retrying request with new token (571 chars)
 [SyncService]   Update CONFLICT: server version is newer
 [SyncService] Uploading changes for 'mult' ServerId=1ca9c605-06c0-4e91-8fbc-cd7cede83bd1
@@ -282,8 +293,8 @@
 [SyncService]   Sending update: Title='mult', ContentLen=23
 [AuthService] GetAccessTokenAsync called
 [AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
-[AuthService] Token loaded. Email=demo@example.com, ExpiresAt=2026-02-01T06:36:51.1371019Z, TokenLen=571
-[AuthService] Now(UTC)=2026-02-01T05:36:51.1454360Z, NeedsRefresh=False
+[AuthService] Token loaded. Email=demo@example.com, ExpiresAt=2026-02-01T06:43:20.8039612Z, TokenLen=571
+[AuthService] Now(UTC)=2026-02-01T05:43:20.8076540Z, NeedsRefresh=False
 [AuthService] Returning token (571 chars)
 [AuthHandler] Request to http://5.129.221.139:5015/api/notes/1ca9c605-06c0-4e91-8fbc-cd7cede83bd1
 [AuthHandler] AccessToken: present (571 chars)
@@ -291,71 +302,21 @@
 [AuthService] ForceRefreshTokenAsync called
 [AuthService] LoadTokens: Cache empty, reading file: /Users/rayn_gosling/Library/Application Support/CloudNotes/tokens.json
 [AuthService] LoadTokens: Loaded from file and cached. Email=demo@example.com
-[AuthService] Current token expires at: 2026-02-01T06:36:51.1371019Z
+[AuthService] Current token expires at: 2026-02-01T06:43:20.8039612Z
 [AuthService] TryRefreshTokensAsync: Calling API refresh endpoint
 [AuthHandler] Skipping auth endpoint: /api/auth/refresh
-[AuthService] SaveTokens: Email=demo@example.com, ExpiresAt=2026-02-01T06:36:51.1757779Z
+[AuthService] SaveTokens: Email=demo@example.com, ExpiresAt=2026-02-01T06:43:20.8315290Z
 [AuthService] SaveTokens: CACHED in memory. TokenLen=571
 [AuthService] Saved last user email: demo@example.com
 [AuthService] SaveTokens: Written to file
-[AuthService] Force refresh SUCCESS. New token expires at: 2026-02-01T06:36:51.1757779Z (571 chars)
+[AuthService] Force refresh SUCCESS. New token expires at: 2026-02-01T06:43:20.8315290Z (571 chars)
 [AuthHandler] Token refreshed, retrying request with new token (571 chars)
 [SyncService]   Update CONFLICT: server version is newer
-[AuthService] GetAccessTokenAsync called
-[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
-[AuthService] Token loaded. Email=demo@example.com, ExpiresAt=2026-02-01T06:36:51.1757779Z, TokenLen=571
-[AuthService] Now(UTC)=2026-02-01T05:36:51.1771750Z, NeedsRefresh=False
-[AuthService] Returning token (571 chars)
-[AuthHandler] Request to http://5.129.221.139:5015/api/notes
-[AuthHandler] AccessToken: present (571 chars)
-[AuthHandler] Got 401 Unauthorized, attempting force token refresh...
-[AuthService] ForceRefreshTokenAsync called
-[AuthService] LoadTokens: Cache empty, reading file: /Users/rayn_gosling/Library/Application Support/CloudNotes/tokens.json
-[AuthService] LoadTokens: Loaded from file and cached. Email=demo@example.com
-[AuthService] Current token expires at: 2026-02-01T06:36:51.1757779Z
-[AuthService] TryRefreshTokensAsync: Calling API refresh endpoint
-[AuthHandler] Skipping auth endpoint: /api/auth/refresh
-[AuthService] SaveTokens: Email=demo@example.com, ExpiresAt=2026-02-01T06:36:51.2041090Z
-[AuthService] SaveTokens: CACHED in memory. TokenLen=571
-[AuthService] Saved last user email: demo@example.com
-[AuthService] SaveTokens: Written to file
-[AuthService] Force refresh SUCCESS. New token expires at: 2026-02-01T06:36:51.2041090Z (571 chars)
-[AuthHandler] Token refreshed, retrying request with new token (571 chars)
-[SyncService] Created on server: 'Welcome note' LocalId=dc5fb519-d89a-446d-8516-e2044940e19a -> ServerId=0d285cd9-ff5f-44da-aa82-f39b8e319879
-[NoteService] UpdateNoteInternalAsync called: noteId=dc5fb519-d89a-446d-8516-e2044940e19a, fromSync=True
-[NoteService] Found note 'Welcome note', hasServerId=False, existingIsSynced=False
-[NoteService] fromSync=true, setting IsSynced=True
-[SyncService] Updated local note: 'Welcome note' Id=dc5fb519-d89a-446d-8516-e2044940e19a, ServerId=0d285cd9-ff5f-44da-aa82-f39b8e319879, IsSynced=True
-[AuthService] GetAccessTokenAsync called
-[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
-[AuthService] Token loaded. Email=demo@example.com, ExpiresAt=2026-02-01T06:36:51.2041090Z, TokenLen=571
-[AuthService] Now(UTC)=2026-02-01T05:36:51.2277290Z, NeedsRefresh=False
-[AuthService] Returning token (571 chars)
-[AuthHandler] Request to http://5.129.221.139:5015/api/notes
-[AuthHandler] AccessToken: present (571 chars)
-[AuthHandler] Got 401 Unauthorized, attempting force token refresh...
-[AuthService] ForceRefreshTokenAsync called
-[AuthService] LoadTokens: Cache empty, reading file: /Users/rayn_gosling/Library/Application Support/CloudNotes/tokens.json
-[AuthService] LoadTokens: Loaded from file and cached. Email=demo@example.com
-[AuthService] Current token expires at: 2026-02-01T06:36:51.2041090Z
-[AuthService] TryRefreshTokensAsync: Calling API refresh endpoint
-[AuthHandler] Skipping auth endpoint: /api/auth/refresh
-[AuthService] SaveTokens: Email=demo@example.com, ExpiresAt=2026-02-01T06:36:51.2590741Z
-[AuthService] SaveTokens: CACHED in memory. TokenLen=571
-[AuthService] Saved last user email: demo@example.com
-[AuthService] SaveTokens: Written to file
-[AuthService] Force refresh SUCCESS. New token expires at: 2026-02-01T06:36:51.2590741Z (571 chars)
-[AuthHandler] Token refreshed, retrying request with new token (571 chars)
-[SyncService] Created on server: 'Second note' LocalId=93774f1e-09e9-4cb3-b776-324ea964fc1a -> ServerId=6ba3fdbb-7fc5-4605-89b4-a52b8252e85b
-[NoteService] UpdateNoteInternalAsync called: noteId=93774f1e-09e9-4cb3-b776-324ea964fc1a, fromSync=True
-[NoteService] Found note 'Second note', hasServerId=False, existingIsSynced=False
-[NoteService] fromSync=true, setting IsSynced=True
-[SyncService] Updated local note: 'Second note' Id=93774f1e-09e9-4cb3-b776-324ea964fc1a, ServerId=6ba3fdbb-7fc5-4605-89b4-a52b8252e85b, IsSynced=True
 [AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
 [AuthService] GetAccessTokenAsync called
 [AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
-[AuthService] Token loaded. Email=demo@example.com, ExpiresAt=2026-02-01T06:36:51.2590741Z, TokenLen=571
-[AuthService] Now(UTC)=2026-02-01T05:36:51.2719990Z, NeedsRefresh=False
+[AuthService] Token loaded. Email=demo@example.com, ExpiresAt=2026-02-01T06:43:20.8315290Z, TokenLen=571
+[AuthService] Now(UTC)=2026-02-01T05:43:20.8357470Z, NeedsRefresh=False
 [AuthService] Returning token (571 chars)
 [AuthHandler] Request to http://5.129.221.139:5015/api/folders
 [AuthHandler] AccessToken: present (571 chars)
@@ -363,13 +324,520 @@
 [AuthService] ForceRefreshTokenAsync called
 [AuthService] LoadTokens: Cache empty, reading file: /Users/rayn_gosling/Library/Application Support/CloudNotes/tokens.json
 [AuthService] LoadTokens: Loaded from file and cached. Email=demo@example.com
-[AuthService] Current token expires at: 2026-02-01T06:36:51.2590741Z
+[AuthService] Current token expires at: 2026-02-01T06:43:20.8315290Z
 [AuthService] TryRefreshTokensAsync: Calling API refresh endpoint
 [AuthHandler] Skipping auth endpoint: /api/auth/refresh
-[AuthService] SaveTokens: Email=demo@example.com, ExpiresAt=2026-02-01T06:36:51.2971178Z
+[AuthService] SaveTokens: Email=demo@example.com, ExpiresAt=2026-02-01T06:43:20.8869486Z
 [AuthService] SaveTokens: CACHED in memory. TokenLen=571
 [AuthService] Saved last user email: demo@example.com
 [AuthService] SaveTokens: Written to file
-[AuthService] Force refresh SUCCESS. New token expires at: 2026-02-01T06:36:51.2971178Z (571 chars)
+[AuthService] Force refresh SUCCESS. New token expires at: 2026-02-01T06:43:20.8869486Z (571 chars)
 [AuthHandler] Token refreshed, retrying request with new token (571 chars)
 [AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[Logout] Sync completed: SUCCESS
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] GetAccessTokenAsync called
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] Token loaded. Email=demo@example.com, ExpiresAt=2026-02-01T06:43:20.8869486Z, TokenLen=571
+[AuthService] Now(UTC)=2026-02-01T05:43:20.8979320Z, NeedsRefresh=False
+[AuthService] Returning token (571 chars)
+[AuthHandler] Request to http://5.129.221.139:5015/api/auth/logout
+[AuthHandler] AccessToken: present (571 chars)
+[AuthHandler] Authorization header ADDED
+[AuthService] LoadTokens: Cache empty, reading file: /Users/rayn_gosling/Library/Application Support/CloudNotes/tokens.json
+[AuthService] LoadTokens: File does not exist
+[Logout] Logout completed
+[AuthService] LoadTokens: Cache empty, reading file: /Users/rayn_gosling/Library/Application Support/CloudNotes/tokens.json
+[AuthService] LoadTokens: File does not exist
+[AuthHandler] Skipping auth endpoint: /api/auth/login
+[AuthService] SaveTokens: Email=demo@example.com, ExpiresAt=2026-02-01T06:43:33.4542069Z
+[AuthService] SaveTokens: CACHED in memory. TokenLen=571
+[AuthService] Saved last user email: demo@example.com
+[AuthService] SaveTokens: Written to file
+[Auth] Last user: demo@example.com, New user: demo@example.com, IsSameUser: True
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] GetAccessTokenAsync called
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] Token loaded. Email=demo@example.com, ExpiresAt=2026-02-01T06:43:33.4542069Z, TokenLen=571
+[AuthService] Now(UTC)=2026-02-01T05:43:33.4512210Z, NeedsRefresh=False
+[AuthService] Returning token (571 chars)
+[AuthHandler] Request to http://5.129.221.139:5015/api/notes
+[AuthHandler] AccessToken: present (571 chars)
+[AuthHandler] Got 401 Unauthorized, attempting force token refresh...
+[AuthService] ForceRefreshTokenAsync called
+[AuthService] LoadTokens: Cache empty, reading file: /Users/rayn_gosling/Library/Application Support/CloudNotes/tokens.json
+[AuthService] LoadTokens: Loaded from file and cached. Email=demo@example.com
+[AuthService] Current token expires at: 2026-02-01T06:43:33.4542069Z
+[AuthService] TryRefreshTokensAsync: Calling API refresh endpoint
+[AuthHandler] Skipping auth endpoint: /api/auth/refresh
+[AuthService] SaveTokens: Email=demo@example.com, ExpiresAt=2026-02-01T06:43:33.4836498Z
+[AuthService] SaveTokens: CACHED in memory. TokenLen=571
+[AuthService] Saved last user email: demo@example.com
+[AuthService] SaveTokens: Written to file
+[AuthService] Force refresh SUCCESS. New token expires at: 2026-02-01T06:43:33.4836498Z (571 chars)
+[AuthHandler] Token refreshed, retrying request with new token (571 chars)
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[SyncService] Server notes: 5
+[SyncService]   Server: 'Second note' Id=6ba3fdbb-7fc5-4605-89b4-a52b8252e85b
+[SyncService]   Server: 'Welcome note' Id=0d285cd9-ff5f-44da-aa82-f39b8e319879
+[SyncService]   Server: 'odd_sum' Id=f91fc564-4c7e-4d05-9d95-010f24f3d645
+[SyncService]   Server: 'mult' Id=1ca9c605-06c0-4e91-8fbc-cd7cede83bd1
+[SyncService]   Server: 'even_sum' Id=24649667-7628-4b7a-aa18-09a0f6a03dff
+[SyncService] Local notes: 5
+[SyncService]   Local: 'even_sum' Id=24649667-7628-4b7a-aa18-09a0f6a03dff, ServerId=24649667-7628-4b7a-aa18-09a0f6a03dff, IsSynced=False
+[SyncService]   Local: 'odd_sum' Id=f91fc564-4c7e-4d05-9d95-010f24f3d645, ServerId=f91fc564-4c7e-4d05-9d95-010f24f3d645, IsSynced=False
+[SyncService]   Local: 'mult' Id=0b28c40b-837c-4669-a08e-c24f4d644ed4, ServerId=1ca9c605-06c0-4e91-8fbc-cd7cede83bd1, IsSynced=False
+[SyncService]   Local: 'Welcome note' Id=dc5fb519-d89a-446d-8516-e2044940e19a, ServerId=0d285cd9-ff5f-44da-aa82-f39b8e319879, IsSynced=True
+[SyncService]   Local: 'Second note' Id=93774f1e-09e9-4cb3-b776-324ea964fc1a, ServerId=6ba3fdbb-7fc5-4605-89b4-a52b8252e85b, IsSynced=True
+[SyncService] Processing server note 'Second note' Id=6ba3fdbb-7fc5-4605-89b4-a52b8252e85b, found local: True
+[SyncService]   Matched with local 'Second note' Id=93774f1e-09e9-4cb3-b776-324ea964fc1a, ServerId=6ba3fdbb-7fc5-4605-89b4-a52b8252e85b
+[SyncService]   Comparing dates: server=2026-02-01T05:36:51.2715740Z vs local=2026-02-01T05:43:16.9800450, localIsSynced=True
+[SyncService] Processing server note 'Welcome note' Id=0d285cd9-ff5f-44da-aa82-f39b8e319879, found local: True
+[SyncService]   Matched with local 'Welcome note' Id=dc5fb519-d89a-446d-8516-e2044940e19a, ServerId=0d285cd9-ff5f-44da-aa82-f39b8e319879
+[SyncService]   Comparing dates: server=2026-02-01T05:36:51.2118590Z vs local=2026-02-01T05:36:51.2241570, localIsSynced=True
+[SyncService] Processing server note 'odd_sum' Id=f91fc564-4c7e-4d05-9d95-010f24f3d645, found local: True
+[SyncService]   Matched with local 'odd_sum' Id=f91fc564-4c7e-4d05-9d95-010f24f3d645, ServerId=f91fc564-4c7e-4d05-9d95-010f24f3d645
+[SyncService]   Comparing dates: server=2026-02-01T05:34:56.6191810Z vs local=2026-02-01T05:34:54.5030340, localIsSynced=False
+[SyncService]   Local note has unsaved changes, will upload to server later
+[SyncService] Processing server note 'mult' Id=1ca9c605-06c0-4e91-8fbc-cd7cede83bd1, found local: True
+[SyncService]   Matched with local 'mult' Id=0b28c40b-837c-4669-a08e-c24f4d644ed4, ServerId=1ca9c605-06c0-4e91-8fbc-cd7cede83bd1
+[SyncService]   Comparing dates: server=2026-02-01T05:34:53.2973230Z vs local=2026-02-01T05:34:53.1330660, localIsSynced=False
+[SyncService]   Local note has unsaved changes, will upload to server later
+[SyncService] Processing server note 'even_sum' Id=24649667-7628-4b7a-aa18-09a0f6a03dff, found local: True
+[SyncService]   Matched with local 'even_sum' Id=24649667-7628-4b7a-aa18-09a0f6a03dff, ServerId=24649667-7628-4b7a-aa18-09a0f6a03dff
+[SyncService]   Comparing dates: server=2026-02-01T05:34:53.2104480Z vs local=2026-02-01T05:34:52.3396700, localIsSynced=False
+[SyncService]   Local note has unsaved changes, will upload to server later
+[SyncService] Found 3 unsynced notes to upload
+[SyncService]   - 'even_sum' Id=24649667-7628-4b7a-aa18-09a0f6a03dff, ServerId=24649667-7628-4b7a-aa18-09a0f6a03dff, IsSynced=False
+[SyncService]   - 'odd_sum' Id=f91fc564-4c7e-4d05-9d95-010f24f3d645, ServerId=f91fc564-4c7e-4d05-9d95-010f24f3d645, IsSynced=False
+[SyncService]   - 'mult' Id=0b28c40b-837c-4669-a08e-c24f4d644ed4, ServerId=1ca9c605-06c0-4e91-8fbc-cd7cede83bd1, IsSynced=False
+[SyncService] Uploading changes for 'even_sum' ServerId=24649667-7628-4b7a-aa18-09a0f6a03dff
+[SyncService]   Content length: 45 chars
+[SyncService]   Sending update: Title='even_sum', ContentLen=45
+[AuthService] GetAccessTokenAsync called
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] Token loaded. Email=demo@example.com, ExpiresAt=2026-02-01T06:43:33.4836498Z, TokenLen=571
+[AuthService] Now(UTC)=2026-02-01T05:43:33.5023680Z, NeedsRefresh=False
+[AuthService] Returning token (571 chars)
+[AuthHandler] Request to http://5.129.221.139:5015/api/notes/24649667-7628-4b7a-aa18-09a0f6a03dff
+[AuthHandler] AccessToken: present (571 chars)
+[AuthHandler] Got 401 Unauthorized, attempting force token refresh...
+[AuthService] ForceRefreshTokenAsync called
+[AuthService] LoadTokens: Cache empty, reading file: /Users/rayn_gosling/Library/Application Support/CloudNotes/tokens.json
+[AuthService] LoadTokens: Loaded from file and cached. Email=demo@example.com
+[AuthService] Current token expires at: 2026-02-01T06:43:33.4836498Z
+[AuthService] TryRefreshTokensAsync: Calling API refresh endpoint
+[AuthHandler] Skipping auth endpoint: /api/auth/refresh
+[AuthService] SaveTokens: Email=demo@example.com, ExpiresAt=2026-02-01T06:43:33.5290245Z
+[AuthService] SaveTokens: CACHED in memory. TokenLen=571
+[AuthService] Saved last user email: demo@example.com
+[AuthService] SaveTokens: Written to file
+[AuthService] Force refresh SUCCESS. New token expires at: 2026-02-01T06:43:33.5290245Z (571 chars)
+[AuthHandler] Token refreshed, retrying request with new token (571 chars)
+[SyncService]   Update CONFLICT: server version is newer
+[SyncService] Uploading changes for 'odd_sum' ServerId=f91fc564-4c7e-4d05-9d95-010f24f3d645
+[SyncService]   Content length: 21 chars
+[SyncService]   Sending update: Title='odd_sum', ContentLen=21
+[AuthService] GetAccessTokenAsync called
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] Token loaded. Email=demo@example.com, ExpiresAt=2026-02-01T06:43:33.5290245Z, TokenLen=571
+[AuthService] Now(UTC)=2026-02-01T05:43:33.5356760Z, NeedsRefresh=False
+[AuthService] Returning token (571 chars)
+[AuthHandler] Request to http://5.129.221.139:5015/api/notes/f91fc564-4c7e-4d05-9d95-010f24f3d645
+[AuthHandler] AccessToken: present (571 chars)
+[AuthHandler] Got 401 Unauthorized, attempting force token refresh...
+[AuthService] ForceRefreshTokenAsync called
+[AuthService] LoadTokens: Cache empty, reading file: /Users/rayn_gosling/Library/Application Support/CloudNotes/tokens.json
+[AuthService] LoadTokens: Loaded from file and cached. Email=demo@example.com
+[AuthService] Current token expires at: 2026-02-01T06:43:33.5290245Z
+[AuthService] TryRefreshTokensAsync: Calling API refresh endpoint
+[AuthHandler] Skipping auth endpoint: /api/auth/refresh
+[AuthService] SaveTokens: Email=demo@example.com, ExpiresAt=2026-02-01T06:43:33.5774563Z
+[AuthService] SaveTokens: CACHED in memory. TokenLen=571
+[AuthService] Saved last user email: demo@example.com
+[AuthService] SaveTokens: Written to file
+[AuthService] Force refresh SUCCESS. New token expires at: 2026-02-01T06:43:33.5774563Z (571 chars)
+[AuthHandler] Token refreshed, retrying request with new token (571 chars)
+[SyncService]   Update CONFLICT: server version is newer
+[SyncService] Uploading changes for 'mult' ServerId=1ca9c605-06c0-4e91-8fbc-cd7cede83bd1
+[SyncService]   Content length: 23 chars
+[SyncService]   Sending update: Title='mult', ContentLen=23
+[AuthService] GetAccessTokenAsync called
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] Token loaded. Email=demo@example.com, ExpiresAt=2026-02-01T06:43:33.5774563Z, TokenLen=571
+[AuthService] Now(UTC)=2026-02-01T05:43:33.5880760Z, NeedsRefresh=False
+[AuthService] Returning token (571 chars)
+[AuthHandler] Request to http://5.129.221.139:5015/api/notes/1ca9c605-06c0-4e91-8fbc-cd7cede83bd1
+[AuthHandler] AccessToken: present (571 chars)
+[AuthHandler] Got 401 Unauthorized, attempting force token refresh...
+[AuthService] ForceRefreshTokenAsync called
+[AuthService] LoadTokens: Cache empty, reading file: /Users/rayn_gosling/Library/Application Support/CloudNotes/tokens.json
+[AuthService] LoadTokens: Loaded from file and cached. Email=demo@example.com
+[AuthService] Current token expires at: 2026-02-01T06:43:33.5774563Z
+[AuthService] TryRefreshTokensAsync: Calling API refresh endpoint
+[AuthHandler] Skipping auth endpoint: /api/auth/refresh
+[AuthService] SaveTokens: Email=demo@example.com, ExpiresAt=2026-02-01T06:43:33.6151376Z
+[AuthService] SaveTokens: CACHED in memory. TokenLen=571
+[AuthService] Saved last user email: demo@example.com
+[AuthService] SaveTokens: Written to file
+[AuthService] Force refresh SUCCESS. New token expires at: 2026-02-01T06:43:33.6151376Z (571 chars)
+[AuthHandler] Token refreshed, retrying request with new token (571 chars)
+[SyncService]   Update CONFLICT: server version is newer
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] GetAccessTokenAsync called
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] Token loaded. Email=demo@example.com, ExpiresAt=2026-02-01T06:43:33.6151376Z, TokenLen=571
+[AuthService] Now(UTC)=2026-02-01T05:43:33.6240850Z, NeedsRefresh=False
+[AuthService] Returning token (571 chars)
+[AuthHandler] Request to http://5.129.221.139:5015/api/folders
+[AuthHandler] AccessToken: present (571 chars)
+[AuthHandler] Got 401 Unauthorized, attempting force token refresh...
+[AuthService] ForceRefreshTokenAsync called
+[AuthService] LoadTokens: Cache empty, reading file: /Users/rayn_gosling/Library/Application Support/CloudNotes/tokens.json
+[AuthService] LoadTokens: Loaded from file and cached. Email=demo@example.com
+[AuthService] Current token expires at: 2026-02-01T06:43:33.6151376Z
+[AuthService] TryRefreshTokensAsync: Calling API refresh endpoint
+[AuthHandler] Skipping auth endpoint: /api/auth/refresh
+[AuthService] SaveTokens: Email=demo@example.com, ExpiresAt=2026-02-01T06:43:33.6491875Z
+[AuthService] SaveTokens: CACHED in memory. TokenLen=571
+[AuthService] Saved last user email: demo@example.com
+[AuthService] SaveTokens: Written to file
+[AuthService] Force refresh SUCCESS. New token expires at: 2026-02-01T06:43:33.6491875Z (571 chars)
+[AuthHandler] Token refreshed, retrying request with new token (571 chars)
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] GetAccessTokenAsync called
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] Token loaded. Email=demo@example.com, ExpiresAt=2026-02-01T06:43:33.6491875Z, TokenLen=571
+[AuthService] Now(UTC)=2026-02-01T05:43:33.6734550Z, NeedsRefresh=False
+[AuthService] Returning token (571 chars)
+[AuthHandler] Request to http://5.129.221.139:5015/api/notes
+[AuthHandler] AccessToken: present (571 chars)
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthHandler] Got 401 Unauthorized, attempting force token refresh...
+[AuthService] ForceRefreshTokenAsync called
+[AuthService] LoadTokens: Cache empty, reading file: /Users/rayn_gosling/Library/Application Support/CloudNotes/tokens.json
+[AuthService] LoadTokens: Loaded from file and cached. Email=demo@example.com
+[AuthService] Current token expires at: 2026-02-01T06:43:33.6491875Z
+[AuthService] TryRefreshTokensAsync: Calling API refresh endpoint
+[AuthHandler] Skipping auth endpoint: /api/auth/refresh
+[AuthService] SaveTokens: Email=demo@example.com, ExpiresAt=2026-02-01T06:43:33.7074968Z
+[AuthService] SaveTokens: CACHED in memory. TokenLen=571
+[AuthService] Saved last user email: demo@example.com
+[AuthService] SaveTokens: Written to file
+[AuthService] Force refresh SUCCESS. New token expires at: 2026-02-01T06:43:33.7074968Z (571 chars)
+[AuthHandler] Token refreshed, retrying request with new token (571 chars)
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[SyncService] Server notes: 5
+[SyncService]   Server: 'Second note' Id=6ba3fdbb-7fc5-4605-89b4-a52b8252e85b
+[SyncService]   Server: 'Welcome note' Id=0d285cd9-ff5f-44da-aa82-f39b8e319879
+[SyncService]   Server: 'odd_sum' Id=f91fc564-4c7e-4d05-9d95-010f24f3d645
+[SyncService]   Server: 'mult' Id=1ca9c605-06c0-4e91-8fbc-cd7cede83bd1
+[SyncService]   Server: 'even_sum' Id=24649667-7628-4b7a-aa18-09a0f6a03dff
+[SyncService] Local notes: 5
+[SyncService]   Local: 'even_sum' Id=24649667-7628-4b7a-aa18-09a0f6a03dff, ServerId=24649667-7628-4b7a-aa18-09a0f6a03dff, IsSynced=False
+[SyncService]   Local: 'odd_sum' Id=f91fc564-4c7e-4d05-9d95-010f24f3d645, ServerId=f91fc564-4c7e-4d05-9d95-010f24f3d645, IsSynced=False
+[SyncService]   Local: 'mult' Id=0b28c40b-837c-4669-a08e-c24f4d644ed4, ServerId=1ca9c605-06c0-4e91-8fbc-cd7cede83bd1, IsSynced=False
+[SyncService]   Local: 'Welcome note' Id=dc5fb519-d89a-446d-8516-e2044940e19a, ServerId=0d285cd9-ff5f-44da-aa82-f39b8e319879, IsSynced=True
+[SyncService]   Local: 'Second note' Id=93774f1e-09e9-4cb3-b776-324ea964fc1a, ServerId=6ba3fdbb-7fc5-4605-89b4-a52b8252e85b, IsSynced=True
+[SyncService] Processing server note 'Second note' Id=6ba3fdbb-7fc5-4605-89b4-a52b8252e85b, found local: True
+[SyncService]   Matched with local 'Second note' Id=93774f1e-09e9-4cb3-b776-324ea964fc1a, ServerId=6ba3fdbb-7fc5-4605-89b4-a52b8252e85b
+[SyncService]   Comparing dates: server=2026-02-01T05:36:51.2715740Z vs local=2026-02-01T05:43:16.9800450, localIsSynced=True
+[SyncService] Processing server note 'Welcome note' Id=0d285cd9-ff5f-44da-aa82-f39b8e319879, found local: True
+[SyncService]   Matched with local 'Welcome note' Id=dc5fb519-d89a-446d-8516-e2044940e19a, ServerId=0d285cd9-ff5f-44da-aa82-f39b8e319879
+[SyncService]   Comparing dates: server=2026-02-01T05:36:51.2118590Z vs local=2026-02-01T05:36:51.2241570, localIsSynced=True
+[SyncService] Processing server note 'odd_sum' Id=f91fc564-4c7e-4d05-9d95-010f24f3d645, found local: True
+[SyncService]   Matched with local 'odd_sum' Id=f91fc564-4c7e-4d05-9d95-010f24f3d645, ServerId=f91fc564-4c7e-4d05-9d95-010f24f3d645
+[SyncService]   Comparing dates: server=2026-02-01T05:34:56.6191810Z vs local=2026-02-01T05:34:54.5030340, localIsSynced=False
+[SyncService]   Local note has unsaved changes, will upload to server later
+[SyncService] Processing server note 'mult' Id=1ca9c605-06c0-4e91-8fbc-cd7cede83bd1, found local: True
+[SyncService]   Matched with local 'mult' Id=0b28c40b-837c-4669-a08e-c24f4d644ed4, ServerId=1ca9c605-06c0-4e91-8fbc-cd7cede83bd1
+[SyncService]   Comparing dates: server=2026-02-01T05:34:53.2973230Z vs local=2026-02-01T05:34:53.1330660, localIsSynced=False
+[SyncService]   Local note has unsaved changes, will upload to server later
+[SyncService] Processing server note 'even_sum' Id=24649667-7628-4b7a-aa18-09a0f6a03dff, found local: True
+[SyncService]   Matched with local 'even_sum' Id=24649667-7628-4b7a-aa18-09a0f6a03dff, ServerId=24649667-7628-4b7a-aa18-09a0f6a03dff
+[SyncService]   Comparing dates: server=2026-02-01T05:34:53.2104480Z vs local=2026-02-01T05:34:52.3396700, localIsSynced=False
+[SyncService]   Local note has unsaved changes, will upload to server later
+[SyncService] Found 3 unsynced notes to upload
+[SyncService]   - 'even_sum' Id=24649667-7628-4b7a-aa18-09a0f6a03dff, ServerId=24649667-7628-4b7a-aa18-09a0f6a03dff, IsSynced=False
+[SyncService]   - 'odd_sum' Id=f91fc564-4c7e-4d05-9d95-010f24f3d645, ServerId=f91fc564-4c7e-4d05-9d95-010f24f3d645, IsSynced=False
+[SyncService]   - 'mult' Id=0b28c40b-837c-4669-a08e-c24f4d644ed4, ServerId=1ca9c605-06c0-4e91-8fbc-cd7cede83bd1, IsSynced=False
+[SyncService] Uploading changes for 'even_sum' ServerId=24649667-7628-4b7a-aa18-09a0f6a03dff
+[SyncService]   Content length: 45 chars
+[SyncService]   Sending update: Title='even_sum', ContentLen=45
+[AuthService] GetAccessTokenAsync called
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] Token loaded. Email=demo@example.com, ExpiresAt=2026-02-01T06:43:33.7074968Z, TokenLen=571
+[AuthService] Now(UTC)=2026-02-01T05:43:33.7120880Z, NeedsRefresh=False
+[AuthService] Returning token (571 chars)
+[AuthHandler] Request to http://5.129.221.139:5015/api/notes/24649667-7628-4b7a-aa18-09a0f6a03dff
+[AuthHandler] AccessToken: present (571 chars)
+[AuthHandler] Got 401 Unauthorized, attempting force token refresh...
+[AuthService] ForceRefreshTokenAsync called
+[AuthService] LoadTokens: Cache empty, reading file: /Users/rayn_gosling/Library/Application Support/CloudNotes/tokens.json
+[AuthService] LoadTokens: Loaded from file and cached. Email=demo@example.com
+[AuthService] Current token expires at: 2026-02-01T06:43:33.7074968Z
+[AuthService] TryRefreshTokensAsync: Calling API refresh endpoint
+[AuthHandler] Skipping auth endpoint: /api/auth/refresh
+[AuthService] SaveTokens: Email=demo@example.com, ExpiresAt=2026-02-01T06:43:33.7356100Z
+[AuthService] SaveTokens: CACHED in memory. TokenLen=571
+[AuthService] Saved last user email: demo@example.com
+[AuthService] SaveTokens: Written to file
+[AuthService] Force refresh SUCCESS. New token expires at: 2026-02-01T06:43:33.7356100Z (571 chars)
+[AuthHandler] Token refreshed, retrying request with new token (571 chars)
+[SyncService]   Update CONFLICT: server version is newer
+[SyncService] Uploading changes for 'odd_sum' ServerId=f91fc564-4c7e-4d05-9d95-010f24f3d645
+[SyncService]   Content length: 21 chars
+[SyncService]   Sending update: Title='odd_sum', ContentLen=21
+[AuthService] GetAccessTokenAsync called
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] Token loaded. Email=demo@example.com, ExpiresAt=2026-02-01T06:43:33.7356100Z, TokenLen=571
+[AuthService] Now(UTC)=2026-02-01T05:43:33.7409300Z, NeedsRefresh=False
+[AuthService] Returning token (571 chars)
+[AuthHandler] Request to http://5.129.221.139:5015/api/notes/f91fc564-4c7e-4d05-9d95-010f24f3d645
+[AuthHandler] AccessToken: present (571 chars)
+[AuthHandler] Got 401 Unauthorized, attempting force token refresh...
+[AuthService] ForceRefreshTokenAsync called
+[AuthService] LoadTokens: Cache empty, reading file: /Users/rayn_gosling/Library/Application Support/CloudNotes/tokens.json
+[AuthService] LoadTokens: Loaded from file and cached. Email=demo@example.com
+[AuthService] Current token expires at: 2026-02-01T06:43:33.7356100Z
+[AuthService] TryRefreshTokensAsync: Calling API refresh endpoint
+[AuthHandler] Skipping auth endpoint: /api/auth/refresh
+[AuthService] SaveTokens: Email=demo@example.com, ExpiresAt=2026-02-01T06:43:33.7684277Z
+[AuthService] SaveTokens: CACHED in memory. TokenLen=571
+[AuthService] Saved last user email: demo@example.com
+[AuthService] SaveTokens: Written to file
+[AuthService] Force refresh SUCCESS. New token expires at: 2026-02-01T06:43:33.7684277Z (571 chars)
+[AuthHandler] Token refreshed, retrying request with new token (571 chars)
+[SyncService]   Update CONFLICT: server version is newer
+[SyncService] Uploading changes for 'mult' ServerId=1ca9c605-06c0-4e91-8fbc-cd7cede83bd1
+[SyncService]   Content length: 23 chars
+[SyncService]   Sending update: Title='mult', ContentLen=23
+[AuthService] GetAccessTokenAsync called
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] Token loaded. Email=demo@example.com, ExpiresAt=2026-02-01T06:43:33.7684277Z, TokenLen=571
+[AuthService] Now(UTC)=2026-02-01T05:43:33.7739410Z, NeedsRefresh=False
+[AuthService] Returning token (571 chars)
+[AuthHandler] Request to http://5.129.221.139:5015/api/notes/1ca9c605-06c0-4e91-8fbc-cd7cede83bd1
+[AuthHandler] AccessToken: present (571 chars)
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthHandler] Got 401 Unauthorized, attempting force token refresh...
+[AuthService] ForceRefreshTokenAsync called
+[AuthService] LoadTokens: Cache empty, reading file: /Users/rayn_gosling/Library/Application Support/CloudNotes/tokens.json
+[AuthService] LoadTokens: Loaded from file and cached. Email=demo@example.com
+[AuthService] Current token expires at: 2026-02-01T06:43:33.7684277Z
+[AuthService] TryRefreshTokensAsync: Calling API refresh endpoint
+[AuthHandler] Skipping auth endpoint: /api/auth/refresh
+[AuthService] SaveTokens: Email=demo@example.com, ExpiresAt=2026-02-01T06:43:33.7998863Z
+[AuthService] SaveTokens: CACHED in memory. TokenLen=571
+[AuthService] Saved last user email: demo@example.com
+[AuthService] SaveTokens: Written to file
+[AuthService] Force refresh SUCCESS. New token expires at: 2026-02-01T06:43:33.7998863Z (571 chars)
+[AuthHandler] Token refreshed, retrying request with new token (571 chars)
+[SyncService]   Update CONFLICT: server version is newer
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] GetAccessTokenAsync called
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] Token loaded. Email=demo@example.com, ExpiresAt=2026-02-01T06:43:33.7998863Z, TokenLen=571
+[AuthService] Now(UTC)=2026-02-01T05:43:33.8005290Z, NeedsRefresh=False
+[AuthService] Returning token (571 chars)
+[AuthHandler] Request to http://5.129.221.139:5015/api/folders
+[AuthHandler] AccessToken: present (571 chars)
+[AuthHandler] Got 401 Unauthorized, attempting force token refresh...
+[AuthService] ForceRefreshTokenAsync called
+[AuthService] LoadTokens: Cache empty, reading file: /Users/rayn_gosling/Library/Application Support/CloudNotes/tokens.json
+[AuthService] LoadTokens: Loaded from file and cached. Email=demo@example.com
+[AuthService] Current token expires at: 2026-02-01T06:43:33.7998863Z
+[AuthService] TryRefreshTokensAsync: Calling API refresh endpoint
+[AuthHandler] Skipping auth endpoint: /api/auth/refresh
+[AuthService] SaveTokens: Email=demo@example.com, ExpiresAt=2026-02-01T06:43:33.8255905Z
+[AuthService] SaveTokens: CACHED in memory. TokenLen=571
+[AuthService] Saved last user email: demo@example.com
+[AuthService] SaveTokens: Written to file
+[AuthService] Force refresh SUCCESS. New token expires at: 2026-02-01T06:43:33.8255905Z (571 chars)
+[AuthHandler] Token refreshed, retrying request with new token (571 chars)
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AutoSave-Tree] Switching. Current selectedNote=, isGuestMode=False
+[Logout] Starting logout process...
+[Logout] Saving current note 'even_sum' before sync...
+[NoteService] UpdateNoteInternalAsync called: noteId=24649667-7628-4b7a-aa18-09a0f6a03dff, fromSync=False
+[NoteService] Found note 'even_sum', hasServerId=True, existingIsSynced=False
+[NoteService] Local change detected, setting IsSynced=false
+[Logout] Current note saved successfully
+[Logout] Syncing local changes before logout...
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] GetAccessTokenAsync called
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] Token loaded. Email=demo@example.com, ExpiresAt=2026-02-01T06:43:33.8255905Z, TokenLen=571
+[AuthService] Now(UTC)=2026-02-01T05:43:40.2902320Z, NeedsRefresh=False
+[AuthService] Returning token (571 chars)
+[AuthHandler] Request to http://5.129.221.139:5015/api/notes
+[AuthHandler] AccessToken: present (571 chars)
+[AuthHandler] Got 401 Unauthorized, attempting force token refresh...
+[AuthService] ForceRefreshTokenAsync called
+[AuthService] LoadTokens: Cache empty, reading file: /Users/rayn_gosling/Library/Application Support/CloudNotes/tokens.json
+[AuthService] LoadTokens: Loaded from file and cached. Email=demo@example.com
+[AuthService] Current token expires at: 2026-02-01T06:43:33.8255905Z
+[AuthService] TryRefreshTokensAsync: Calling API refresh endpoint
+[AuthHandler] Skipping auth endpoint: /api/auth/refresh
+[AuthService] SaveTokens: Email=demo@example.com, ExpiresAt=2026-02-01T06:43:40.3197592Z
+[AuthService] SaveTokens: CACHED in memory. TokenLen=571
+[AuthService] Saved last user email: demo@example.com
+[AuthService] SaveTokens: Written to file
+[AuthService] Force refresh SUCCESS. New token expires at: 2026-02-01T06:43:40.3197592Z (571 chars)
+[AuthHandler] Token refreshed, retrying request with new token (571 chars)
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[SyncService] Server notes: 5
+[SyncService]   Server: 'Second note' Id=6ba3fdbb-7fc5-4605-89b4-a52b8252e85b
+[SyncService]   Server: 'Welcome note' Id=0d285cd9-ff5f-44da-aa82-f39b8e319879
+[SyncService]   Server: 'odd_sum' Id=f91fc564-4c7e-4d05-9d95-010f24f3d645
+[SyncService]   Server: 'mult' Id=1ca9c605-06c0-4e91-8fbc-cd7cede83bd1
+[SyncService]   Server: 'even_sum' Id=24649667-7628-4b7a-aa18-09a0f6a03dff
+[SyncService] Local notes: 5
+[SyncService]   Local: 'even_sum' Id=24649667-7628-4b7a-aa18-09a0f6a03dff, ServerId=24649667-7628-4b7a-aa18-09a0f6a03dff, IsSynced=False
+[SyncService]   Local: 'odd_sum' Id=f91fc564-4c7e-4d05-9d95-010f24f3d645, ServerId=f91fc564-4c7e-4d05-9d95-010f24f3d645, IsSynced=False
+[SyncService]   Local: 'mult' Id=0b28c40b-837c-4669-a08e-c24f4d644ed4, ServerId=1ca9c605-06c0-4e91-8fbc-cd7cede83bd1, IsSynced=False
+[SyncService]   Local: 'Welcome note' Id=dc5fb519-d89a-446d-8516-e2044940e19a, ServerId=0d285cd9-ff5f-44da-aa82-f39b8e319879, IsSynced=True
+[SyncService]   Local: 'Second note' Id=93774f1e-09e9-4cb3-b776-324ea964fc1a, ServerId=6ba3fdbb-7fc5-4605-89b4-a52b8252e85b, IsSynced=True
+[SyncService] Processing server note 'Second note' Id=6ba3fdbb-7fc5-4605-89b4-a52b8252e85b, found local: True
+[SyncService]   Matched with local 'Second note' Id=93774f1e-09e9-4cb3-b776-324ea964fc1a, ServerId=6ba3fdbb-7fc5-4605-89b4-a52b8252e85b
+[SyncService]   Comparing dates: server=2026-02-01T05:36:51.2715740Z vs local=2026-02-01T05:43:16.9800450, localIsSynced=True
+[SyncService] Processing server note 'Welcome note' Id=0d285cd9-ff5f-44da-aa82-f39b8e319879, found local: True
+[SyncService]   Matched with local 'Welcome note' Id=dc5fb519-d89a-446d-8516-e2044940e19a, ServerId=0d285cd9-ff5f-44da-aa82-f39b8e319879
+[SyncService]   Comparing dates: server=2026-02-01T05:36:51.2118590Z vs local=2026-02-01T05:36:51.2241570, localIsSynced=True
+[SyncService] Processing server note 'odd_sum' Id=f91fc564-4c7e-4d05-9d95-010f24f3d645, found local: True
+[SyncService]   Matched with local 'odd_sum' Id=f91fc564-4c7e-4d05-9d95-010f24f3d645, ServerId=f91fc564-4c7e-4d05-9d95-010f24f3d645
+[SyncService]   Comparing dates: server=2026-02-01T05:34:56.6191810Z vs local=2026-02-01T05:34:54.5030340, localIsSynced=False
+[SyncService]   Local note has unsaved changes, will upload to server later
+[SyncService] Processing server note 'mult' Id=1ca9c605-06c0-4e91-8fbc-cd7cede83bd1, found local: True
+[SyncService]   Matched with local 'mult' Id=0b28c40b-837c-4669-a08e-c24f4d644ed4, ServerId=1ca9c605-06c0-4e91-8fbc-cd7cede83bd1
+[SyncService]   Comparing dates: server=2026-02-01T05:34:53.2973230Z vs local=2026-02-01T05:34:53.1330660, localIsSynced=False
+[SyncService]   Local note has unsaved changes, will upload to server later
+[SyncService] Processing server note 'even_sum' Id=24649667-7628-4b7a-aa18-09a0f6a03dff, found local: True
+[SyncService]   Matched with local 'even_sum' Id=24649667-7628-4b7a-aa18-09a0f6a03dff, ServerId=24649667-7628-4b7a-aa18-09a0f6a03dff
+[SyncService]   Comparing dates: server=2026-02-01T05:34:53.2104480Z vs local=2026-02-01T05:43:40.2802250, localIsSynced=False
+[SyncService]   Local note has unsaved changes, will upload to server later
+[SyncService] Found 3 unsynced notes to upload
+[SyncService]   - 'even_sum' Id=24649667-7628-4b7a-aa18-09a0f6a03dff, ServerId=24649667-7628-4b7a-aa18-09a0f6a03dff, IsSynced=False
+[SyncService]   - 'odd_sum' Id=f91fc564-4c7e-4d05-9d95-010f24f3d645, ServerId=f91fc564-4c7e-4d05-9d95-010f24f3d645, IsSynced=False
+[SyncService]   - 'mult' Id=0b28c40b-837c-4669-a08e-c24f4d644ed4, ServerId=1ca9c605-06c0-4e91-8fbc-cd7cede83bd1, IsSynced=False
+[SyncService] Uploading changes for 'even_sum' ServerId=24649667-7628-4b7a-aa18-09a0f6a03dff
+[SyncService]   Content length: 45 chars
+[SyncService]   Sending update: Title='even_sum', ContentLen=45
+[AuthService] GetAccessTokenAsync called
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] Token loaded. Email=demo@example.com, ExpiresAt=2026-02-01T06:43:40.3197592Z, TokenLen=571
+[AuthService] Now(UTC)=2026-02-01T05:43:40.3273800Z, NeedsRefresh=False
+[AuthService] Returning token (571 chars)
+[AuthHandler] Request to http://5.129.221.139:5015/api/notes/24649667-7628-4b7a-aa18-09a0f6a03dff
+[AuthHandler] AccessToken: present (571 chars)
+[AuthHandler] Got 401 Unauthorized, attempting force token refresh...
+[AuthService] ForceRefreshTokenAsync called
+[AuthService] LoadTokens: Cache empty, reading file: /Users/rayn_gosling/Library/Application Support/CloudNotes/tokens.json
+[AuthService] LoadTokens: Loaded from file and cached. Email=demo@example.com
+[AuthService] Current token expires at: 2026-02-01T06:43:40.3197592Z
+[AuthService] TryRefreshTokensAsync: Calling API refresh endpoint
+[AuthHandler] Skipping auth endpoint: /api/auth/refresh
+[AuthService] SaveTokens: Email=demo@example.com, ExpiresAt=2026-02-01T06:43:40.3550760Z
+[AuthService] SaveTokens: CACHED in memory. TokenLen=571
+[AuthService] Saved last user email: demo@example.com
+[AuthService] SaveTokens: Written to file
+[AuthService] Force refresh SUCCESS. New token expires at: 2026-02-01T06:43:40.3550760Z (571 chars)
+[AuthHandler] Token refreshed, retrying request with new token (571 chars)
+[SyncService] Uploading changes for 'odd_sum' ServerId=f91fc564-4c7e-4d05-9d95-010f24f3d645
+[SyncService]   Content length: 21 chars
+[SyncService]   Sending update: Title='odd_sum', ContentLen=21
+[AuthService] GetAccessTokenAsync called
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] Token loaded. Email=demo@example.com, ExpiresAt=2026-02-01T06:43:40.3550760Z, TokenLen=571
+[AuthService] Now(UTC)=2026-02-01T05:43:40.3658530Z, NeedsRefresh=False
+[AuthService] Returning token (571 chars)
+[AuthHandler] Request to http://5.129.221.139:5015/api/notes/f91fc564-4c7e-4d05-9d95-010f24f3d645
+[AuthHandler] AccessToken: present (571 chars)
+[AuthHandler] Got 401 Unauthorized, attempting force token refresh...
+[AuthService] ForceRefreshTokenAsync called
+[AuthService] LoadTokens: Cache empty, reading file: /Users/rayn_gosling/Library/Application Support/CloudNotes/tokens.json
+[AuthService] LoadTokens: Loaded from file and cached. Email=demo@example.com
+[AuthService] Current token expires at: 2026-02-01T06:43:40.3550760Z
+[AuthService] TryRefreshTokensAsync: Calling API refresh endpoint
+[AuthHandler] Skipping auth endpoint: /api/auth/refresh
+[AuthService] SaveTokens: Email=demo@example.com, ExpiresAt=2026-02-01T06:43:40.3939548Z
+[AuthService] SaveTokens: CACHED in memory. TokenLen=571
+[AuthService] Saved last user email: demo@example.com
+[AuthService] SaveTokens: Written to file
+[AuthService] Force refresh SUCCESS. New token expires at: 2026-02-01T06:43:40.3939548Z (571 chars)
+[AuthHandler] Token refreshed, retrying request with new token (571 chars)
+[SyncService]   Update CONFLICT: server version is newer
+[SyncService] Uploading changes for 'mult' ServerId=1ca9c605-06c0-4e91-8fbc-cd7cede83bd1
+[SyncService]   Content length: 23 chars
+[SyncService]   Sending update: Title='mult', ContentLen=23
+[AuthService] GetAccessTokenAsync called
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] Token loaded. Email=demo@example.com, ExpiresAt=2026-02-01T06:43:40.3939548Z, TokenLen=571
+[AuthService] Now(UTC)=2026-02-01T05:43:40.3970860Z, NeedsRefresh=False
+[AuthService] Returning token (571 chars)
+[AuthHandler] Request to http://5.129.221.139:5015/api/notes/1ca9c605-06c0-4e91-8fbc-cd7cede83bd1
+[AuthHandler] AccessToken: present (571 chars)
+[AuthHandler] Got 401 Unauthorized, attempting force token refresh...
+[AuthService] ForceRefreshTokenAsync called
+[AuthService] LoadTokens: Cache empty, reading file: /Users/rayn_gosling/Library/Application Support/CloudNotes/tokens.json
+[AuthService] LoadTokens: Loaded from file and cached. Email=demo@example.com
+[AuthService] Current token expires at: 2026-02-01T06:43:40.3939548Z
+[AuthService] TryRefreshTokensAsync: Calling API refresh endpoint
+[AuthHandler] Skipping auth endpoint: /api/auth/refresh
+[AuthService] SaveTokens: Email=demo@example.com, ExpiresAt=2026-02-01T06:43:40.4306720Z
+[AuthService] SaveTokens: CACHED in memory. TokenLen=571
+[AuthService] Saved last user email: demo@example.com
+[AuthService] SaveTokens: Written to file
+[AuthService] Force refresh SUCCESS. New token expires at: 2026-02-01T06:43:40.4306720Z (571 chars)
+[AuthHandler] Token refreshed, retrying request with new token (571 chars)
+[SyncService]   Update CONFLICT: server version is newer
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] GetAccessTokenAsync called
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] Token loaded. Email=demo@example.com, ExpiresAt=2026-02-01T06:43:40.4306720Z, TokenLen=571
+[AuthService] Now(UTC)=2026-02-01T05:43:40.4643190Z, NeedsRefresh=False
+[AuthService] Returning token (571 chars)
+[AuthHandler] Request to http://5.129.221.139:5015/api/folders
+[AuthHandler] AccessToken: present (571 chars)
+[AuthHandler] Got 401 Unauthorized, attempting force token refresh...
+[AuthService] ForceRefreshTokenAsync called
+[AuthService] LoadTokens: Cache empty, reading file: /Users/rayn_gosling/Library/Application Support/CloudNotes/tokens.json
+[AuthService] LoadTokens: Loaded from file and cached. Email=demo@example.com
+[AuthService] Current token expires at: 2026-02-01T06:43:40.4306720Z
+[AuthService] TryRefreshTokensAsync: Calling API refresh endpoint
+[AuthHandler] Skipping auth endpoint: /api/auth/refresh
+[AuthService] SaveTokens: Email=demo@example.com, ExpiresAt=2026-02-01T06:43:40.4896753Z
+[AuthService] SaveTokens: CACHED in memory. TokenLen=571
+[AuthService] Saved last user email: demo@example.com
+[AuthService] SaveTokens: Written to file
+[AuthService] Force refresh SUCCESS. New token expires at: 2026-02-01T06:43:40.4896753Z (571 chars)
+[AuthHandler] Token refreshed, retrying request with new token (571 chars)
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[Logout] Sync completed: SUCCESS
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] GetAccessTokenAsync called
+[AuthService] LoadTokens: FROM CACHE. Email=demo@example.com
+[AuthService] Token loaded. Email=demo@example.com, ExpiresAt=2026-02-01T06:43:40.4896753Z, TokenLen=571
+[AuthService] Now(UTC)=2026-02-01T05:43:40.4937610Z, NeedsRefresh=False
+[AuthService] Returning token (571 chars)
+[AuthHandler] Request to http://5.129.221.139:5015/api/auth/logout
+[AuthHandler] AccessToken: present (571 chars)
+[AuthHandler] Authorization header ADDED
+[AuthService] LoadTokens: Cache empty, reading file: /Users/rayn_gosling/Library/Application Support/CloudNotes/tokens.json
+[AuthService] LoadTokens: File does not exist
+[AutoSave-Tree] Switching. Current selectedNote=, isGuestMode=True
+[Logout] Logout completed
